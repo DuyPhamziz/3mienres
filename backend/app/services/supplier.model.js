@@ -1,0 +1,34 @@
+const mongoose = require("mongoose");
+
+const supplierSchema = new mongoose.Schema(
+  {
+    name: {
+      type: String,
+      required: [true, "Tên nhà cung cấp là bắt buộc"],
+      trim: true,
+    },
+    phone: {
+      type: String,
+      required: [true, "Số điện thoại nhà cung cấp là bắt buộc"],
+      trim: true,
+    },
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    address: {
+      type: String,
+      required: [true, "Địa chỉ nhà cung cấp là bắt buộc"],
+      trim: true,
+    },
+    status: {
+      type: String,
+      enum: ["active", "inactive"],
+      default: "active", // Trạng thái hợp tác
+    },
+  },
+  { timestamps: true },
+);
+
+module.exports = mongoose.model("Supplier", supplierSchema);
