@@ -35,13 +35,12 @@ const userSchema = new mongoose.Schema(
 
 // Middleware (hook) của Mongoose: Tự động chay trước khi lưu User vào database
 
-userSchema.pre("save", async function (next) {
+userSchema.pre("save", async function () {
   // nếu password không được thay đổi (ví dụ khi cập nhật thông tin người dùng mà không thay đổi mật khẩu), thì không cần hash lại
   if (!this.isModified("password")) {
-    return next();
+    return;
   }
   this.password = await bcrypt.hash(this.password, 12); // Hash mật khẩu với salt rounds = 12
-  next();
 });
 // hàm hổ trợ (method) để so sánh mật khẩu khi đăng nhập
 userSchema.methods.comparePassword = async function (candidatePassword) {

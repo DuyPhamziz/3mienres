@@ -2,14 +2,14 @@ const express = require("express");
 const cors = require("cors");
 const AppError = require("./app/app-error");
 const morgan = require("morgan");
-
+const authRouter = require("./app/routes/auth.routes");
 // 1. Cài đặt các middleware cho dự án
 const app = express();
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
+app.use("/api/auth", authRouter);
 // 2. Định nghĩa các route của dự án
 app.get("/", (req, res) => {
   res.json({ message: "Chào mừng bạn đến với nhà hàng 3 miền" });
