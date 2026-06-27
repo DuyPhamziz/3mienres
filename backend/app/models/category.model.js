@@ -8,9 +8,22 @@ const categorySchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    slug: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
     description: {
       type: String,
       trim: true,
+    },
+    image: {
+      type: String,
+      default: "default-category.jpg",
+    },
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true },

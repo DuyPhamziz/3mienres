@@ -17,6 +17,16 @@ const tableSchema = new mongoose.Schema(
       enum: ["available", "occupied", "reserved"],
       default: "available",
     },
+    type: {
+      type: String,
+      enum: ["normal", "vip", "outdoor"],
+      default: "normal",
+    },
+    branch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: [true, "Bàn ăn phải thuộc về một chi nhánh cụ thể"],
+    },
   },
   { timestamps: true },
 );

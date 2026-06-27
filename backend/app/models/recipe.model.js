@@ -22,6 +22,10 @@ const recipeSchema = new mongoose.Schema(
         },
       },
     ],
+    instructions: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true },
 );

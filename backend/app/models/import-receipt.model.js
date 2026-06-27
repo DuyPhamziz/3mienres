@@ -12,6 +12,11 @@ const importReceiptSchema = new mongoose.Schema(
       ref: "User", // Nhân viên/Manager thực hiện nhập kho
       required: [true, "Phải có người thực hiện lập phiếu nhập"],
     },
+    receiptCode: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
     ingredients: [
       {
         ingredient: {

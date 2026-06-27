@@ -7,6 +7,16 @@ const orderSchema = new mongoose.Schema(
       ref: "User",
       default: null,
     },
+    branch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: [true, "Đơn hàng giao về phải thuộc về một chi nhánh cụ thể"],
+    },
+    orderCode: {
+      type: String,
+      unique: true,
+      trim: true,
+    },
     customerName: {
       type: String,
       required: true,
@@ -46,7 +56,21 @@ const orderSchema = new mongoose.Schema(
     },
     shippingFee: {
       type: Number,
-      default: 15000, // Phí ship mặc định
+      default: 15000,
+    },
+    coupon: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Coupon",
+      default: null,
+    },
+    discountAmount: {
+      type: Number,
+      default: 0,
+      min: [0, "Số tiền giảm giá không được âm"],
+    },
+    finalAmount: {
+      type: Number,
+      required: true,
     },
     paymentMethod: {
       type: String,
@@ -62,6 +86,10 @@ const orderSchema = new mongoose.Schema(
       type: String,
       enum: ["pending", "preparing", "shipping", "delivered", "cancelled"],
       default: "pending",
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
     },
     notes: {
       type: String,

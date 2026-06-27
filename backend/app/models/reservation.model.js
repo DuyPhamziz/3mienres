@@ -11,7 +11,17 @@ const reservationSchema = new mongoose.Schema(
     table: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Table",
-      default: null, // Ban đầu chưa có bàn xếp, sẽ được Quản lý xếp khi duyệt đơn
+      default: null,
+    },
+    branch: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Branch",
+      required: [true, "Đơn đặt bàn phải thuộc về một chi nhánh cụ thể"],
+    },
+    reservationCode: {
+      type: String,
+      unique: true,
+      trim: true,
     },
     // Thông tin khách hàng đặt bàn (bắt buộc cho cả khách thành viên và khách vãng lai)
     customerName: {
@@ -76,13 +86,17 @@ const reservationSchema = new mongoose.Schema(
     },
     paymentStatus: {
       type: String,
-      enum: ["unpaid", "paid"], // 'unpaid': chưa trả, 'paid': đã đóng cọc/đầy đủ
+      enum: ["unpaid", "deposited", "fully_paid"], // 'unpaid': chưa trả, 'deposited': đã đóng cọc, 'fully_paid': đã thanh toán đầy đủ
       default: "unpaid",
     },
     status: {
       type: String,
       enum: ["pending", "confirmed", "completed", "cancelled"],
-      default: "pending", // 'pending': Đang chờ duyệt, 'confirmed': Quản lý đã xác nhận, 'completed': Đã ăn xong, 'cancelled': Đã hủy đơn
+      default: "pending",
+    },
+    cancellationReason: {
+      type: String,
+      trim: true,
     },
     notes: {
       type: String,

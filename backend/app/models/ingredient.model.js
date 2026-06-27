@@ -8,6 +8,11 @@ const ingredientSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    category: {
+      type: String,
+      enum: ["meat", "vegetable", "drink", "spice", "other"],
+      default: "other",
+    },
     unit: {
       type: String,
       required: [true, "Đơn vị tính là bắt buộc (ví dụ: kg, lít, quả, chai)"],

@@ -23,6 +23,10 @@ const reviewSchema = new mongoose.Schema(
       required: [true, "Vui lòng nhập bình luận nhận xét"],
       trim: true,
     },
+    images: {
+      type: [String],
+      default: [],
+    },
   },
   { timestamps: true },
 );

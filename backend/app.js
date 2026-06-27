@@ -5,7 +5,10 @@ const morgan = require("morgan");
 const authRouter = require("./app/routes/auth.routes");
 const dishRouter = require("./app/routes/dish.routes");
 const categoryRouter = require("./app/routes/category.routes");
-
+const tableRouter = require("./app/routes/table.routes");
+const reservationRouter = require("./app/routes/reservation.routes");
+const ingredientRouter = require("./app/routes/ingredient.routes");
+const recipeRouter = require("./app/routes/recipe.routes");
 // 1. Cài đặt các middleware cho dự án
 const app = express();
 app.use(cors());
@@ -15,6 +18,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use("/api/auth", authRouter);
 app.use("/api/dishes", dishRouter);
 app.use("/api/categories", categoryRouter);
+app.use("/api/tables", tableRouter);
+app.use("/api/reservations", reservationRouter);
+app.use("/api/ingredients", ingredientRouter);
+app.use("/api/recipes", recipeRouter);
 // 2. Định nghĩa các route của dự án
 app.get("/", (req, res) => {
   res.json({ message: "Chào mừng bạn đến với nhà hàng 3 miền" });

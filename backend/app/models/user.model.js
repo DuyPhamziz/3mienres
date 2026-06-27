@@ -29,6 +29,26 @@ const userSchema = new mongoose.Schema(
       required: [true, "Số điện thoại là bắt buộc"],
       unique: true,
     },
+    avatar: {
+      type: String,
+      default: "default-avatar.png",
+    },
+    addresses: [
+      {
+        title: { type: String, trim: true },
+        addressDetail: { type: String, trim: true },
+        ward: { type: String, trim: true },
+        district: { type: String, trim: true },
+        city: { type: String, trim: true },
+        isDefault: { type: Boolean, default: false },
+      }
+    ],
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
+    passwordResetToken: String,
+    passwordResetExpires: Date,
   },
   { timestamps: true },
 ); // Tự động tạo trường createdAt và updatedAt
