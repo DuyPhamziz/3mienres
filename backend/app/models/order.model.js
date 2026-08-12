@@ -1,38 +1,29 @@
+// Ý nghĩa nghiệp vụ:
+// diningSession: Thuộc về lượt dùng bữa nào.
+// items: Danh sách các món gọi trong đợt này (dish, quantity, price, notes).
+// status: PENDING (Chờ bếp nhận), PREPARING (Bếp đang nấu), SERVED (Đã mang ra bàn), CANCELLED (Hủy món).
 const mongoose = require("mongoose");
 
 const orderSchema = new mongoose.Schema(
   {
-    user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      default: null,
-    },
-    branch: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Branch",
-      required: [true, "Đơn hàng giao về phải thuộc về một chi nhánh cụ thể"],
-    },
     orderCode: {
       type: String,
+      required: true,
       unique: true,
       trim: true,
+      uppercase: true, // Ví dụ: ORD-102938
     },
-    customerName: {
-      type: String,
-      required: true,
-      trim: true,
+    // Gắn trực tiếp vào lượt dùng bữa tại bàn
+    diningSession: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "DiningSession",
+      required: [
+        true,
+        "Order phải thuộc về một lượt dùng bữa (DiningSession) cụ thể",
+      ],
     },
-    customerPhone: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    shippingAddress: {
-      type: String,
-      required: true,
-      trim: true,
-    },
-    dishes: [
+    // Danh sách món gọi trong đợt này
+    items: [
       {
         dish: {
           type: mongoose.Schema.Types.ObjectId,
@@ -42,54 +33,32 @@ const orderSchema = new mongoose.Schema(
         quantity: {
           type: Number,
           required: true,
-          min: 1,
+          min: [1, "Số lượng món gọi tối thiểu là 1"],
         },
-        priceAtBooking: {
+        price: {
           type: Number,
           required: true,
+          min: [0, "Giá món ăn không được âm"],
+        },
+        notes: {
+          type: String,
+          trim: true, // Ví dụ: "Ít cay, không hành"
         },
       },
     ],
-    totalAmount: {
+    subtotal: {
       type: Number,
       required: true,
-    },
-    shippingFee: {
-      type: Number,
-      default: 15000,
-    },
-    coupon: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Coupon",
-      default: null,
-    },
-    discountAmount: {
-      type: Number,
-      default: 0,
-      min: [0, "Số tiền giảm giá không được âm"],
-    },
-    finalAmount: {
-      type: Number,
-      required: true,
-    },
-    paymentMethod: {
-      type: String,
-      enum: ["COD", "online"],
-      default: "COD",
-    },
-    paymentStatus: {
-      type: String,
-      enum: ["unpaid", "paid"],
-      default: "unpaid",
+      default: 0, // Tổng tiền của đợt gọi món này
     },
     status: {
       type: String,
-      enum: ["pending", "preparing", "shipping", "delivered", "cancelled"],
-      default: "pending",
+      enum: ["PENDING", "PREPARING", "SERVED", "CANCELLED"],
+      default: "PENDING",
     },
-    cancellationReason: {
-      type: String,
-      trim: true,
+    orderedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Nhân viên ghi order hoặc khách hàng
     },
     notes: {
       type: String,

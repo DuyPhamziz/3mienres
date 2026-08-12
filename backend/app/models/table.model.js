@@ -1,31 +1,33 @@
 const mongoose = require("mongoose");
+
 const tableSchema = new mongoose.Schema(
   {
-    name: {
+    tableNumber: {
       type: String,
-      required: [true, "Tên bàn là bắt buộc"],
-      trim: true,
+      required: [true, "Số bàn / Mã bàn là bắt buộc (Ví dụ: B01, B02, VIP01)"],
       unique: true,
+      trim: true,
+      uppercase: true,
     },
     capacity: {
       type: Number,
-      required: [true, "Sức chứa của bàn là bắt buộc"],
-      min: [1, "Sức chứa của bàn phải lớn hơn 0"],
+      required: [true, "Sức chứa tiêu chuẩn của bàn là bắt buộc"],
+      min: [1, "Sức chứa tối thiểu là 1 người"],
+      max: [20, "Một bàn đơn không được vượt quá 20 người"],
+    },
+    area: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Area",
+      required: [true, "Bàn phải thuộc về một Khu vực cụ thể"],
     },
     status: {
       type: String,
-      enum: ["available", "occupied", "reserved"],
-      default: "available",
+      enum: ["AVAILABLE", "RESERVED", "OCCUPIED", "MAINTENANCE"],
+      default: "AVAILABLE",
     },
-    type: {
-      type: String,
-      enum: ["normal", "vip", "outdoor"],
-      default: "normal",
-    },
-    branch: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Branch",
-      required: [true, "Bàn ăn phải thuộc về một chi nhánh cụ thể"],
+    isActive: {
+      type: Boolean,
+      default: true,
     },
   },
   { timestamps: true },
