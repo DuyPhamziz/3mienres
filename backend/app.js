@@ -9,6 +9,9 @@ const tableRouter = require("./app/routes/table.routes");
 const reservationRouter = require("./app/routes/reservation.routes");
 const ingredientRouter = require("./app/routes/ingredient.routes");
 const recipeRouter = require("./app/routes/recipe.routes");
+const areaRouter = require("./app/routes/area.routes");
+const tableConnectionRouter = require("./app/routes/table-connection.routes");
+const diningSessionRouter = require("./app/routes/dining-session.routes");
 // 1. Cài đặt các middleware cho dự án
 const app = express();
 app.use(cors());
@@ -22,6 +25,9 @@ app.use("/api/tables", tableRouter);
 app.use("/api/reservations", reservationRouter);
 app.use("/api/ingredients", ingredientRouter);
 app.use("/api/recipes", recipeRouter);
+app.use("/api/areas", areaRouter);
+app.use("/api/table-connections", tableConnectionRouter);
+app.use("/api/dining-sessions", diningSessionRouter);
 // 2. Định nghĩa các route của dự án
 app.get("/", (req, res) => {
   res.json({ message: "Chào mừng bạn đến với nhà hàng 3 miền" });
