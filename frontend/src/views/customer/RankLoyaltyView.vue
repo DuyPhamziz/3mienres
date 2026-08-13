@@ -138,8 +138,8 @@
 
         <div v-else-if="myRankData" class="mt-4 pt-3 border-top text-center">
           <span class="badge bg-success px-4 py-2 rounded-pill fw-bold fs-7">
-            <i class="fa-solid fa-gem me-1"></i>
-            {{ langStore.isEnglish ? '🏆 Highest Rank — Diamond Member!' : '🏆 Hạng Cao Nhất — Thành Viên Kim Cương!' }}
+            <i class="fa-solid fa-trophy text-warning me-1"></i>
+            {{ langStore.isEnglish ? 'Highest Rank — Diamond Member!' : 'Hạng Cao Nhất — Thành Viên Kim Cương!' }}
           </span>
         </div>
       </div>

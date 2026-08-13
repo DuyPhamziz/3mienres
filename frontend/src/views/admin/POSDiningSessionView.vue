@@ -414,10 +414,10 @@ const dishStatusBadge = (s) => ({
 })[s] || "bg-secondary text-white";
 
 const dishStatusText = (s) => ({
-  PENDING: "🟡 Chờ Bếp Nhận",
-  PREPARING: "🟠 Bếp Đang Nấu",
-  SERVED: "🟢 Đã Ra Bàn",
-  CANCELLED: "🔴 Đã Hủy Món",
+  PENDING: "Chờ Bếp Nhận",
+  PREPARING: "Bếp Đang Nấu",
+  SERVED: "Đã Ra Bàn",
+  CANCELLED: "Đã Hủy Món",
 })[s] || s;
 
 const changeTableForm = reactive({ tableIds: [] });

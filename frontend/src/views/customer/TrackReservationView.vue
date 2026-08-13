@@ -133,8 +133,8 @@
                       </div>
                       <small :class="r.deposit.status === 'PAID' ? 'text-success' : 'text-warning'" class="fw-semibold">
                         {{ r.deposit.status === 'PAID'
-                            ? (langStore.isEnglish ? '✓ Deposit Confirmed' : '✓ Đã xác nhận nộp cọc')
-                            : (langStore.isEnglish ? '⏳ Pending deposit confirmation' : '⏳ Chờ xác nhận cọc') }}
+                            ? (langStore.isEnglish ? 'Deposit Confirmed' : 'Đã xác nhận nộp cọc')
+                            : (langStore.isEnglish ? 'Pending deposit confirmation' : 'Chờ xác nhận cọc') }}
                       </small>
                     </div>
 

@@ -3,10 +3,10 @@
     <div class="container">
       <div class="text-center max-w-2xl mx-auto mb-5">
         <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8">
-          <i class="fa-solid fa-user-gear me-1"></i> TÀI KHOẢN CÁ NHÂN
+          <i class="fa-solid fa-user-gear me-1"></i> {{ langStore.t('profile.badge') }}
         </span>
-        <h1 class="display-5 fw-bold brand-font text-dark">Hồ Sơ Thành Viên</h1>
-        <p class="text-muted small">Quản lý thông tin, địa chỉ, mật khẩu và lịch sử đặt bàn của bạn</p>
+        <h1 class="display-5 fw-bold brand-font text-dark">{{ langStore.t('profile.title') }}</h1>
+        <p class="text-muted small">{{ langStore.t('profile.subtitle') }}</p>
       </div>
 
       <!-- Thẻ thông tin nhanh -->
@@ -18,21 +18,21 @@
             </div>
             <h5 class="fw-bold mb-1">{{ profile.name }}</h5>
             <p class="text-muted small mb-2">{{ profile.email }}</p>
-            <span class="badge bg-danger rounded-pill px-3 py-1">Thành viên</span>
+            <span class="badge bg-danger rounded-pill px-3 py-1">{{ langStore.t('profile.member') }}</span>
           </div>
         </div>
         <div class="col-md-4">
           <div class="glass-card p-4 rounded-4 text-center h-100 bg-white">
             <i class="fa-solid fa-coins fs-3 text-warning mb-2 d-block"></i>
             <h5 class="fw-bold mb-1">{{ (profile.totalSpent || 0).toLocaleString('vi-VN') }}đ</h5>
-            <p class="text-muted small mb-0">Tổng chi tiêu tích lũy</p>
+            <p class="text-muted small mb-0">{{ langStore.t('profile.totalSpent') }}</p>
           </div>
         </div>
         <div class="col-md-4">
           <div class="glass-card p-4 rounded-4 text-center h-100 bg-white">
             <i class="fa-solid fa-calendar-check fs-3 text-danger mb-2 d-block"></i>
             <h5 class="fw-bold mb-1">{{ reservations.length }}</h5>
-            <p class="text-muted small mb-0">Lượt đặt bàn</p>
+            <p class="text-muted small mb-0">{{ langStore.t('profile.bookings') }}</p>
           </div>
         </div>
       </div>
@@ -45,7 +45,7 @@
               @click="activeTab = tab.key"
               :class="['btn rounded-pill px-3', activeTab === tab.key ? 'btn-danger' : 'btn-outline-secondary']"
             >
-              <i :class="tab.icon" class="me-1"></i>{{ tab.label }}
+              <i :class="tab.icon" class="me-1"></i>{{ langStore.t('profile.' + tab.key) }}
             </button>
           </li>
         </ul>
@@ -173,9 +173,11 @@ import { ref, reactive, onMounted } from "vue";
 import api from "../../services/api";
 import { useAuthStore } from "../../stores/authStore";
 import { useReservationStore } from "../../stores/reservationStore";
+import { useLangStore } from "../../stores/langStore";
 import { toast } from "../../composables/useToast";
 
 const authStore = useAuthStore();
+const langStore = useLangStore();
 const reservationStore = useReservationStore();
 
 const activeTab = ref("info");

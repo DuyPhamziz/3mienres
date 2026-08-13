@@ -30,6 +30,7 @@ import PrintInvoiceView from "../views/admin/PrintInvoiceView.vue";
 import VoucherManagerView from "../views/admin/VoucherManagerView.vue";
 import StaffManagerView from "../views/admin/StaffManagerView.vue";
 import AuditLogView from "../views/admin/AuditLogView.vue";
+import SettingsView from "../views/admin/SettingsView.vue";
 
 const routes = [
   {
@@ -62,8 +63,9 @@ const routes = [
       { path: "inventory", name: "admin-inventory", component: InventoryManagerView },
       { path: "suppliers", name: "admin-suppliers", component: SupplierManagerView },
       { path: "vouchers", name: "admin-vouchers", component: VoucherManagerView },
-      { path: "staff", name: "admin-staff", component: StaffManagerView },
-      { path: "audit-logs", name: "admin-audit", component: AuditLogView },
+      { path: "staff", name: "admin-staff", component: StaffManagerView, meta: { roles: ["admin"] } },
+      { path: "audit-logs", name: "admin-audit", component: AuditLogView, meta: { roles: ["admin"] } },
+      { path: "settings", name: "admin-settings", component: SettingsView, meta: { roles: ["admin"] } },
       { path: "invoice/:sessionId", name: "admin-invoice-print", component: PrintInvoiceView },
     ],
   },

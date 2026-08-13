@@ -2,7 +2,7 @@
   <div class="dish-card p-3 border rounded-4 bg-white h-100 d-flex align-items-center justify-content-between gap-2 shadow-sm">
     <div class="d-flex align-items-center gap-3 min-w-0">
       <div class="dish-thumb flex-shrink-0">
-        <img v-if="dish.image && dish.image.startsWith('http')" :src="dish.image" :alt="dish.name" />
+        <img v-if="dish.image && dish.image.startsWith('http')" :src="dish.image" :alt="dish.name" loading="lazy" decoding="async" />
         <i v-else class="fa-solid fa-utensils text-danger"></i>
       </div>
       <div class="min-w-0">

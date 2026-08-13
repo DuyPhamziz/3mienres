@@ -73,5 +73,17 @@ export const useSessionStore = defineStore("session", {
         throw new Error(err.response?.data?.message || "Thanh toán thất bại!");
       }
     },
+    async changeTables(sessionId, newTableIds, reason) {
+      try {
+        const res = await api.patch(`/dining-sessions/${sessionId}/change-tables`, {
+          newTableIds,
+          reason,
+        });
+        await this.fetchActiveSessions();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Đổi bàn / ghép bàn thất bại!");
+      }
+    },
   },
 });

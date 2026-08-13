@@ -3,18 +3,18 @@
     <div class="container">
       <div class="text-center max-w-2xl mx-auto mb-4">
         <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8">
-          <i class="fa-solid fa-qrcode me-1"></i> GỌI MÓN TẠI BÀN
+          <i class="fa-solid fa-qrcode me-1"></i> {{ langStore.t('guestOrder.badge') }}
         </span>
-        <h1 class="display-5 fw-bold brand-font text-dark">Tự Gọi Món 3 Miền Cua</h1>
+        <h1 class="display-5 fw-bold brand-font text-dark">{{ langStore.t('guestOrder.title') }}</h1>
         <p class="text-muted small">
-          Bàn: <strong class="text-danger">{{ sessionCode || '—' }}</strong> — Kéo món thả vào giỏ hoặc bấm + rồi Gửi xuống bếp
+          Bàn: <strong class="text-danger">{{ sessionCode || '—' }}</strong>
         </p>
       </div>
 
       <div v-if="!sessionCode" class="max-w-xl mx-auto glass-card p-5 rounded-5 text-center">
         <i class="fa-solid fa-triangle-exclamation display-4 text-warning mb-3 d-block"></i>
-        <h4 class="fw-bold">Thiếu mã bàn</h4>
-        <p class="text-muted small">Vui lòng quét lại mã QR trên bàn để gọi món.</p>
+        <h4 class="fw-bold">{{ langStore.t('guestOrder.missingTable') }}</h4>
+        <p class="text-muted small">{{ langStore.t('guestOrder.missingTableHint') }}</p>
       </div>
 
       <div v-else class="row g-4">
@@ -53,7 +53,7 @@
         <div class="col-lg-5">
           <div class="glass-card p-4 rounded-5 bg-white h-100 d-flex flex-column">
             <h5 class="fw-bold brand-font text-danger mb-2 d-flex align-items-center gap-2">
-              <i class="fa-solid fa-cart-plus"></i> Món đang chọn
+              <i class="fa-solid fa-cart-plus"></i> {{ langStore.t('guestOrder.basket') }}
               <span class="badge bg-danger rounded-pill ms-auto">{{ guestBasket.length }}</span>
             </h5>
 
@@ -98,7 +98,7 @@
               </div>
               <button @click="submitOrder" :disabled="guestBasket.length === 0 || submitting" class="btn btn-primary-crab w-100 py-3 fw-bold">
                 <span v-if="submitting" class="spinner-border spinner-border-sm me-2"></span>
-                <i v-else class="fa-solid fa-paper-plane me-2"></i> GỬI XUỐNG BẾP
+                <i v-else class="fa-solid fa-paper-plane me-2"></i> {{ langStore.t('guestOrder.submit') }}
               </button>
             </div>
           </div>
@@ -114,11 +114,13 @@ import { VueDraggable } from "vue-draggable-plus";
 import { useRoute } from "vue-router";
 import api from "../../services/api";
 import { useMenuStore } from "../../stores/menuStore";
+import { useLangStore } from "../../stores/langStore";
 import { toast } from "../../composables/useToast";
 import DishCard from "../../components/customer/DishCard.vue";
 
 const route = useRoute();
 const menuStore = useMenuStore();
+const langStore = useLangStore();
 
 const sessionCode = ref(route.query.session || "");
 const dishList = ref([]);

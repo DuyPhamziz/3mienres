@@ -5,6 +5,7 @@ export const useMenuStore = defineStore("menu", {
   state: () => ({
     categories: [],
     dishes: [],
+    dishesMeta: { page: 1, limit: 100, total: 0, totalPages: 0 },
     currentDish: null,
     loading: false,
     error: null,
@@ -23,6 +24,13 @@ export const useMenuStore = defineStore("menu", {
       try {
         const res = await api.get("/dishes", { params });
         this.dishes = res.data.data.dishes;
+        this.dishesMeta = {
+          page: res.data.page || 1,
+          limit: res.data.limit || 100,
+          total: res.data.total || 0,
+          totalPages: res.data.totalPages || 0,
+        };
+        return res.data;
       } catch (err) {
         this.error = err.response?.data?.message || "Lỗi tải danh sách món ăn";
       } finally {

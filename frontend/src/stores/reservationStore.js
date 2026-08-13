@@ -105,5 +105,13 @@ export const useReservationStore = defineStore("reservation", {
         throw new Error(err.response?.data?.message || "Tạo URL thanh toán cọc thất bại!");
       }
     },
+    async createDepositPaymentUrlMomo(reservationId) {
+      try {
+        const res = await api.post("/payments/momo/deposit", { reservationId });
+        return res.data.paymentUrl;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Tạo URL thanh toán MoMo thất bại!");
+      }
+    },
   },
 });

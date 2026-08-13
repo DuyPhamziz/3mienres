@@ -5,6 +5,7 @@ export const useAuthStore = defineStore("auth", {
   state: () => ({
     user: JSON.parse(localStorage.getItem("user") || "null"),
     token: localStorage.getItem("token") || null,
+    refreshToken: localStorage.getItem("refreshToken") || null,
     loading: false,
     error: null,
   }),
@@ -14,16 +15,21 @@ export const useAuthStore = defineStore("auth", {
     isStaff: (state) => ["staff", "manager", "admin"].includes(state.user?.role),
   },
   actions: {
+    setAuth(res) {
+      this.token = res.token;
+      this.refreshToken = res.refreshToken;
+      this.user = res.data.user;
+
+      localStorage.setItem("token", this.token);
+      localStorage.setItem("refreshToken", this.refreshToken);
+      localStorage.setItem("user", JSON.stringify(this.user));
+    },
     async login(email, password) {
       this.loading = true;
       this.error = null;
       try {
         const res = await api.post("/auth/login", { email, password });
-        this.token = res.data.token;
-        this.user = res.data.data.user;
-
-        localStorage.setItem("token", this.token);
-        localStorage.setItem("user", JSON.stringify(this.user));
+        this.setAuth(res.data);
         return res.data;
       } catch (err) {
         this.error = err.response?.data?.message || "Đăng nhập thất bại!";
@@ -37,11 +43,7 @@ export const useAuthStore = defineStore("auth", {
       this.error = null;
       try {
         const res = await api.post("/auth/register", payload);
-        this.token = res.data.token;
-        this.user = res.data.data.user;
-
-        localStorage.setItem("token", this.token);
-        localStorage.setItem("user", JSON.stringify(this.user));
+        this.setAuth(res.data);
         return res.data;
       } catch (err) {
         this.error = err.response?.data?.message || "Đăng ký thất bại!";
@@ -50,11 +52,19 @@ export const useAuthStore = defineStore("auth", {
         this.loading = false;
       }
     },
-    logout() {
-      this.token = null;
-      this.user = null;
-      localStorage.removeItem("token");
-      localStorage.removeItem("user");
+    async logout() {
+      try {
+        await api.post("/auth/logout");
+      } catch {
+        // Bỏ qua lỗi khi logout (token có thể đã hết hạn)
+      } finally {
+        this.token = null;
+        this.refreshToken = null;
+        this.user = null;
+        localStorage.removeItem("token");
+        localStorage.removeItem("refreshToken");
+        localStorage.removeItem("user");
+      }
     },
   },
 });

@@ -77,19 +77,19 @@
               <span>{{ langStore.isEnglish ? 'Vouchers & Discounts' : 'Mã Giảm Giá & Voucher' }}</span>
             </router-link>
           </li>
-          <li class="nav-item">
+          <li v-if="authStore.user?.role === 'admin'" class="nav-item">
             <router-link to="/admin/staff" class="sidebar-link d-flex align-items-center gap-2 py-2 px-3 rounded-3" active-class="sidebar-link-active">
               <i class="fa-solid fa-users-gear" style="width: 16px; text-align:center;"></i>
               <span>{{ langStore.isEnglish ? 'Staff & Roles' : 'Nhân Viên & Phân Quyền' }}</span>
             </router-link>
           </li>
-          <li class="nav-item">
+          <li v-if="authStore.user?.role === 'admin'" class="nav-item">
             <router-link to="/admin/audit-logs" class="sidebar-link d-flex align-items-center gap-2 py-2 px-3 rounded-3" active-class="sidebar-link-active">
               <i class="fa-solid fa-clock-rotate-left" style="width: 16px; text-align:center;"></i>
               <span>{{ langStore.isEnglish ? 'Audit Logs' : 'Nhật Ký Thao Tác' }}</span>
             </router-link>
           </li>
-          <li class="nav-item">
+          <li v-if="authStore.user?.role === 'admin'" class="nav-item">
             <router-link to="/admin/settings" class="sidebar-link d-flex align-items-center gap-2 py-2 px-3 rounded-3" active-class="sidebar-link-active">
               <i class="fa-solid fa-gear" style="width: 16px; text-align:center;"></i>
               <span>{{ langStore.isEnglish ? 'Restaurant Settings' : 'Cài Đặt Nhà Hàng' }}</span>

@@ -9,6 +9,9 @@
         <button @click="showConnectModal = true" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold">
           <i class="fa-solid fa-puzzle-piece me-1"></i> Liên Kết Thủ Công
         </button>
+        <button @click="openAreaModal" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+          <i class="fa-solid fa-map-pin me-1"></i> Khu Vực
+        </button>
         <button @click="refreshAll" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
           <i class="fa-solid fa-rotate me-1"></i> Làm mới
         </button>
@@ -159,20 +162,63 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Quản Lý Khu Vực -->
+    <div v-if="showAreaModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-5 p-3">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold brand-font text-danger">Quản Lý Khu Vực Bàn Ăn</h5>
+            <button @click="showAreaModal = false" type="button" class="btn-close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="row g-2 mb-3">
+              <div class="col-8">
+                <input v-model="newArea.name" type="text" class="form-control" placeholder="Tên khu vực mới..." />
+              </div>
+              <div class="col-4">
+                <button @click="submitArea" class="btn btn-danger rounded-pill w-100 fw-bold">Thêm</button>
+              </div>
+            </div>
+
+            <div v-if="areas.length > 0" class="table-responsive">
+              <table class="table table-sm align-middle">
+                <tbody>
+                  <tr v-for="area in areas" :key="area._id">
+                    <td><strong class="text-dark">{{ area.name }}</strong></td>
+                    <td class="text-end">
+                      <button @click="deleteArea(area)" class="btn btn-outline-danger btn-sm rounded-pill">
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p v-else class="text-muted small text-center py-2 mb-0">Chưa có khu vực nào</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
 import { useTableStore } from "../../stores/tableStore";
+import api from "../../services/api";
 import { toast } from "../../composables/useToast";
 
 const tableStore = useTableStore();
 const showConnectModal = ref(false);
+const showAreaModal = ref(false);
 const modalError = ref("");
 const dragTableId = ref(null);
 const dropTargetId = ref(null);
 const merging = ref(false);
+
+const newArea = reactive({ name: "" });
+const areas = computed(() => tableStore.areas);
 
 const connForm = reactive({
   tableA: "",
@@ -264,6 +310,37 @@ const refreshAll = () => {
   tableStore.fetchTables();
   tableStore.fetchConnections();
   tableStore.fetchAreas();
+};
+
+const openAreaModal = () => {
+  showAreaModal.value = true;
+  tableStore.fetchAreas();
+};
+
+const submitArea = async () => {
+  if (!newArea.name.trim()) {
+    toast.error("Vui lòng nhập tên khu vực");
+    return;
+  }
+  try {
+    await api.post("/areas", { name: newArea.name });
+    toast.success("Thêm khu vực thành công!");
+    newArea.name = "";
+    await tableStore.fetchAreas();
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Thêm khu vực thất bại!");
+  }
+};
+
+const deleteArea = async (area) => {
+  if (!confirm(`Xóa khu vực '${area.name}'?`)) return;
+  try {
+    await api.delete(`/areas/${area._id}`);
+    toast.success("Đã xóa khu vực");
+    await tableStore.fetchAreas();
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Xóa khu vực thất bại!");
+  }
 };
 
 onMounted(() => {

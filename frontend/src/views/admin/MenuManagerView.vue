@@ -5,11 +5,18 @@
         <h2 class="fw-bold brand-font mb-1">Quản Lý Thực Đơn 3 Miền Bắc – Trung – Nam</h2>
         <p class="text-muted small mb-0">Quản lý món ăn đặc sản, cập nhật giá bán, tải ảnh thực tế và bật/tắt nhanh hết món</p>
       </div>
-      <div class="d-flex gap-2">
+      <div class="d-flex gap-2 align-items-center">
+        <div class="input-group input-group-sm" style="width: 220px;">
+          <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+          <input v-model="search" @keyup.enter="onSearch" type="text" class="form-control" placeholder="Tìm món ăn..." />
+        </div>
         <button @click="showAddModal = true" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
           <i class="fa-solid fa-plus me-1"></i> Thêm Món Ăn Mới & Up Ảnh
         </button>
-        <button @click="menuStore.fetchDishes()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <button @click="openCategoryModal" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-bold">
+          <i class="fa-solid fa-layer-group me-1"></i> Danh Mục
+        </button>
+        <button @click="loadDishes" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
           <i class="fa-solid fa-rotate me-1"></i> Làm mới
         </button>
       </div>
@@ -39,6 +46,8 @@
                   <img
                     v-if="dish.image && dish.image.startsWith('http')"
                     :src="dish.image"
+                    loading="lazy"
+                    decoding="async"
                     class="rounded-3 shadow-sm border"
                     style="width: 55px; height: 55px; object-fit: cover;"
                   />
@@ -80,6 +89,19 @@
         </table>
       </div>
       <p v-else class="text-muted small py-4 text-center mb-0">Chưa có món ăn nào trong thực đơn</p>
+
+      <!-- Phân trang -->
+      <div v-if="meta.totalPages > 1" class="d-flex justify-content-between align-items-center pt-3 border-top mt-3">
+        <small class="text-muted">Trang {{ meta.page }}/{{ meta.totalPages }} · {{ meta.total }} món</small>
+        <div class="d-flex gap-2">
+          <button @click="goPage(meta.page - 1)" :disabled="meta.page <= 1" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="fa-solid fa-chevron-left me-1"></i> Trước
+          </button>
+          <button @click="goPage(meta.page + 1)" :disabled="meta.page >= meta.totalPages" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            Sau <i class="fa-solid fa-chevron-right ms-1"></i>
+          </button>
+        </div>
+      </div>
     </div>
 
     <!-- Modal Upload Ảnh Món Ăn -->
@@ -133,6 +155,13 @@
               </select>
             </div>
             <div class="mb-3">
+              <label class="form-label fw-semibold">Danh mục <span class="text-danger">*</span></label>
+              <select v-model="newDish.category" class="form-select" required>
+                <option value="" disabled>— Chọn danh mục —</option>
+                <option v-for="cat in categories" :key="cat._id" :value="cat._id">{{ cat.name }}</option>
+              </select>
+            </div>
+            <div class="mb-3">
               <label class="form-label fw-semibold">Giá bán (đ) <span class="text-danger">*</span></label>
               <input v-model.number="newDish.price" type="number" min="0" step="5000" class="form-control" required />
             </div>
@@ -149,11 +178,51 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Quản Lý Danh Mục -->
+    <div v-if="showCategoryModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-5 p-3">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold brand-font text-danger">Quản Lý Danh Mục Món Ăn</h5>
+            <button @click="showCategoryModal = false" type="button" class="btn-close"></button>
+          </div>
+          <div class="modal-body">
+            <!-- Form thêm danh mục -->
+            <div class="row g-2 mb-3">
+              <div class="col-8">
+                <input v-model="newCategory.name" type="text" class="form-control" placeholder="Tên danh mục mới..." />
+              </div>
+              <div class="col-4">
+                <button @click="submitCategory" class="btn btn-danger rounded-pill w-100 fw-bold">Thêm</button>
+              </div>
+            </div>
+
+            <!-- Danh sách danh mục -->
+            <div v-if="categories.length > 0" class="table-responsive">
+              <table class="table table-sm align-middle">
+                <tbody>
+                  <tr v-for="cat in categories" :key="cat._id">
+                    <td><strong class="text-dark">{{ cat.name }}</strong></td>
+                    <td class="text-end">
+                      <button @click="deleteCategory(cat)" class="btn btn-outline-danger btn-sm rounded-pill">
+                        <i class="fa-solid fa-trash-can"></i>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <p v-else class="text-muted small text-center py-2 mb-0">Chưa có danh mục nào</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useMenuStore } from "../../stores/menuStore";
 import api from "../../services/api";
 import { toast } from "../../composables/useToast";
@@ -162,6 +231,7 @@ const menuStore = useMenuStore();
 
 const showUploadModal = ref(false);
 const showAddModal = ref(false);
+const showCategoryModal = ref(false);
 const selectedDish = ref(null);
 const selectedFile = ref(null);
 const previewUrl = ref("");
@@ -169,17 +239,81 @@ const uploading = ref(false);
 const uploadError = ref("");
 const addError = ref("");
 
+const categories = ref([]);
+const newCategory = reactive({ name: "" });
+
 const newDish = reactive({
   name: "",
   region: "Nam",
+  category: "",
   price: 250000,
   description: "",
+  image: "https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=400&q=80",
 });
+
+const search = ref("");
+const page = ref(1);
+const meta = computed(() => menuStore.dishesMeta);
+
+const loadDishes = () => {
+  return menuStore.fetchDishes({ search: search.value, page: page.value, limit: 10 });
+};
+
+const goPage = (p) => {
+  if (p < 1 || p > meta.value.totalPages) return;
+  page.value = p;
+  loadDishes();
+};
+
+const onSearch = () => {
+  page.value = 1;
+  loadDishes();
+};
+
+const fetchCategories = async () => {
+  try {
+    const res = await api.get("/categories");
+    categories.value = res.data.data.categories;
+  } catch (err) {
+    console.error("Lỗi lấy danh mục:", err);
+  }
+};
+
+const openCategoryModal = () => {
+  showCategoryModal.value = true;
+  fetchCategories();
+};
+
+const submitCategory = async () => {
+  if (!newCategory.name.trim()) {
+    toast.error("Vui lòng nhập tên danh mục");
+    return;
+  }
+  try {
+    await api.post("/categories", { name: newCategory.name });
+    toast.success("Thêm danh mục thành công!");
+    newCategory.name = "";
+    await fetchCategories();
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Thêm danh mục thất bại!");
+  }
+};
+
+const deleteCategory = async (cat) => {
+  if (!confirm(`Xóa danh mục '${cat.name}'?`)) return;
+  try {
+    await api.delete(`/categories/${cat._id}`);
+    toast.success("Đã xóa danh mục");
+    await fetchCategories();
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Xóa danh mục thất bại!");
+  }
+};
 
 const toggleAvailability = async (dish) => {
   try {
     await api.patch(`/dishes/${dish._id}/toggle-availability`);
-    await menuStore.fetchDishes();
+    await loadDishes();
     toast.success(dish.availability ? "Đã đánh dấu hết hàng" : "Đã mở bán lại món");
   } catch (err) {
     toast.error("Lỗi đổi trạng thái: " + err.message);
@@ -222,7 +356,7 @@ const submitImageUpload = async () => {
 
     toast.success("Tải ảnh lên và cập nhật thành công!");
     showUploadModal.value = false;
-    await menuStore.fetchDishes();
+    await loadDishes();
   } catch (err) {
     uploadError.value = err.response?.data?.message || "Không thể tải ảnh lên!";
   } finally {
@@ -232,17 +366,23 @@ const submitImageUpload = async () => {
 
 const submitCreateDish = async () => {
   addError.value = "";
+  if (!newDish.category) {
+    addError.value = "Vui lòng chọn danh mục cho món ăn";
+    return;
+  }
   try {
     await api.post("/dishes", newDish);
     showAddModal.value = false;
     newDish.name = "";
-    await menuStore.fetchDishes();
+    newDish.category = "";
+    await loadDishes();
   } catch (err) {
     addError.value = err.response?.data?.message || "Không thể tạo món mới!";
   }
 };
 
 onMounted(() => {
-  menuStore.fetchDishes();
+  loadDishes();
+  fetchCategories();
 });
 </script>
