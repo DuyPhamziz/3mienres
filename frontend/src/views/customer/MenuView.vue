@@ -1,144 +1,273 @@
 <template>
-  <div class="py-5">
+  <div class="py-5 bg-light min-vh-100">
     <div class="container">
-      <div class="text-center mb-5">
-        <span class="text-danger fw-bold text-uppercase tracking-wider">Thực đơn đặc sản</span>
-        <h1 class="display-5 fw-bold brand-font">Ẩm Thực 3 Miền Bắc – Trung – Nam</h1>
-        <p class="text-muted">Chọn bộ lọc theo Vùng Miền hoặc Tìm kiếm tên món để khám phá món ăn yêu thích</p>
+      <!-- Title Header -->
+      <div class="text-center max-w-2xl mx-auto mb-5">
+        <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8 text-uppercase">
+          <i class="fa-solid fa-utensils me-1"></i> ẨM THỰC 3 MIỀN BẮC - TRUNG - NAM
+        </span>
+        <h1 class="display-5 fw-bold brand-font text-dark">
+          {{ langStore.isEnglish ? '3-Region Specialty Menu' : 'Thực Đơn Đặc Sản 3 Miền' }}
+        </h1>
+        <p class="text-muted small">
+          {{ langStore.isEnglish ? 'Filter by Region or Category to discover authentic flavors from North to South' : 'Chọn bộ lọc theo Vùng Miền hoặc Danh Mục để khám phá món ăn yêu thích' }}
+        </p>
       </div>
 
-      <!-- Filters Row -->
-      <div class="glass-card p-3 mb-5 rounded-4 shadow-sm">
-        <div class="row g-3 align-items-center">
-          <div class="col-md-4">
-            <div class="input-group">
-              <span class="input-group-text bg-white border-end-0"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
+      <!-- DUAL FILTER TOOLBAR (3 MIỀN + CATEGORIES TỪ DB) -->
+      <div class="glass-card p-4 mb-4 rounded-5 shadow-sm bg-white border-0">
+        <!-- Row 1: Search & 3 Miền Region Filter -->
+        <div class="row g-3 align-items-center mb-3">
+          <div class="col-lg-5">
+            <div class="form-control-icon">
               <input
                 v-model="searchQuery"
-                @input="applyFilters"
+                @input="handleFilterChange"
                 type="text"
-                class="form-control border-start-0 ps-0"
-                placeholder="Tìm kiếm tên món ăn..."
+                class="form-control py-2.5"
+                :placeholder="langStore.isEnglish ? 'Search dish name...' : 'Tìm kiếm tên món ăn...'"
               />
+              <i class="fa-solid fa-magnifying-glass"></i>
             </div>
           </div>
 
-          <div class="col-md-8 d-flex flex-wrap gap-2 justify-content-md-end">
-            <!-- Filter by Region -->
-            <div class="btn-group" role="group">
-              <button
-                @click="setRegion('')"
-                :class="['btn btn-sm rounded-pill px-3', selectedRegion === '' ? 'btn-danger' : 'btn-outline-secondary']"
-              >Tất cả miền</button>
-              <button
-                @click="setRegion('Bắc')"
-                :class="['btn btn-sm rounded-pill px-3', selectedRegion === 'Bắc' ? 'btn-primary' : 'btn-outline-primary']"
-              >Miền Bắc</button>
-              <button
-                @click="setRegion('Trung')"
-                :class="['btn btn-sm rounded-pill px-3', selectedRegion === 'Trung' ? 'btn-warning text-dark' : 'btn-outline-warning']"
-              >Miền Trung</button>
-              <button
-                @click="setRegion('Nam')"
-                :class="['btn btn-sm rounded-pill px-3', selectedRegion === 'Nam' ? 'btn-success' : 'btn-outline-success']"
-              >Miền Nam</button>
-            </div>
+          <!-- 3 Miền Filter (Đặc trưng nhà hàng) -->
+          <div class="col-lg-7 d-flex flex-wrap gap-2 justify-content-lg-end align-items-center">
+            <span class="fw-bold fs-7 text-muted me-1 d-none d-sm-inline">
+              <i class="fa-solid fa-map-location-dot text-danger me-1"></i>Vùng miền:
+            </span>
+            <button
+              @click="setRegion('')"
+              :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === '' ? 'btn-danger shadow-sm' : 'btn-outline-secondary']"
+            >
+              Tất cả miền
+            </button>
+            <button
+              @click="setRegion('Bắc')"
+              :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === 'Bắc' ? 'btn-primary shadow-sm' : 'btn-outline-primary']"
+            >
+              <i class="fa-solid fa-bowl-food me-1"></i> Miền Bắc
+            </button>
+            <button
+              @click="setRegion('Trung')"
+              :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === 'Trung' ? 'btn-warning text-dark shadow-sm' : 'btn-outline-warning']"
+            >
+              <i class="fa-solid fa-pepper-hot me-1"></i> Miền Trung
+            </button>
+            <button
+              @click="setRegion('Nam')"
+              :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === 'Nam' ? 'btn-success shadow-sm' : 'btn-outline-success']"
+            >
+              <i class="fa-solid fa-utensils me-1"></i> Miền Nam
+            </button>
           </div>
+        </div>
+
+        <!-- Row 2: Categories Filter (Đổ động từ DB Collection Categories) -->
+        <div class="pt-3 border-top d-flex align-items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
+          <span class="fw-bold fs-7 text-muted me-1 text-nowrap">
+            <i class="fa-solid fa-layer-group text-warning me-1"></i>Danh mục DB:
+          </span>
+          <button
+            @click="setCategory('')"
+            :class="['btn btn-sm rounded-pill px-3 py-1 text-nowrap fw-semibold fs-7', selectedCategory === '' ? 'btn-dark' : 'btn-light border']"
+          >
+            Tất cả danh mục
+          </button>
+          <button
+            v-for="cat in menuStore.categories"
+            :key="cat._id"
+            @click="setCategory(cat._id)"
+            :class="['btn btn-sm rounded-pill px-3 py-1 text-nowrap fw-semibold fs-7', selectedCategory === cat._id ? 'btn-danger shadow-sm' : 'btn-light border']"
+          >
+            {{ cat.name }}
+          </button>
         </div>
       </div>
 
-      <!-- Loading Spinner -->
+      <!-- Loading State -->
       <div v-if="menuStore.loading" class="text-center py-5">
-        <div class="spinner-border text-danger" role="status">
-          <span class="visually-hidden">Loading...</span>
-        </div>
-        <p class="mt-2 text-muted">Đang tải thực đơn 3 miền...</p>
+        <div class="spinner-border text-danger" role="status"></div>
+        <p class="mt-2 text-muted small">Đang tải danh sách thực đơn 3 miền...</p>
       </div>
 
       <!-- Dishes Grid -->
-      <div v-else-if="menuStore.dishes.length > 0" class="row g-4">
-        <div v-for="dish in menuStore.dishes" :key="dish._id" class="col-lg-3 col-md-6">
-          <div class="glass-card h-100 d-flex flex-column hover-lift overflow-hidden">
-            <!-- Real Uploaded Image or FontAwesome Dish Icon Box -->
-            <div class="position-relative text-center py-4 bg-light bg-gradient" style="min-height: 180px;">
-              <img
-                v-if="dish.image && dish.image.startsWith('http')"
-                :src="dish.image"
-                :alt="dish.name"
-                class="w-100 position-absolute top-0 start-0 h-100"
-                style="object-fit: cover;"
-              />
-              <div v-else class="my-3">
-                <i
+      <div v-else-if="paginatedDishes.length > 0">
+        <div class="row g-4 mb-4">
+          <div v-for="dish in paginatedDishes" :key="dish._id" class="col-xl-3 col-lg-4 col-md-6">
+            <div class="card border-0 rounded-4 shadow-sm overflow-hidden h-100 glass-card hover-lift bg-white">
+              <div class="position-relative bg-light" style="height: 190px;">
+                <img
+                  :src="dish.image && dish.image !== 'default-dish.jpg' && dish.image.startsWith('http') ? dish.image : (dish.image && dish.image !== 'default-dish.jpg' ? `http://localhost:3000/uploads/${dish.image}` : 'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=500&q=80')"
+                  :alt="dish.name"
+                  class="w-100 h-100 object-fit-cover"
+                />
+                <span
                   :class="[
-                    'display-2 d-block',
-                    dish.region === 'Bắc' ? 'fa-solid fa-bowl-food text-primary' : dish.region === 'Trung' ? 'fa-solid fa-pepper-hot text-warning' : 'fa-solid fa-utensils text-danger'
+                    'badge position-absolute top-0 end-0 m-3 px-2.5 py-1.5 rounded-pill fs-8 shadow-sm',
+                    dish.region === 'Bắc' ? 'bg-primary' : dish.region === 'Trung' ? 'bg-warning text-dark' : 'bg-success'
                   ]"
-                ></i>
+                >
+                  Miền {{ dish.region }}
+                </span>
+                <span v-if="dish.category" class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-3 px-2 py-1 fs-8 rounded-2">
+                  {{ dish.category.name || 'Hải Sản' }}
+                </span>
               </div>
 
-              <span
-                :class="[
-                  'position-absolute top-0 end-0 m-2 badge rounded-pill px-2 py-1 fs-8 shadow-sm',
-                  dish.region === 'Bắc' ? 'badge-region-bac' : dish.region === 'Trung' ? 'badge-region-trung' : 'badge-region-nam'
-                ]"
-              >
-                Miền {{ dish.region }}
-              </span>
-            </div>
-
-            <div class="p-4 d-flex flex-column flex-grow-1">
-              <h5 class="fw-bold brand-font mb-2">{{ dish.name }}</h5>
-              <p class="text-muted small leading-snug mb-3 flex-grow-1" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-                {{ dish.description }}
-              </p>
-
-              <div class="d-flex align-items-center justify-content-between pt-3 border-top mt-auto">
-                <span class="fw-bold text-danger fs-5">{{ dish.price.toLocaleString('vi-VN') }}đ</span>
-                <router-link :to="`/mon-an/${dish.slug}`" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-                  Chi Tiết <i class="fa-solid fa-chevron-right fs-8 ms-1"></i>
-                </router-link>
+              <div class="card-body p-4 d-flex flex-column justify-content-between">
+                <div>
+                  <h6 class="fw-bold text-dark mb-2 brand-font fs-6">{{ dish.name }}</h6>
+                  <p class="text-muted small line-clamp-2 mb-3 leading-snug">{{ dish.description }}</p>
+                </div>
+                <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-auto">
+                  <span class="fw-bold text-danger fs-5">{{ dish.price.toLocaleString('vi-VN') }}đ</span>
+                  <router-link :to="`/mon-an/${dish.slug}`" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
+                    Chi Tiết <i class="fa-solid fa-chevron-right fs-8 ms-1"></i>
+                  </router-link>
+                </div>
               </div>
             </div>
           </div>
+        </div>
+
+        <!-- PAGINATION BAR (12 món / trang) -->
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-3">
+          <div class="text-muted small">
+            Hiển thị món <strong>{{ startIndex + 1 }} - {{ Math.min(endIndex, filteredDishes.length) }}</strong> trong tổng số <strong>{{ filteredDishes.length }}</strong> món ăn
+          </div>
+
+          <nav v-if="totalPages > 1" aria-label="Phân trang món ăn">
+            <ul class="pagination pagination-sm mb-0 gap-1">
+              <li :class="['page-item', currentPage === 1 ? 'disabled' : '']">
+                <button @click="currentPage--" class="page-item-btn rounded-circle">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+              </li>
+
+              <li v-for="page in totalPages" :key="page" :class="['page-item', currentPage === page ? 'active' : '']">
+                <button @click="currentPage = page" :class="['page-item-btn rounded-circle fw-bold', currentPage === page ? 'btn-danger text-white' : '']">
+                  {{ page }}
+                </button>
+              </li>
+
+              <li :class="['page-item', currentPage === totalPages ? 'disabled' : '']">
+                <button @click="currentPage++" class="page-item-btn rounded-circle">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </li>
+            </ul>
+          </nav>
         </div>
       </div>
 
       <!-- Empty State -->
-      <div v-else class="text-center py-5 glass-card rounded-4">
-        <i class="fa-solid fa-utensils display-1 text-secondary mb-3 d-block"></i>
-        <h4 class="fw-bold">Chưa tìm thấy món ăn phù hợp</h4>
-        <p class="text-muted small">Thử chọn miền khác hoặc tìm kiếm với từ khóa khác xem sao nhé!</p>
+      <div v-else class="text-center py-5 glass-card rounded-5 bg-white shadow-sm">
+        <i class="fa-solid fa-utensils display-2 text-muted mb-3 d-block"></i>
+        <h4 class="fw-bold text-dark">Không Tìm Thấy Món Ăn Nào</h4>
+        <p class="text-muted small">Vui lòng thử chọn lại vùng miền hoặc danh mục khác</p>
+        <button @click="resetFilters" class="btn btn-outline-danger rounded-pill px-4 btn-sm">
+          Thiết Lập Lại Bộ Lọc
+        </button>
       </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useMenuStore } from "../../stores/menuStore";
+import { useLangStore } from "../../stores/langStore";
 import { useRoute } from "vue-router";
 
 const menuStore = useMenuStore();
+const langStore = useLangStore();
 const route = useRoute();
 
 const searchQuery = ref("");
 const selectedRegion = ref(route.query.region || "");
+const selectedCategory = ref("");
+const currentPage = ref(1);
+const itemsPerPage = 12; // Giới hạn 12 món / trang
+
+const handleFilterChange = () => {
+  currentPage.value = 1;
+};
 
 const setRegion = (region) => {
   selectedRegion.value = region;
-  applyFilters();
+  handleFilterChange();
 };
 
-const applyFilters = () => {
-  const params = {};
-  if (selectedRegion.value) params.region = selectedRegion.value;
-  if (searchQuery.value) params.search = searchQuery.value;
-  menuStore.fetchDishes(params);
+const setCategory = (categoryId) => {
+  selectedCategory.value = categoryId;
+  handleFilterChange();
 };
+
+const resetFilters = () => {
+  searchQuery.value = "";
+  selectedRegion.value = "";
+  selectedCategory.value = "";
+  currentPage.value = 1;
+};
+
+// Lọc món ăn dựa trên Tìm kiếm, Vùng miền (3 Miền) và Danh mục (DB Categories)
+const filteredDishes = computed(() => {
+  return menuStore.dishes.filter((dish) => {
+    // 1. Lọc theo 3 Miền
+    if (selectedRegion.value && dish.region !== selectedRegion.value) {
+      return false;
+    }
+    // 2. Lọc theo Danh mục DB
+    if (selectedCategory.value) {
+      const catId = typeof dish.category === "object" ? dish.category?._id : dish.category;
+      if (catId !== selectedCategory.value) return false;
+    }
+    // 3. Lọc theo Ô Tìm Kiếm
+    if (searchQuery.value) {
+      const query = searchQuery.value.trim().toLowerCase();
+      const matchName = dish.name.toLowerCase().includes(query);
+      const matchDesc = dish.description ? dish.description.toLowerCase().includes(query) : false;
+      if (!matchName && !matchDesc) return false;
+    }
+    return true;
+  });
+});
+
+// Tính toán Phân Trang 12 món / trang
+const totalPages = computed(() => Math.ceil(filteredDishes.value.length / itemsPerPage) || 1);
+const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
+const endIndex = computed(() => startIndex.value + itemsPerPage);
+
+const paginatedDishes = computed(() => {
+  return filteredDishes.value.slice(startIndex.value, endIndex.value);
+});
 
 onMounted(() => {
   menuStore.fetchCategories();
-  applyFilters();
+  menuStore.fetchDishes();
 });
 </script>
+
+<style scoped>
+.page-item-btn {
+  width: 34px;
+  height: 34px;
+  border: 1px solid #dee2e6;
+  background: white;
+  color: #333;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+}
+.page-item-btn:hover {
+  background: #f8f9fa;
+  border-color: #dc3545;
+  color: #dc3545;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+</style>
