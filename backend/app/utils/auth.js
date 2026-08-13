@@ -25,6 +25,11 @@ exports.protect = async (req, res, next) => {
     // 2. Giải mã token và lấy thông tin người dùng từ payload}
     const decoded = jwt.verify(token, config.jwtSecret);
 
+    // Chỉ chấp nhận access token, từ chối refresh token
+    if (decoded.type === "refresh") {
+      return next(new AppError("Token không hợp lệ. Vui lòng sử dụng access token.", 401));
+    }
+
     // 3. Kiểm tra xem người dùng có tồn tại không
     const currentUser = await User.findById(decoded.id);
     if (!currentUser) {
@@ -33,20 +38,52 @@ exports.protect = async (req, res, next) => {
       );
     }
 
-    //4. Lưu thông tin người dùng vào req.user để các middleware tiếp theo có thể sử dụng
+    // 4. Chặn tài khoản đã bị khóa
+    if (currentUser.isActive === false) {
+      return next(
+        new AppError("Tài khoản của bạn đã bị khóa. Vui lòng liên hệ quản trị viên.", 403),
+      );
+    }
+
+    //5. Lưu thông tin người dùng vào req.user để các middleware tiếp theo có thể sử dụng
     req.user = currentUser;
     next();
   } catch (error) {
+    // Map lỗi JWT về 401, không để lộ thông tin nội bộ
+    if (error.name === "TokenExpiredError") {
+      return next(new AppError("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.", 401));
+    }
+    if (error.name === "JsonWebTokenError") {
+      return next(new AppError("Token không hợp lệ. Vui lòng đăng nhập lại.", 401));
+    }
     next(error);
   }
 };
+exports.optionalProtect = async (req, res, next) => {
+  try {
+    let token;
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+    if (token) {
+      const decoded = jwt.verify(token, config.jwtSecret);
+      if (decoded && decoded.type !== "refresh") {
+        const currentUser = await User.findById(decoded.id);
+        if (currentUser && currentUser.isActive !== false) {
+          req.user = currentUser;
+        }
+      }
+    }
+    next();
+  } catch (error) {
+    next();
+  }
+};
+
 exports.restrictTo = (...roles) => {
   return (req, res, next) => {
     if (!roles.includes(req.user.role)) {
-      // req.user được gán từ middleware 'protect' chạy trước đó
-      return next(
-        new AppError("Bạn không có quyền thực hiện hành động này.", 403),
-      );
+      return next(new AppError("Bạn không có quyền thực hiện hành động này.", 403));
     }
     next();
   };

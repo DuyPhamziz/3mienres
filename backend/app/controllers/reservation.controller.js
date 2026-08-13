@@ -323,7 +323,15 @@ exports.cancelReservation = async (req, res, next) => {
 
 exports.getMyReservations = async (req, res, next) => {
   try {
-    const reservations = await Reservation.find({ user: req.user._id })
+    const userPhone = req.user.phone ? req.user.phone.trim() : null;
+    const query = {
+      $or: [
+        { user: req.user._id },
+        ...(userPhone ? [{ customerPhone: userPhone }] : []),
+      ],
+    };
+
+    const reservations = await Reservation.find(query)
       .populate("tables", "tableNumber capacity area")
       .populate("preOrderDishes.dish", "name price image")
       .sort({ startAt: -1 });

@@ -1,11 +1,11 @@
 const express = require("express");
 const reservationController = require("../controllers/reservation.controller");
-const { protect, restrictTo } = require("../utils/auth");
+const { protect, optionalProtect, restrictTo } = require("../utils/auth");
 
 const router = express.Router();
 
 // Public booking and lookup.
-router.post("/", reservationController.createReservation);
+router.post("/", optionalProtect, reservationController.createReservation);
 router.get("/track/:code", reservationController.trackReservation);
 
 router.use(protect);
