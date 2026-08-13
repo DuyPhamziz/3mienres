@@ -4,40 +4,39 @@
       <div class="glass-card max-w-4xl mx-auto overflow-hidden rounded-5 shadow-lg border-0">
         <div class="row g-0">
           <!-- Left Column: Branding Visual -->
-          <div class="col-lg-5 bg-gradient text-white p-5 d-flex flex-column justify-content-between position-relative" style="background: linear-gradient(135deg, #e65100 0%, #d32f2f 50%, #b71c1c 100%);">
-            <div class="position-absolute top-0 start-0 w-100 h-100 opacity-20" style="background: radial-gradient(circle, #ffb300 0%, transparent 70%); pointer-events: none;"></div>
+          <div class="col-lg-5 text-white p-5 d-flex flex-column justify-content-between position-relative" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 50%, #450a0a 100%);">
             <div class="position-relative">
               <div class="d-flex align-items-center gap-2 mb-4">
-                <div class="p-2 bg-white bg-opacity-20 rounded-3 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+                <div class="p-2 bg-white bg-opacity-15 rounded-3 d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
                   <i class="fa-solid fa-utensils fs-4 text-warning"></i>
                 </div>
                 <span class="fw-bold fs-4 text-white">3 MIỀN CUA</span>
               </div>
               <h2 class="fw-bold text-white mb-3">Đăng Ký Thành Viên Nhận Ngay Ưu Đãi</h2>
-              <p class="text-white-50 small leading-relaxed mb-4">
+              <p class="text-white opacity-85 small leading-relaxed mb-4">
                 Tạo tài khoản để tham gia chương trình khách hàng thân thiết, nhận chiết khấu trực tiếp và trải nghiệm dịch vụ đặt bàn ưu tiên.
               </p>
             </div>
 
             <!-- Perks list -->
             <div class="position-relative space-y-3 my-3">
-              <div class="d-flex align-items-center gap-3 p-3 bg-white bg-opacity-10 rounded-4">
+              <div class="d-flex align-items-center gap-3 p-3 bg-black bg-opacity-20 rounded-4 border border-white border-opacity-10 mb-2">
                 <i class="fa-solid fa-crown fs-4 text-warning"></i>
                 <div>
                   <strong class="d-block text-white small">Tự Động Nâng Hạng</strong>
-                  <small class="text-white-50 fs-8">Hệ thống cộng dồn chi tiêu sau mỗi hóa đơn</small>
+                  <small class="text-white opacity-75 fs-8">Hệ thống cộng dồn chi tiêu sau mỗi hóa đơn</small>
                 </div>
               </div>
-              <div class="d-flex align-items-center gap-3 p-3 bg-white bg-opacity-10 rounded-4 mt-2">
+              <div class="d-flex align-items-center gap-3 p-3 bg-black bg-opacity-20 rounded-4 border border-white border-opacity-10">
                 <i class="fa-solid fa-percent fs-4 text-warning"></i>
                 <div>
                   <strong class="d-block text-white small">Ưu Đãi Chiết Khấu Đến 15%</strong>
-                  <small class="text-white-50 fs-8">Áp dụng trực tiếp khi ăn tại quán</small>
+                  <small class="text-white opacity-75 fs-8">Áp dụng trực tiếp khi ăn tại quán</small>
                 </div>
               </div>
             </div>
 
-            <div class="position-relative pt-3 border-top border-white border-opacity-25 small text-white-50">
+            <div class="position-relative pt-3 border-top border-white border-opacity-20 small text-white opacity-80">
               Hotline hỗ trợ: <strong class="text-warning">1900 1234</strong>
             </div>
           </div>
