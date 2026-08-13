@@ -106,20 +106,23 @@
               <!-- Password Input -->
               <div class="mb-4">
                 <label class="form-label fw-semibold text-dark fs-7 mb-1">Mật khẩu <span class="text-danger">*</span></label>
-                <div class="form-control-icon position-relative">
+                <div class="position-relative">
+                  <span class="position-absolute d-flex align-items-center" style="left: 14px; top: 50%; transform: translateY(-50%); color: #94a3b8; z-index: 5;">
+                    <i class="fa-solid fa-lock"></i>
+                  </span>
                   <input
                     v-model="form.password"
                     :type="showPassword ? 'text' : 'password'"
-                    class="form-control py-2.5 pe-5"
+                    class="form-control"
+                    style="padding-left: 42px; padding-right: 44px; padding-top: 0.625rem; padding-bottom: 0.625rem; border-radius: 12px; border: 1px solid #cbd5e1;"
                     placeholder="Nhập mật khẩu tối thiểu 6 ký tự"
                     required
                   />
-                  <i class="fa-solid fa-lock"></i>
                   <button
                     type="button"
                     @click="showPassword = !showPassword"
-                    class="btn btn-link text-muted position-absolute end-0 top-50 translate-middle-y pe-3 text-decoration-none"
-                    style="z-index: 10;"
+                    class="btn btn-link text-muted position-absolute d-flex align-items-center justify-content-center text-decoration-none p-0"
+                    style="right: 12px; top: 50%; transform: translateY(-50%); z-index: 5; width: 28px; height: 28px;"
                   >
                     <i :class="['fa-solid', showPassword ? 'fa-eye-slash' : 'fa-eye']"></i>
                   </button>
