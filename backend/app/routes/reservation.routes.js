@@ -4,26 +4,28 @@ const { protect, restrictTo } = require("../utils/auth");
 
 const router = express.Router();
 
-router.use(protect);
-// 1. Tạo đơn đặt bàn, bắt buộc người dùng phải đăng nhập
+// 1. Khách đặt bàn online (Hỗ trợ cả khách vãng lai và khách đăng nhập)
 router.post("/", reservationController.createReservation);
 
-// 2. Xem lịch sử đặt bàn của người dùng, bắt buộc người dùng phải đăng nhập
+// 2. Khách tra cứu trạng thái đơn đặt bàn theo mã code (Công khai)
+router.get("/track/:code", reservationController.trackReservation);
+
+// 3. Hủy đơn đặt bàn
+router.patch("/:id/cancel", reservationController.cancelReservation);
+
+// --- Các route yêu cầu Đăng nhập ---
+router.use(protect);
+
+// 4. Khách xem lịch sử đặt bàn của chính mình
 router.get("/my-history", reservationController.getMyReservations);
 
-// 3. Xem chi tiết đơn đặt bàn, bắt buộc người dùng phải đăng nhập
-router.get("/:id", reservationController.getReservationDetails);
+// --- Các route dành riêng cho Nhân viên / Quản lý / Admin ---
+router.use(restrictTo("staff", "manager", "admin"));
 
-router.post("/:id/mock-pay", reservationController.mockPayment);
-// Vùng chỉ dành cho quản trị viên, quản lý và nhân viên
-router.use(restrictTo("admin", "manager"));
-
-// Lấy toàn bộ đơn đặt bàn, chỉ dành cho quản trị viên và quản lý
+// 5. Xem toàn bộ danh sách đặt bàn (lọc theo ngày/trạng thái)
 router.get("/", reservationController.getAllReservations);
-// Duyệt và cập nhật trạng thái đơn đặt bàn, chỉ dành cho quản trị viên và quản lý
-router.patch("/:id/status", reservationController.updateReservationStatus);
 
-// Xếp bàn cho khách
-router.patch("/:id/assign-table", reservationController.assignTable);
+// 6. Gán / Đổi bàn dự kiến cho đơn đặt bàn
+router.patch("/:id/assign-tables", reservationController.assignTables);
 
 module.exports = router;
