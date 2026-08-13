@@ -2,76 +2,101 @@ const User = require("../models/user.model");
 const AppError = require("../app-error");
 const { signtoken } = require("../utils/jwt");
 
-// 1. Logic đăng kí
+const allowedRegisterRole = "customer";
+
+const sanitizeAuthPayload = (payload = {}) => {
+  const name = payload.name?.trim();
+  const email = payload.email?.trim().toLowerCase();
+  const password = payload.password;
+  const phone = payload.phone?.trim();
+  const role = payload.role?.trim();
+
+  return { name, email, password, phone, role };
+};
+
+const createAuthResponse = (res, statusCode, user) => {
+  const token = signtoken(user._id);
+  user.password = undefined;
+
+  return res.status(statusCode).json({
+    status: "success",
+    token,
+    data: { user },
+  });
+};
+
 exports.register = async (req, res, next) => {
   try {
-    const { name, email, password, phone, role } = req.body;
-    // Kiểm tra email này được sử dụng chưa?
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return next(new AppError("Email đã được sử dụng", 400));
+    const { name, email, password, phone, role } = sanitizeAuthPayload(req.body);
+
+    if (!name || !email || !password || !phone) {
+      return next(
+        new AppError(
+          "Vui lòng nhập đầy đủ họ tên, email, mật khẩu và số điện thoại",
+          400,
+        ),
+      );
     }
-    // Tạo tài khoản mới
+
+    if (password.length < 6) {
+      return next(new AppError("Mật khẩu phải có ít nhất 6 ký tự", 400));
+    }
+
+    if (role && role !== allowedRegisterRole) {
+      return next(new AppError("Bạn không có quyền tự đăng ký vai trò này", 403));
+    }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return next(new AppError("Email này đã được sử dụng", 409));
+    }
+
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      return next(new AppError("Số điện thoại này đã được sử dụng", 409));
+    }
+
     const newUser = await User.create({
       name,
       email,
-      password, // Mật khẩu sẽ được hash trong pre-save hook của model
+      password,
       phone,
-      role: role || "customer", // Mặc định role là "customer" nếu không được cung cấp
+      role: allowedRegisterRole,
     });
-    const token = signtoken(newUser._id);
-    // Ẩn mật khẩu trước khi gửi phản hồi
-    newUser.password = undefined;
 
-    res.status(201).json({
-      status: "success",
-      token,
-      data: {
-        user: newUser,
-      },
-    });
+    return createAuthResponse(res, 201, newUser);
   } catch (error) {
-    next(error); // Gọi middleware xử lý lỗi
+    next(error);
   }
 };
 
-// 2. Logic đăng nhập
 exports.login = async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password } = sanitizeAuthPayload(req.body);
 
-    // Kiểm tra xem email và password có được cung cấp không
     if (!email || !password) {
       return next(new AppError("Vui lòng cung cấp email và mật khẩu", 400));
     }
 
-    // Kiểm tra xem người dùng có tồn tại không
-    // Vì trong model password được set select: false nên cần dùng .select("+password") để lấy password
     const user = await User.findOne({ email }).select("+password");
     if (!user) {
       return next(new AppError("Email hoặc mật khẩu không đúng", 401));
     }
 
-    // Kiểm tra mật khẩu
     const isPasswordCorrect = await user.comparePassword(password);
     if (!isPasswordCorrect) {
       return next(new AppError("Email hoặc mật khẩu không đúng", 401));
     }
 
-    // Tạo token
-    const token = signtoken(user._id);
-
-    // Ẩn mật khẩu trước khi gửi phản hồi
-    user.password = undefined;
-
-    res.status(200).json({
-      status: "success",
-      token,
-      data: {
-        user,
-      },
-    });
+    return createAuthResponse(res, 200, user);
   } catch (error) {
     next(error);
   }
+};
+
+exports.me = async (req, res) => {
+  res.status(200).json({
+    status: "success",
+    data: { user: req.user },
+  });
 };

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <!-- Hero Banner Section with FontAwesome & Rich Aesthetics -->
+    <!-- Hero Banner Section with Swiper Slider & Rich Aesthetics -->
     <section class="position-relative py-5 bg-dark text-white overflow-hidden">
       <div class="position-absolute top-0 start-0 w-100 h-100 opacity-25" style="background: radial-gradient(circle at center, #ff6f00 0%, #d32f2f 40%, transparent 70%);"></div>
       <div class="container position-relative py-5">
@@ -13,7 +13,7 @@
               Tinh Hoa Ẩm Thực <span class="text-danger">3 Miền Cua</span> Độc Đáo
             </h1>
             <p class="fs-5 text-secondary mb-4 leading-relaxed">
-              Trải nghiệm hương vị đậm đà đặc sản 3 miền Bắc – Trung – Nam. Cua Cà Mau tươi sống bắt tại bể, lẩu cua đồng thơm nức và hải sản chọn lọc cao cấp.
+              Trải nghiệm hương vị đậm đà đặc trưng đặc sản 3 miền Bắc – Trung – Nam. Cua Cà Mau tươi sống bắt tại bể, lẩu cua đồng thơm nức và hải sản chọn lọc cao cấp.
             </p>
             <div class="d-flex flex-wrap gap-3">
               <router-link to="/dat-ban" class="btn btn-primary-crab btn-lg px-4 py-3 shadow">
@@ -25,24 +25,9 @@
             </div>
           </div>
 
+          <!-- Right Column: Embedded Swiper Slider -->
           <div class="col-lg-6 text-center">
-            <div class="glass-card p-5 rounded-5 hover-lift d-inline-block border-warning border-opacity-25 shadow-lg">
-              <div class="p-5 bg-gradient rounded-4 text-center my-3" style="background: linear-gradient(135deg, rgba(226,81,0,0.2), rgba(211,47,47,0.3)); border: 2px dashed rgba(255,179,0,0.5);">
-                <i class="fa-solid fa-water-lower display-1 text-warning mb-3 d-block"></i>
-                <h3 class="fw-bold brand-font text-white mb-1">Cua Cà Mau Tươi Sống</h3>
-                <span class="badge bg-danger rounded-pill px-3 py-1">Đánh bắt tại bể - Chế biến tại bàn</span>
-              </div>
-              <div class="d-flex justify-content-around text-start pt-3 border-top border-secondary border-opacity-25">
-                <div>
-                  <small class="text-secondary d-block"><i class="fa-solid fa-circle-check text-success me-1"></i>Đặc sản chọn lọc</small>
-                  <strong class="text-warning">Chất lượng cao cấp</strong>
-                </div>
-                <div>
-                  <small class="text-secondary d-block"><i class="fa-solid fa-heart text-danger me-1"></i>Phục vụ tận tâm</small>
-                  <strong class="text-danger">Không gian ấm cúng</strong>
-                </div>
-              </div>
-            </div>
+            <HeroSwiper />
           </div>
         </div>
       </div>
@@ -123,4 +108,5 @@
 </template>
 
 <script setup>
+import HeroSwiper from "../../components/HeroSwiper.vue";
 </script>

@@ -18,7 +18,11 @@ const tableSchema = new mongoose.Schema(
     area: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "Area",
-      required: [true, "Bàn phải thuộc về một Khu vực cụ thể"],
+    },
+    // Hỗ trợ cả trường areaId nếu database có sẵn dữ liệu cũ
+    areaId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Area",
     },
     status: {
       type: String,
@@ -30,7 +34,7 @@ const tableSchema = new mongoose.Schema(
       default: true,
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("Table", tableSchema);

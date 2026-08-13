@@ -1,11 +1,11 @@
-const expresss = require("express");
+const express = require("express");
 const authController = require("../controllers/auth.controller");
+const { protect } = require("../utils/auth");
 
-const router = expresss.Router();
+const router = express.Router();
 
-// Route đăng ký POST http://localhost:3000/api/auth/register
 router.post("/register", authController.register);
-// Route đăng nhập POST http://localhost:3000/api/auth/login
 router.post("/login", authController.login);
+router.get("/me", protect, authController.me);
 
 module.exports = router;
