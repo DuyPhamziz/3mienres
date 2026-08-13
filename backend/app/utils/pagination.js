@@ -3,7 +3,9 @@
 // Đọc page/limit từ query params và trả về thông tin phân trang an toàn.
 exports.getPagination = (query = {}) => {
   const page = Math.max(1, parseInt(query.page, 10) || 1);
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 10));
+  // Mặc định 100 để tương thích với các view hiện có chưa truyền limit (menu, sơ đồ bàn).
+  // Các view quản trị muốn phân trang thật sẽ truyền limit nhỏ (ví dụ 10).
+  const limit = Math.min(100, Math.max(1, parseInt(query.limit, 10) || 100));
   return { page, limit, skip: (page - 1) * limit };
 };
 

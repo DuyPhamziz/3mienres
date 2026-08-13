@@ -7,6 +7,7 @@
 const Area = require("../models/area.model");
 const Table = require("../models/table.model");
 const AppError = require("../app-error");
+const { escapeRegex } = require("../utils/escapeRegex");
 // 1. Tạo khu vực mới (Chỉ Admin / Manager)
 exports.createArea = async (req, res, next) => {
   try {
@@ -17,7 +18,7 @@ exports.createArea = async (req, res, next) => {
     }
     // Lớp 2: Kiểm tra dữ liệu trùng lặp (409 Conflict)
     const existingArea = await Area.findOne({
-      name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+      name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") },
     });
     if (existingArea) {
       return next(new AppError(`Khu vực '${name}' đã tồn tại trên hệ thống`, 409));
@@ -62,7 +63,7 @@ exports.updateArea = async (req, res, next) => {
     // Kiểm tra nếu đổi tên thì tên mới không được trùng với khu vực khác
     if (name && name.trim().toLowerCase() !== area.name.toLowerCase()) {
       const duplicateName = await Area.findOne({
-        name: { $regex: new RegExp(`^${name.trim()}$`, "i") },
+        name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") },
         _id: { $ne: id },
       });
       if (duplicateName) {

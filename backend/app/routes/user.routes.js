@@ -11,8 +11,8 @@ router.patch("/me", userController.updateMe);
 router.patch("/me/password", userController.changePassword);
 
 // Quản lý tài khoản (Manager / Admin)
-router.get("/", restrictTo("manager", "admin"), userController.getAllUsers);
-router.post("/", restrictTo("manager", "admin"), userController.createStaff);
-router.patch("/:id", restrictTo("manager", "admin"), userController.updateUserByAdmin);
+router.get("/", restrictTo("admin"), userController.getAllUsers);
+router.post("/", restrictTo("admin"), userController.createStaff);
+router.patch("/:id", restrictTo("admin"), userController.updateUserByAdmin);
 
 module.exports = router;

@@ -89,6 +89,14 @@
               <h4 class="fw-bold brand-font mb-1">Bàn {{ table.tableNumber }}</h4>
               <p class="text-muted small mb-2">Sức chứa: {{ table.capacity }} người</p>
               <small class="badge bg-light text-dark border">{{ table.area?.name || 'Chưa xếp khu vực' }}</small>
+
+              <!-- Các bàn có thể ghép kề -->
+              <div v-if="connectedNumbers(table._id).length" class="mt-2 small">
+                <span class="badge bg-warning bg-opacity-10 text-warning border fs-8">
+                  <i class="fa-solid fa-link me-1"></i>{{ connectedNumbers(table._id).join(', ') }}
+                </span>
+              </div>
+
               <div class="mt-2 text-secondary opacity-50 small">
                 <i class="fa-solid fa-grip-vertical me-1"></i>Kéo để ghép bàn
               </div>
@@ -219,6 +227,22 @@ const merging = ref(false);
 
 const newArea = reactive({ name: "" });
 const areas = computed(() => tableStore.areas);
+
+// Map bàn -> danh sách số bàn có thể ghép kề nhau
+const connectionMap = computed(() => {
+  const map = new Map();
+  tableStore.connections.forEach((conn) => {
+    const a = conn.tableA?._id || conn.tableA;
+    const b = conn.tableB?._id || conn.tableB;
+    if (!map.has(a)) map.set(a, []);
+    if (!map.has(b)) map.set(b, []);
+    map.get(a).push(conn.tableB?.tableNumber || b);
+    map.get(b).push(conn.tableA?.tableNumber || a);
+  });
+  return map;
+});
+
+const connectedNumbers = (tableId) => connectionMap.value.get(tableId) || [];
 
 const connForm = reactive({
   tableA: "",

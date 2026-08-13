@@ -1,5 +1,7 @@
 const Ingredient = require("../models/ingredient.model");
 const AppError = require("../app-error");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
+const { escapeRegex } = require("../utils/escapeRegex");
 
 // 1. Tạo nguyên liệu mới (Chỉ Manager / Admin)
 exports.createIngredient = async (req, res, next) => {
@@ -10,7 +12,7 @@ exports.createIngredient = async (req, res, next) => {
       return next(new AppError("Vui lòng cung cấp Tên nguyên liệu (name) và Đơn vị tính (unit)", 400));
     }
 
-    const existing = await Ingredient.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") } });
+    const existing = await Ingredient.findOne({ name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") } });
     if (existing) {
       return next(new AppError(`Nguyên liệu '${name}' đã tồn tại trong kho`, 409));
     }
@@ -35,10 +37,21 @@ exports.createIngredient = async (req, res, next) => {
 // 2. Lấy danh sách nguyên liệu trong kho (Có cảnh báo sắp hết kho)
 exports.getAllIngredients = async (req, res, next) => {
   try {
-    const { lowStock } = req.query;
+    const { lowStock, search } = req.query;
     const filter = {};
 
-    const ingredients = await Ingredient.find(filter).sort({ name: 1 });
+    if (search) filter.name = { $regex: search.trim(), $options: "i" };
+    if (lowStock === "true") {
+      filter.$expr = { $lte: ["$stockQuantity", "$minStockLevel"] };
+    }
+
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await Ingredient.countDocuments(filter);
+
+    const ingredients = await Ingredient.find(filter)
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit);
 
     const formatted = ingredients.map((ing) => {
       const doc = ing.toObject();
@@ -46,12 +59,11 @@ exports.getAllIngredients = async (req, res, next) => {
       return doc;
     });
 
-    const finalResult = lowStock === "true" ? formatted.filter((i) => i.isLowStock) : formatted;
-
     res.status(200).json({
       status: "success",
-      results: finalResult.length,
-      data: { ingredients: finalResult },
+      results: formatted.length,
+      ...buildPaginationMeta(total, page, limit),
+      data: { ingredients: formatted },
     });
   } catch (error) {
     next(error);
@@ -68,7 +80,7 @@ exports.updateIngredient = async (req, res, next) => {
     if (!ingredient) return next(new AppError("Không tìm thấy nguyên liệu", 404));
 
     if (name && name.trim().toLowerCase() !== ingredient.name.toLowerCase()) {
-      const duplicate = await Ingredient.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") }, _id: { $ne: id } });
+      const duplicate = await Ingredient.findOne({ name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") }, _id: { $ne: id } });
       if (duplicate) return next(new AppError(`Nguyên liệu '${name}' đã tồn tại`, 409));
       ingredient.name = name.trim();
     }

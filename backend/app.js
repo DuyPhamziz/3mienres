@@ -5,6 +5,7 @@ const morgan = require("morgan");
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit");
 const AppError = require("./app/app-error");
+const config = require("./app/config");
 
 // Importer tất cả Router chuẩn hóa
 const authRouter = require("./app/routes/auth.routes");
@@ -36,10 +37,25 @@ const app = express();
 
 // 1. Cài đặt các Middleware cơ bản
 app.use(helmet());
-app.use(cors());
-app.use(morgan("dev"));
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+
+// CORS chỉ cho phép frontend đã cấu hình (và localhost khi dev)
+app.use(
+  cors({
+    origin: [config.frontendUrl, /^http:\/\/localhost(:\d+)?$/],
+    credentials: true,
+  }),
+);
+
+// Chỉ log request ở môi trường development
+if (process.env.NODE_ENV !== "production") {
+  app.use(morgan("dev"));
+}
+
+app.use(express.json({ limit: "2mb" }));
+app.use(express.urlencoded({ extended: true, limit: "2mb" }));
+
+// Đứng sau reverse proxy (nginx/vps) để rate limiter tính đúng IP
+app.set("trust proxy", 1);
 
 // Giới hạn tốc độ chung (chống spam / brute-force)
 const generalLimiter = rateLimit({

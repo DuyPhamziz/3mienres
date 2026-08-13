@@ -2,22 +2,17 @@ const mongoose = require("mongoose");
 
 const importReceiptSchema = new mongoose.Schema(
   {
-    supplier: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "Supplier",
-      required: [true, "Phiếu nhập phải gắn liền với một nhà cung cấp"],
-    },
-    importer: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User", // Nhân viên/Manager thực hiện nhập kho
-      required: [true, "Phải có người thực hiện lập phiếu nhập"],
-    },
     receiptCode: {
       type: String,
       unique: true,
       trim: true,
     },
-    ingredients: [
+    supplier: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Supplier",
+      default: null, // Có thể nhập kho không qua nhà cung cấp
+    },
+    items: [
       {
         ingredient: {
           type: mongoose.Schema.Types.ObjectId,
@@ -29,10 +24,10 @@ const importReceiptSchema = new mongoose.Schema(
           required: true,
           min: [0.01, "Số lượng nhập phải lớn hơn 0"],
         },
-        pricePerUnit: {
+        importPrice: {
           type: Number,
-          required: true, // Giá nhập tại thời điểm đó (để tính giá vốn sau này)
-          min: 0,
+          required: true,
+          min: [0, "Giá nhập không được âm"],
         },
       },
     ],
@@ -40,6 +35,11 @@ const importReceiptSchema = new mongoose.Schema(
       type: Number,
       required: true,
       default: 0, // Tổng tiền hóa đơn nhập hàng
+    },
+    importedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User", // Nhân viên/Manager thực hiện lập phiếu nhập
+      default: null,
     },
     paymentStatus: {
       type: String,
@@ -49,6 +49,10 @@ const importReceiptSchema = new mongoose.Schema(
     importDate: {
       type: Date,
       default: Date.now,
+    },
+    notes: {
+      type: String,
+      trim: true,
     },
   },
   { timestamps: true },

@@ -1,6 +1,7 @@
 const Voucher = require("../models/voucher.model");
 const AppError = require("../app-error");
 const { roundMoney } = require("../utils/money");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
 
 // Tính số tiền giảm giá từ voucher cho một giá trị đơn hàng
 const computeDiscount = (voucher, orderValue) => {
@@ -47,8 +48,29 @@ exports.createVoucher = async (req, res, next) => {
 // 2. Danh sách voucher (Manager / Admin)
 exports.getAllVouchers = async (req, res, next) => {
   try {
-    const vouchers = await Voucher.find().sort({ createdAt: -1 });
-    res.status(200).json({ status: "success", results: vouchers.length, data: { vouchers } });
+    const { search } = req.query;
+    const filter = {};
+    if (search) {
+      filter.$or = [
+        { code: { $regex: search.trim(), $options: "i" } },
+        { title: { $regex: search.trim(), $options: "i" } },
+      ];
+    }
+
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await Voucher.countDocuments(filter);
+
+    const vouchers = await Voucher.find(filter)
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      status: "success",
+      results: vouchers.length,
+      ...buildPaginationMeta(total, page, limit),
+      data: { vouchers },
+    });
   } catch (error) {
     next(error);
   }

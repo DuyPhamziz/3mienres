@@ -2,6 +2,7 @@ const Category = require("../models/category.model");
 const Dish = require("../models/dish.model");
 const AppError = require("../app-error");
 const slugify = require("../utils/slugify");
+const { escapeRegex } = require("../utils/escapeRegex");
 
 // 1. Tạo danh mục món ăn mới (Chỉ Manager / Admin)
 exports.createCategory = async (req, res, next) => {
@@ -17,7 +18,7 @@ exports.createCategory = async (req, res, next) => {
     // Kiểm tra dữ liệu trùng lặp theo tên hoặc slug
     const existing = await Category.findOne({
       $or: [
-        { name: { $regex: new RegExp(`^${name.trim()}$`, "i") } },
+        { name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") } },
         { slug },
       ],
     });

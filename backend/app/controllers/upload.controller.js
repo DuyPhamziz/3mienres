@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const multer = require("multer");
 const AppError = require("../app-error");
+const config = require("../config");
 
 // Cấu hình lưu trữ file bằng Multer
 const storage = multer.diskStorage({
@@ -19,9 +20,11 @@ const storage = multer.diskStorage({
   },
 });
 
-// Lọc định dạng file ảnh
+// Lọc định dạng file ảnh (kiểm tra cả MIME lẫn phần mở rộng)
+const allowedExtensions = [".jpg", ".jpeg", ".png", ".webp", ".gif"];
 const fileFilter = (req, file, cb) => {
-  if (file.mimetype.startsWith("image/")) {
+  const ext = path.extname(file.originalname).toLowerCase();
+  if (file.mimetype.startsWith("image/") && allowedExtensions.includes(ext)) {
     cb(null, true);
   } else {
     cb(new AppError("Chỉ chấp nhận file hình ảnh (jpg, jpeg, png, webp, gif)!", 400), false);
@@ -41,7 +44,8 @@ exports.uploadResponse = (req, res, next) => {
     return next(new AppError("Vui lòng chọn 1 file hình ảnh để tải lên", 400));
   }
 
-  const fileUrl = `${req.protocol}://${req.get("host")}/uploads/${req.file.filename}`;
+  // Dùng backendUrl cố định thay vì req.get("host") để tránh Host header injection
+  const fileUrl = `${config.backendUrl}/uploads/${req.file.filename}`;
 
   res.status(200).json({
     status: "success",

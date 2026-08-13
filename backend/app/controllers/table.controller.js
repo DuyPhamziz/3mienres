@@ -4,6 +4,7 @@ const TableConnection = require("../models/table-connection.model");
 const AppError = require("../app-error");
 const tableEngine = require("../utils/table-engine");
 const { emitEvent } = require("../socket");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
 
 // 1. Tạo bàn ăn mới (Chỉ Manager / Admin)
 exports.createTable = async (req, res, next) => {
@@ -56,19 +57,26 @@ exports.createTable = async (req, res, next) => {
 // 2. Lấy danh sách tất cả các bàn (Xem sơ đồ bàn)
 exports.getAllTables = async (req, res, next) => {
   try {
-    const { area, status } = req.query;
+    const { area, status, search } = req.query;
     const filter = { isActive: true };
 
     if (area) filter.area = area;
     if (status) filter.status = status;
+    if (search) filter.tableNumber = { $regex: search.trim(), $options: "i" };
+
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await Table.countDocuments(filter);
 
     const tables = await Table.find(filter)
       .populate("area", "name description")
-      .sort({ tableNumber: 1 });
+      .sort({ tableNumber: 1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       status: "success",
       results: tables.length,
+      ...buildPaginationMeta(total, page, limit),
       data: { tables },
     });
   } catch (error) {

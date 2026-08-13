@@ -4,6 +4,6 @@ const { protect, restrictTo } = require("../utils/auth");
 
 const router = express.Router();
 
-router.get("/", protect, restrictTo("manager", "admin"), auditController.getAllLogs);
+router.get("/", protect, restrictTo("admin"), auditController.getAllLogs);
 
 module.exports = router;

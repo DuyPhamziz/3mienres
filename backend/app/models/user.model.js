@@ -61,6 +61,15 @@ const userSchema = new mongoose.Schema(
     },
     passwordResetToken: String,
     passwordResetExpires: Date,
+    refreshToken: {
+      type: String,
+      default: null, // Refresh token hiện tại của người dùng
+      select: false,
+    },
+    refreshTokenExpires: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

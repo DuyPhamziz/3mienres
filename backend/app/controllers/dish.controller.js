@@ -2,6 +2,7 @@ const Dish = require("../models/dish.model");
 const Category = require("../models/category.model");
 const AppError = require("../app-error");
 const slugify = require("../utils/slugify");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
 
 // 1. Tạo món ăn mới (Tự động sinh Slug đẹp cho URL)
 exports.createDish = async (req, res, next) => {
@@ -68,11 +69,19 @@ exports.getAllDishes = async (req, res, next) => {
     if (availability !== undefined) filter.availability = availability === "true";
     if (search) filter.name = { $regex: search.trim(), $options: "i" };
 
-    const dishes = await Dish.find(filter).populate("category", "name slug").sort({ createdAt: -1 });
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await Dish.countDocuments(filter);
+
+    const dishes = await Dish.find(filter)
+      .populate("category", "name slug")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       status: "success",
       results: dishes.length,
+      ...buildPaginationMeta(total, page, limit),
       data: { dishes },
     });
   } catch (error) {

@@ -1,6 +1,7 @@
 const User = require("../models/user.model");
 const AppError = require("../app-error");
 const { isValidEmail, isValidPhone } = require("../utils/validate");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
 
 // 1. Cập nhật hồ sơ cá nhân (tên, số điện thoại, ảnh đại diện, địa chỉ)
 exports.updateMe = async (req, res, next) => {
@@ -72,8 +73,31 @@ exports.changePassword = async (req, res, next) => {
 // 3. Danh sách toàn bộ tài khoản (Manager / Admin)
 exports.getAllUsers = async (req, res, next) => {
   try {
-    const users = await User.find().select("-password").sort({ createdAt: -1 });
-    res.status(200).json({ status: "success", results: users.length, data: { users } });
+    const { search } = req.query;
+    const filter = {};
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search.trim(), $options: "i" } },
+        { email: { $regex: search.trim(), $options: "i" } },
+        { phone: { $regex: search.trim(), $options: "i" } },
+      ];
+    }
+
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await User.countDocuments(filter);
+
+    const users = await User.find(filter)
+      .select("-password")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    res.status(200).json({
+      status: "success",
+      results: users.length,
+      ...buildPaginationMeta(total, page, limit),
+      data: { users },
+    });
   } catch (error) {
     next(error);
   }

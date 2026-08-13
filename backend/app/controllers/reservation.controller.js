@@ -114,6 +114,13 @@ exports.createReservation = async (req, res, next) => {
       if (totalCapacity < guests) {
         return next(new AppError(`Tổng sức chứa các bàn đã chọn (${totalCapacity}) không đủ cho ${guests} khách`, 400));
       }
+      // Kiểm tra các bàn chọn có nằm cạnh nhau để ghép được hay không
+      if (assignedTables.length > 1) {
+        const mergeCheck = await tableEngine.validateMergeableTables(assignedTables);
+        if (!mergeCheck.isValid) {
+          return next(new AppError("Các bàn bạn chọn không nằm cạnh nhau nên không thể ghép. Vui lòng chọn các bàn kề nhau.", 400));
+        }
+      }
       isCombined = assignedTables.length > 1;
     } else {
       const singleMatches = availableTables
@@ -183,6 +190,7 @@ exports.createReservation = async (req, res, next) => {
       type: type || "NORMAL",
       status: "CONFIRMED",
       tables: assignedTables,
+      isCombined,
       preOrderDishes: formattedDishes,
       depositAmount,
       notes,
@@ -426,6 +434,14 @@ exports.assignTables = async (req, res, next) => {
     for (const tableId of tableIds) {
       const table = await Table.findById(tableId);
       if (!table) return next(new AppError(`Bàn với ID '${tableId}' không tồn tại`, 404));
+    }
+
+    // Kiểm tra các bàn gán phải nằm cạnh nhau mới ghép được
+    if (tableIds.length > 1) {
+      const mergeCheck = await tableEngine.validateMergeableTables(tableIds);
+      if (!mergeCheck.isValid) {
+        return next(new AppError("Các bàn được gán không nằm cạnh nhau nên không thể ghép. Vui lòng chọn bàn kề nhau.", 400));
+      }
     }
 
     reservation.tables = tableIds;

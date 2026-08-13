@@ -1,6 +1,7 @@
 const Rank = require("../models/rank.model");
 const User = require("../models/user.model");
 const AppError = require("../app-error");
+const { escapeRegex } = require("../utils/escapeRegex");
 
 // 1. Tạo hạng thành viên mới (Chỉ Manager / Admin)
 exports.createRank = async (req, res, next) => {
@@ -11,7 +12,7 @@ exports.createRank = async (req, res, next) => {
       return next(new AppError("Vui lòng nhập đầy đủ: Tên hạng (name), Mức chi tiêu tối thiểu (minSpent) và % Giảm giá (discountPercent)", 400));
     }
 
-    const existing = await Rank.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") } });
+    const existing = await Rank.findOne({ name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") } });
     if (existing) {
       return next(new AppError(`Hạng thành viên '${name}' đã tồn tại`, 409));
     }
@@ -97,7 +98,7 @@ exports.updateRank = async (req, res, next) => {
     if (!rank) return next(new AppError("Không tìm thấy hạng thành viên", 404));
 
     if (name && name.trim().toLowerCase() !== rank.name.toLowerCase()) {
-      const duplicate = await Rank.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") }, _id: { $ne: id } });
+      const duplicate = await Rank.findOne({ name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") }, _id: { $ne: id } });
       if (duplicate) return next(new AppError(`Tên hạng '${name}' đã tồn tại`, 409));
       rank.name = name.trim();
     }

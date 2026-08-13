@@ -8,6 +8,7 @@ const AppError = require("../app-error");
 const { generateUniqueCode } = require("../utils/code-generator");
 const { emitEvent } = require("../socket");
 const { logAction } = require("../utils/audit");
+const tableEngine = require("../utils/table-engine");
 
 // 1. Check-in cho khách đã đặt bàn trước (Reservation -> DiningSession)
 exports.checkInReservation = async (req, res, next) => {
@@ -48,6 +49,14 @@ exports.checkInReservation = async (req, res, next) => {
       }
       if (table.status === "OCCUPIED") {
         return next(new AppError(`Bàn '${table.tableNumber}' hiện đang có khách khác ngồi ăn!`, 409));
+      }
+    }
+
+    // Kiểm tra các bàn thực tế có nằm cạnh nhau để ghép được hay không
+    if (finalTableIds.length > 1) {
+      const mergeCheck = await tableEngine.validateMergeableTables(finalTableIds);
+      if (!mergeCheck.isValid) {
+        return next(new AppError("Các bàn check-in không nằm cạnh nhau nên không thể ghép. Vui lòng chọn bàn kề nhau.", 400));
       }
     }
 
@@ -261,6 +270,7 @@ exports.changeTables = async (req, res, next) => {
     }
 
     const oldTableIds = session.tables.map((t) => t.toString());
+    const newTableIdSet = new Set(newTableIds.map((t) => t.toString()));
 
     // Kiểm tra các bàn mới
     for (let tId of newTableIds) {
@@ -271,6 +281,24 @@ exports.changeTables = async (req, res, next) => {
       if (!table) return next(new AppError(`Bàn với ID '${tId}' không tồn tại`, 404));
       if (table.status === "OCCUPIED") {
         return next(new AppError(`Bàn '${table.tableNumber}' đang có khách khác ngồi, không thể chuyển sang!`, 409));
+      }
+    }
+
+    // Quy tắc kề nhau: phân biệt "ghép thêm bàn" và "đổi hẳn bàn"
+    const keptOldIds = oldTableIds.filter((id) => newTableIdSet.has(id));
+    const addedNewIds = newTableIds.map((t) => t.toString()).filter((id) => !oldTableIds.includes(id));
+
+    if (keptOldIds.length > 0 && addedNewIds.length > 0) {
+      // Ghép thêm bàn: bàn thêm phải kề với bàn đang giữ (cả cụm phải liên thông)
+      const mergeCheck = await tableEngine.validateMergeableTables([...keptOldIds, ...addedNewIds]);
+      if (!mergeCheck.isValid) {
+        return next(new AppError("Bàn thêm vào phải nằm cạnh bàn khách đang ngồi để ghép được.", 400));
+      }
+    } else if (keptOldIds.length === 0 && addedNewIds.length > 1) {
+      // Đổi hẳn sang nhiều bàn mới: các bàn mới phải kề nhau
+      const mergeCheck = await tableEngine.validateMergeableTables(addedNewIds);
+      if (!mergeCheck.isValid) {
+        return next(new AppError("Các bàn mới không nằm cạnh nhau nên không thể ghép.", 400));
       }
     }
 

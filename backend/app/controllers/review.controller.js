@@ -1,6 +1,7 @@
 const Review = require("../models/review.model");
 const Dish = require("../models/dish.model");
 const AppError = require("../app-error");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
 
 // 1. Tạo đánh giá món ăn / trải nghiệm (Khách hàng)
 exports.createReview = async (req, res, next) => {
@@ -66,14 +67,20 @@ exports.getReviewsByDish = async (req, res, next) => {
 // 3. Quản lý xem toàn bộ đánh giá
 exports.getAllReviews = async (req, res, next) => {
   try {
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await Review.countDocuments();
+
     const reviews = await Review.find()
       .populate("user", "name email")
       .populate("dish", "name image")
-      .sort({ createdAt: -1 });
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       status: "success",
       results: reviews.length,
+      ...buildPaginationMeta(total, page, limit),
       data: { reviews },
     });
   } catch (error) {

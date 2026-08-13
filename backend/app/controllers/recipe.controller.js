@@ -70,3 +70,38 @@ exports.getRecipeByDish = async (req, res, next) => {
     next(error);
   }
 };
+
+// 3. Lấy danh sách tất cả công thức định lượng món ăn
+exports.getAllRecipes = async (req, res, next) => {
+  try {
+    const recipes = await Recipe.find()
+      .populate("dish", "name price image")
+      .populate("ingredients.ingredient", "name unit")
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      status: "success",
+      results: recipes.length,
+      data: { recipes },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 4. Xóa công thức định lượng
+exports.deleteRecipe = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const deleted = await Recipe.findByIdAndDelete(id);
+    if (!deleted) return next(new AppError("Không tìm thấy công thức để xóa", 404));
+
+    res.status(200).json({
+      status: "success",
+      message: "Xóa công thức thành công",
+      data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};

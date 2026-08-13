@@ -1,5 +1,7 @@
 const Supplier = require("../models/supplier.model");
 const AppError = require("../app-error");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
+const { escapeRegex } = require("../utils/escapeRegex");
 
 // 1. Tạo nhà cung cấp mới (Chỉ Manager / Admin)
 exports.createSupplier = async (req, res, next) => {
@@ -10,7 +12,7 @@ exports.createSupplier = async (req, res, next) => {
       return next(new AppError("Vui lòng cung cấp Tên nhà cung cấp (name) và Số điện thoại (phone)", 400));
     }
 
-    const existing = await Supplier.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") } });
+    const existing = await Supplier.findOne({ name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") } });
     if (existing) {
       return next(new AppError(`Nhà cung cấp '${name}' đã tồn tại`, 409));
     }
@@ -36,11 +38,27 @@ exports.createSupplier = async (req, res, next) => {
 // 2. Lấy danh sách tất cả các nhà cung cấp
 exports.getAllSuppliers = async (req, res, next) => {
   try {
-    const suppliers = await Supplier.find().sort({ name: 1 });
+    const { search } = req.query;
+    const filter = {};
+    if (search) {
+      filter.$or = [
+        { name: { $regex: search.trim(), $options: "i" } },
+        { phone: { $regex: search.trim(), $options: "i" } },
+      ];
+    }
+
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await Supplier.countDocuments(filter);
+
+    const suppliers = await Supplier.find(filter)
+      .sort({ name: 1 })
+      .skip(skip)
+      .limit(limit);
 
     res.status(200).json({
       status: "success",
       results: suppliers.length,
+      ...buildPaginationMeta(total, page, limit),
       data: { suppliers },
     });
   } catch (error) {
@@ -58,7 +76,7 @@ exports.updateSupplier = async (req, res, next) => {
     if (!supplier) return next(new AppError("Không tìm thấy nhà cung cấp", 404));
 
     if (name && name.trim().toLowerCase() !== supplier.name.toLowerCase()) {
-      const duplicate = await Supplier.findOne({ name: { $regex: new RegExp(`^${name.trim()}$`, "i") }, _id: { $ne: id } });
+      const duplicate = await Supplier.findOne({ name: { $regex: new RegExp(`^${escapeRegex(name.trim())}$`, "i") }, _id: { $ne: id } });
       if (duplicate) return next(new AppError(`Nhà cung cấp '${name}' đã tồn tại`, 409));
       supplier.name = name.trim();
     }

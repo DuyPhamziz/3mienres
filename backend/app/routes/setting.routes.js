@@ -6,7 +6,7 @@ const router = express.Router();
 
 router.get("/", settingController.getSettings);
 
-router.use(protect, restrictTo("manager", "admin"));
+router.use(protect, restrictTo("admin"));
 router.patch("/", settingController.updateSettings);
 
 module.exports = router;

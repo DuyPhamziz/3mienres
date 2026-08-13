@@ -66,6 +66,11 @@ const reservationSchema = new mongoose.Schema(
         ref: "Table",
       },
     ],
+    // Đánh dấu đơn này có sử dụng ghép bàn (nhiều bàn kề nhau) hay không
+    isCombined: {
+      type: Boolean,
+      default: false,
+    },
     // Món ăn khách chọn đặt trước (nếu có)
     preOrderDishes: [
       {
