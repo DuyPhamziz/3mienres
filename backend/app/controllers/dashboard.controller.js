@@ -5,13 +5,36 @@ const Ingredient = require("../models/ingredient.model");
 const Order = require("../models/order.model");
 const AppError = require("../app-error");
 
+// Helper chuẩn hóa khoảng thời gian tìm kiếm từ YYYY-MM-DD
+const parseDateRange = (startDateStr, endDateStr) => {
+  let start, end;
+  if (startDateStr) {
+    start = new Date(startDateStr);
+    if (startDateStr.length <= 10) {
+      start.setHours(0, 0, 0, 0);
+    }
+  } else {
+    start = new Date();
+    start.setHours(0, 0, 0, 0);
+  }
+
+  if (endDateStr) {
+    end = new Date(endDateStr);
+    if (endDateStr.length <= 10) {
+      end.setHours(23, 59, 59, 999);
+    }
+  } else {
+    end = new Date();
+    end.setHours(23, 59, 59, 999);
+  }
+  return { start, end };
+};
+
 // Báo cáo tổng quan kinh doanh cho Dashboard
 exports.getDashboardStats = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-
-    const start = startDate ? new Date(startDate) : new Date(new Date().setHours(0, 0, 0, 0));
-    const end = endDate ? new Date(endDate) : new Date(new Date().setHours(23, 59, 59, 999));
+    const { start, end } = parseDateRange(startDate, endDate);
 
     // 1. Thống kê Doanh thu từ Hóa đơn đã thanh toán
     const invoices = await Invoice.find({
@@ -19,7 +42,7 @@ exports.getDashboardStats = async (req, res, next) => {
       paymentStatus: "PAID",
     });
 
-    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.finalAmount, 0);
+    const totalRevenue = invoices.reduce((sum, inv) => sum + (inv.finalAmount || 0), 0);
     const invoiceCount = invoices.length;
 
     // 2. Thống kê Đặt bàn (Reservation)
@@ -89,6 +112,27 @@ exports.getDashboardStats = async (req, res, next) => {
       { $group: { _id: "$paymentMethod", total: { $sum: "$finalAmount" }, count: { $sum: 1 } } },
     ]);
 
+    // 8. Thống kê đơn đặt bàn theo trạng thái (PENDING / CONFIRMED / ARRIVED / COMPLETED / CANCELLED)
+    const reservationStatusCounts = await Reservation.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+
+    // 9. Thống kê đơn gọi món theo trạng thái (PENDING / PREPARING / SERVED / CANCELLED)
+    const orderStatusCounts = await Order.aggregate([
+      { $match: { createdAt: { $gte: start, $lte: end } } },
+      { $group: { _id: "$status", count: { $sum: 1 } } },
+    ]);
+
+    // 10. Thống kê tiền cọc (đã thu / chờ thu)
+    const reservationsInRange = await Reservation.find({ createdAt: { $gte: start, $lte: end } });
+    const depositCollected = reservationsInRange
+      .filter((r) => r.depositStatus === "PAID")
+      .reduce((s, r) => s + (r.depositAmount || 0), 0);
+    const depositPending = reservationsInRange
+      .filter((r) => r.depositStatus !== "PAID")
+      .reduce((s, r) => s + (r.depositAmount || 0), 0);
+
     res.status(200).json({
       status: "success",
       filterRange: { start, end },
@@ -104,6 +148,12 @@ exports.getDashboardStats = async (req, res, next) => {
         topDishes,
         revenueByDay,
         paymentMethodBreakdown,
+        reservationStatusCounts,
+        orderStatusCounts,
+        depositStats: {
+          collected: depositCollected,
+          pending: depositPending,
+        },
         lowStockAlerts: {
           count: lowStockIngredients.length,
           ingredients: lowStockIngredients,
@@ -119,8 +169,7 @@ exports.getDashboardStats = async (req, res, next) => {
 exports.exportInvoicesCsv = async (req, res, next) => {
   try {
     const { startDate, endDate } = req.query;
-    const start = startDate ? new Date(startDate) : new Date(new Date().setHours(0, 0, 0, 0));
-    const end = endDate ? new Date(endDate) : new Date(new Date().setHours(23, 59, 59, 999));
+    const { start, end } = parseDateRange(startDate, endDate);
 
     const invoices = await Invoice.find({ paidAt: { $gte: start, $lte: end } })
       .populate("diningSession", "sessionCode customerName customerPhone")
