@@ -4,13 +4,13 @@
       <!-- Title Header -->
       <div class="text-center max-w-2xl mx-auto mb-5">
         <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8 text-uppercase">
-          <i class="fa-solid fa-utensils me-1"></i> ẨM THỰC 3 MIỀN BẮC - TRUNG - NAM
+          <i class="fa-solid fa-utensils me-1"></i> {{ langStore.t('home.badge') }}
         </span>
         <h1 class="display-5 fw-bold brand-font text-dark">
-          {{ langStore.isEnglish ? '3-Region Specialty Menu' : 'Thực Đơn Đặc Sản 3 Miền' }}
+          {{ langStore.t('menu.title') }}
         </h1>
         <p class="text-muted small">
-          {{ langStore.isEnglish ? 'Filter by Region or Category to discover authentic flavors from North to South' : 'Chọn bộ lọc theo Vùng Miền hoặc Danh Mục để khám phá món ăn yêu thích' }}
+          {{ langStore.t('menu.subtitle') }}
         </p>
       </div>
 
@@ -34,31 +34,31 @@
           <!-- 3 Miền Filter (Đặc trưng nhà hàng) -->
           <div class="col-lg-7 d-flex flex-wrap gap-2 justify-content-lg-end align-items-center">
             <span class="fw-bold fs-7 text-muted me-1 d-none d-sm-inline">
-              <i class="fa-solid fa-map-location-dot text-danger me-1"></i>Vùng miền:
+              <i class="fa-solid fa-map-location-dot text-danger me-1"></i>{{ langStore.isEnglish ? 'Region:' : 'Vùng miền:' }}
             </span>
             <button
               @click="setRegion('')"
               :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === '' ? 'btn-danger shadow-sm' : 'btn-outline-secondary']"
             >
-              Tất cả miền
+              {{ langStore.isEnglish ? 'All Regions' : 'Tất cả miền' }}
             </button>
             <button
               @click="setRegion('Bắc')"
               :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === 'Bắc' ? 'btn-primary shadow-sm' : 'btn-outline-primary']"
             >
-              <i class="fa-solid fa-bowl-food me-1"></i> Miền Bắc
+              <i class="fa-solid fa-bowl-food me-1"></i> {{ langStore.isEnglish ? 'North Region' : 'Miền Bắc' }}
             </button>
             <button
               @click="setRegion('Trung')"
               :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === 'Trung' ? 'btn-warning text-dark shadow-sm' : 'btn-outline-warning']"
             >
-              <i class="fa-solid fa-pepper-hot me-1"></i> Miền Trung
+              <i class="fa-solid fa-pepper-hot me-1"></i> {{ langStore.isEnglish ? 'Central Region' : 'Miền Trung' }}
             </button>
             <button
               @click="setRegion('Nam')"
               :class="['btn btn-sm rounded-pill px-3 py-1.5 fw-bold text-nowrap', selectedRegion === 'Nam' ? 'btn-success shadow-sm' : 'btn-outline-success']"
             >
-              <i class="fa-solid fa-utensils me-1"></i> Miền Nam
+              <i class="fa-solid fa-utensils me-1"></i> {{ langStore.isEnglish ? 'South Region' : 'Miền Nam' }}
             </button>
           </div>
         </div>
@@ -66,13 +66,13 @@
         <!-- Row 2: Categories Filter (Đổ động từ DB Collection Categories) -->
         <div class="pt-3 border-top d-flex align-items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <span class="fw-bold fs-7 text-muted me-1 text-nowrap">
-            <i class="fa-solid fa-layer-group text-warning me-1"></i>Danh mục DB:
+            <i class="fa-solid fa-layer-group text-warning me-1"></i>{{ langStore.isEnglish ? 'Categories:' : 'Danh mục DB:' }}
           </span>
           <button
             @click="setCategory('')"
             :class="['btn btn-sm rounded-pill px-3 py-1 text-nowrap fw-semibold fs-7', selectedCategory === '' ? 'btn-dark' : 'btn-light border']"
           >
-            Tất cả danh mục
+            {{ langStore.isEnglish ? 'All Categories' : 'Tất cả danh mục' }}
           </button>
           <button
             v-for="cat in menuStore.categories"
@@ -88,7 +88,7 @@
       <!-- Loading State -->
       <div v-if="menuStore.loading" class="text-center py-5">
         <div class="spinner-border text-danger" role="status"></div>
-        <p class="mt-2 text-muted small">Đang tải danh sách thực đơn 3 miền...</p>
+        <p class="mt-2 text-muted small">{{ langStore.isEnglish ? 'Loading 3-Region menu...' : 'Đang tải danh sách thực đơn 3 miền...' }}</p>
       </div>
 
       <!-- Dishes Grid -->
@@ -108,10 +108,10 @@
                     dish.region === 'Bắc' ? 'bg-primary' : dish.region === 'Trung' ? 'bg-warning text-dark' : 'bg-success'
                   ]"
                 >
-                  Miền {{ dish.region }}
+                  {{ langStore.isEnglish ? 'Region ' : 'Miền ' }}{{ dish.region }}
                 </span>
                 <span v-if="dish.category" class="badge bg-dark bg-opacity-75 position-absolute bottom-0 start-0 m-3 px-2 py-1 fs-8 rounded-2">
-                  {{ dish.category.name || 'Hải Sản' }}
+                  {{ dish.category.name || 'Seafood' }}
                 </span>
               </div>
 
@@ -123,7 +123,7 @@
                 <div class="d-flex justify-content-between align-items-center border-top pt-3 mt-auto">
                   <span class="fw-bold text-danger fs-5">{{ dish.price.toLocaleString('vi-VN') }}đ</span>
                   <router-link :to="`/mon-an/${dish.slug}`" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
-                    Chi Tiết <i class="fa-solid fa-chevron-right fs-8 ms-1"></i>
+                    {{ langStore.isEnglish ? 'Detail' : 'Chi Tiết' }} <i class="fa-solid fa-chevron-right fs-8 ms-1"></i>
                   </router-link>
                 </div>
               </div>
@@ -134,7 +134,7 @@
         <!-- PAGINATION BAR (12 món / trang) -->
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center pt-3 border-top gap-3">
           <div class="text-muted small">
-            Hiển thị món <strong>{{ startIndex + 1 }} - {{ Math.min(endIndex, filteredDishes.length) }}</strong> trong tổng số <strong>{{ filteredDishes.length }}</strong> món ăn
+            {{ langStore.isEnglish ? 'Showing dishes' : 'Hiển thị món' }} <strong>{{ startIndex + 1 }} - {{ Math.min(endIndex, filteredDishes.length) }}</strong> {{ langStore.isEnglish ? 'of' : 'trong tổng số' }} <strong>{{ filteredDishes.length }}</strong> {{ langStore.isEnglish ? 'dishes' : 'món ăn' }}
           </div>
 
           <nav v-if="totalPages > 1" aria-label="Phân trang món ăn">
@@ -164,10 +164,10 @@
       <!-- Empty State -->
       <div v-else class="text-center py-5 glass-card rounded-5 bg-white shadow-sm">
         <i class="fa-solid fa-utensils display-2 text-muted mb-3 d-block"></i>
-        <h4 class="fw-bold text-dark">Không Tìm Thấy Món Ăn Nào</h4>
-        <p class="text-muted small">Vui lòng thử chọn lại vùng miền hoặc danh mục khác</p>
+        <h4 class="fw-bold text-dark">{{ langStore.isEnglish ? 'No Dishes Found' : 'Không Tìm Thấy Món Ăn Nào' }}</h4>
+        <p class="text-muted small">{{ langStore.isEnglish ? 'Please try selecting another region or category' : 'Vui lòng thử chọn lại vùng miền hoặc danh mục khác' }}</p>
         <button @click="resetFilters" class="btn btn-outline-danger rounded-pill px-4 btn-sm">
-          Thiết Lập Lại Bộ Lọc
+          {{ langStore.isEnglish ? 'Reset Filters' : 'Thiết Lập Lại Bộ Lọc' }}
         </button>
       </div>
     </div>
@@ -188,7 +188,7 @@ const searchQuery = ref("");
 const selectedRegion = ref(route.query.region || "");
 const selectedCategory = ref("");
 const currentPage = ref(1);
-const itemsPerPage = 12; // Giới hạn 12 món / trang
+const itemsPerPage = 12;
 
 const handleFilterChange = () => {
   currentPage.value = 1;
@@ -211,19 +211,15 @@ const resetFilters = () => {
   currentPage.value = 1;
 };
 
-// Lọc món ăn dựa trên Tìm kiếm, Vùng miền (3 Miền) và Danh mục (DB Categories)
 const filteredDishes = computed(() => {
   return menuStore.dishes.filter((dish) => {
-    // 1. Lọc theo 3 Miền
     if (selectedRegion.value && dish.region !== selectedRegion.value) {
       return false;
     }
-    // 2. Lọc theo Danh mục DB
     if (selectedCategory.value) {
       const catId = typeof dish.category === "object" ? dish.category?._id : dish.category;
       if (catId !== selectedCategory.value) return false;
     }
-    // 3. Lọc theo Ô Tìm Kiếm
     if (searchQuery.value) {
       const query = searchQuery.value.trim().toLowerCase();
       const matchName = dish.name.toLowerCase().includes(query);
@@ -234,7 +230,6 @@ const filteredDishes = computed(() => {
   });
 });
 
-// Tính toán Phân Trang 12 món / trang
 const totalPages = computed(() => Math.ceil(filteredDishes.value.length / itemsPerPage) || 1);
 const startIndex = computed(() => (currentPage.value - 1) * itemsPerPage);
 const endIndex = computed(() => startIndex.value + itemsPerPage);
