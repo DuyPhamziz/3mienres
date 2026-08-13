@@ -12,6 +12,7 @@ router.use(protect);
 
 router.patch("/:id/cancel", reservationController.cancelReservation);
 router.patch("/:id/reschedule", reservationController.rescheduleReservation);
+router.post("/:id/demo-confirm-deposit", reservationController.demoConfirmDeposit);
 router.get("/my-history", reservationController.getMyReservations);
 
 router.use(restrictTo("staff", "manager", "admin"));

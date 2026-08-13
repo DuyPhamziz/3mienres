@@ -1,6 +1,8 @@
 const Reservation = require("../models/reservation.model");
 const Table = require("../models/table.model");
 const Dish = require("../models/dish.model");
+const DiningSession = require("../models/dining-session.model");
+const Order = require("../models/order.model");
 const RestaurantSetting = require("../models/setting.model");
 const AppError = require("../app-error");
 const tableEngine = require("../utils/table-engine");
@@ -68,17 +70,17 @@ exports.createReservation = async (req, res, next) => {
     const userId = req.user ? req.user._id : null;
 
     if (!finalName || !finalPhone || !guestsCount || !startAt) {
-      return next(new AppError("Vui long cung cap day du ten, so dien thoai, so khach va thoi gian bat dau", 400));
+      return next(new AppError("Vui lòng cung cấp đầy đủ tên, số điện thoại, số khách và thời gian bắt đầu", 400));
     }
 
     const guests = parseInt(guestsCount, 10);
     if (Number.isNaN(guests) || guests <= 0) {
-      return next(new AppError("So luong khach phai la so duong hop le", 400));
+      return next(new AppError("Số lượng khách phải là số dương hợp lệ", 400));
     }
 
     const startTime = new Date(startAt);
     if (Number.isNaN(startTime.getTime()) || startTime < new Date()) {
-      return next(new AppError("Thoi gian bat dau phai la thoi diem hop le trong tuong lai", 400));
+      return next(new AppError("Thời gian bắt đầu phải là thời điểm hợp lệ trong tương lai", 400));
     }
 
     const settings = await getRestaurantPaymentSettings();
@@ -139,8 +141,8 @@ exports.createReservation = async (req, res, next) => {
     if (Array.isArray(preOrderDishes)) {
       for (const item of preOrderDishes) {
         const dishInfo = await Dish.findById(item.dish);
-        if (!dishInfo) return next(new AppError(`Khong tim thay mon an voi ID: ${item.dish}`, 404));
-        if (!dishInfo.availability) return next(new AppError(`Mon '${dishInfo.name}' hien tai da het hang`, 400));
+        if (!dishInfo) return next(new AppError(`Không tìm thấy món ăn với ID: ${item.dish}`, 404));
+        if (!dishInfo.availability) return next(new AppError(`Món '${dishInfo.name}' hiện tại đã hết hàng`, 400));
 
         const quantity = item.quantity || 1;
         preOrderTotal += dishInfo.price * quantity;
@@ -196,8 +198,8 @@ exports.createReservation = async (req, res, next) => {
     res.status(201).json({
       status: "success",
       message: isCombined
-        ? `Dat ban thanh cong. He thong da ghep cum ban cho doan ${guests} nguoi.`
-        : "Dat ban thanh cong. Nha hang da giu cho cho ban.",
+        ? `Đặt bàn thành công. Hệ thống đã ghép cụm bàn cho đoàn ${guests} người.`
+        : "Đặt bàn thành công. Nhà hàng đã giữ chỗ cho bạn.",
       isCombinedTable: isCombined,
       checkInQrUrl,
       deposit: {
@@ -218,9 +220,9 @@ exports.trackReservation = async (req, res, next) => {
     const { code } = req.params;
     const { phone } = req.query;
 
-    if (!code) return next(new AppError("Vui long cung cap ma dat ban", 400));
+    if (!code) return next(new AppError("Vui lòng cung cấp mã đặt bàn", 400));
     if (!phone || !phone.trim()) {
-      return next(new AppError("Vui long cung cap so dien thoai da dung khi dat ban", 400));
+      return next(new AppError("Vui lòng cung cấp số điện thoại đã dùng khi đặt bàn", 400));
     }
 
     const reservation = await Reservation.findOne({ reservationCode: code.trim().toUpperCase() })
@@ -229,7 +231,7 @@ exports.trackReservation = async (req, res, next) => {
       .populate("preOrderDishes.dish", "name price image");
 
     if (!reservation || reservation.customerPhone !== phone.trim()) {
-      return next(new AppError("Ma dat ban hoac so dien thoai khong dung", 404));
+      return next(new AppError("Mã đặt bàn hoặc số điện thoại không đúng", 404));
     }
 
     const settings = await getRestaurantPaymentSettings();
@@ -241,6 +243,19 @@ exports.trackReservation = async (req, res, next) => {
       `COC ${reservation.reservationCode}`,
     );
 
+    // Lấy lượt dùng bữa + đơn món (nếu khách đã check-in) để khách theo dõi trạng thái món
+    let session = null;
+    let orders = [];
+    if (reservation.status === "ARRIVED") {
+      session = await DiningSession.findOne({ reservation: reservation._id, status: "ACTIVE" })
+        .populate("tables", "tableNumber capacity");
+      if (session) {
+        orders = await Order.find({ diningSession: session._id })
+          .populate("items.dish", "name image")
+          .sort({ createdAt: 1 });
+      }
+    }
+
     res.status(200).json({
       status: "success",
       checkInQrUrl: generateCheckInQRUrl(reservation.reservationCode),
@@ -250,6 +265,8 @@ exports.trackReservation = async (req, res, next) => {
         bankInfo: settings.bankInfo,
         qrCodeUrl,
       },
+      session,
+      orders,
       data: { reservation },
     });
   } catch (error) {
@@ -263,16 +280,16 @@ exports.cancelReservation = async (req, res, next) => {
     const { reason } = req.body;
 
     const reservation = await Reservation.findById(id);
-    if (!reservation) return next(new AppError("Khong tim thay don dat ban nay", 404));
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
 
     const isStaff = req.user && STAFF_ROLES.includes(req.user.role);
     const isOwner = reservation.user && req.user && reservation.user.toString() === req.user._id.toString();
     if (!isStaff && !isOwner) {
-      return next(new AppError("Ban khong co quyen huy don dat ban nay", 403));
+      return next(new AppError("Bạn không có quyền hủy đơn đặt bàn này", 403));
     }
 
     if (["CANCELLED", "COMPLETED"].includes(reservation.status)) {
-      return next(new AppError(`Don dat ban dang o trang thai '${reservation.status}', khong the huy`, 409));
+      return next(new AppError(`Đơn đặt bàn đang ở trạng thái '${reservation.status}', không thể hủy`, 409));
     }
 
     reservation.status = "CANCELLED";
@@ -311,10 +328,38 @@ exports.getMyReservations = async (req, res, next) => {
       .populate("preOrderDishes.dish", "name price image")
       .sort({ startAt: -1 });
 
+    // Kèm lượt dùng bữa + đơn món cho các đơn đã check-in (ARRIVED) để khách theo dõi trạng thái món
+    const arrivedIds = reservations.filter((r) => r.status === "ARRIVED").map((r) => r._id);
+    const sessions = await DiningSession.find({ reservation: { $in: arrivedIds }, status: "ACTIVE" })
+      .populate("tables", "tableNumber capacity");
+
+    const sessionMap = new Map(sessions.map((s) => [s.reservation.toString(), s]));
+
+    const orders = await Order.find({ diningSession: { $in: sessions.map((s) => s._id) } })
+      .populate("items.dish", "name image")
+      .sort({ createdAt: 1 });
+
+    const ordersBySession = new Map();
+    orders.forEach((o) => {
+      const key = o.diningSession.toString();
+      if (!ordersBySession.has(key)) ordersBySession.set(key, []);
+      ordersBySession.get(key).push(o);
+    });
+
+    const result = reservations.map((r) => {
+      const obj = r.toObject();
+      const session = sessionMap.get(r._id.toString());
+      if (session) {
+        obj.session = session;
+        obj.orders = ordersBySession.get(session._id.toString()) || [];
+      }
+      return obj;
+    });
+
     res.status(200).json({
       status: "success",
-      results: reservations.length,
-      data: { reservations },
+      results: result.length,
+      data: { reservations: result },
     });
   } catch (error) {
     next(error);
@@ -365,14 +410,14 @@ exports.assignTables = async (req, res, next) => {
     const { tableIds } = req.body;
     const reservation = await Reservation.findById(req.params.id);
 
-    if (!reservation) return next(new AppError("Khong tim thay don dat ban nay", 404));
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
     if (!Array.isArray(tableIds) || tableIds.length === 0) {
-      return next(new AppError("Vui long cung cap danh sach ban hop le", 400));
+      return next(new AppError("Vui lòng cung cấp danh sách bàn hợp lệ", 400));
     }
 
     for (const tableId of tableIds) {
       const table = await Table.findById(tableId);
-      if (!table) return next(new AppError(`Ban voi ID '${tableId}' khong ton tai`, 404));
+      if (!table) return next(new AppError(`Bàn với ID '${tableId}' không tồn tại`, 404));
     }
 
     reservation.tables = tableIds;
@@ -383,7 +428,7 @@ exports.assignTables = async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      message: "Gan ban du kien thanh cong",
+      message: "Gán bàn dự kiến thành công",
       data: { reservation },
     });
   } catch (error) {
@@ -394,16 +439,16 @@ exports.assignTables = async (req, res, next) => {
 exports.confirmDeposit = async (req, res, next) => {
   try {
     const reservation = await Reservation.findById(req.params.id);
-    if (!reservation) return next(new AppError("Khong tim thay don dat ban nay", 404));
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
 
     if (reservation.depositAmount <= 0) {
-      return next(new AppError("Don dat ban nay khong yeu cau tien coc", 400));
+      return next(new AppError("Đơn đặt bàn này không yêu cầu tiền cọc", 400));
     }
     if (["CANCELLED", "COMPLETED"].includes(reservation.status)) {
-      return next(new AppError(`Don dat ban dang o trang thai '${reservation.status}', khong the xac nhan coc`, 409));
+      return next(new AppError(`Đơn đặt bàn đang ở trạng thái '${reservation.status}', không thể xác nhận cọc`, 409));
     }
     if (reservation.depositStatus === "PAID") {
-      return next(new AppError("Don dat ban nay da duoc xac nhan coc", 409));
+      return next(new AppError("Đơn đặt bàn này đã được xác nhận cọc", 409));
     }
 
     reservation.depositStatus = "PAID";
@@ -421,6 +466,36 @@ exports.confirmDeposit = async (req, res, next) => {
     res.status(200).json({
       status: "success",
       message: `Đã xác nhận nhận tiền cọc ${roundMoney(reservation.depositAmount).toLocaleString("vi-VN")}đ thành công`,
+      data: { reservation },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 7.b Giả lập nộp cọc thành công cho Demo Đồ Án / Giảng viên theo dõi
+exports.demoConfirmDeposit = async (req, res, next) => {
+  try {
+    const reservation = await Reservation.findById(req.params.id);
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
+
+    if (["CANCELLED", "COMPLETED"].includes(reservation.status)) {
+      return next(new AppError(`Đơn đặt bàn đang ở trạng thái '${reservation.status}', không thể nộp cọc`, 409));
+    }
+
+    reservation.depositStatus = "PAID";
+    reservation.depositConfirmedAt = new Date();
+    if (reservation.status === "PENDING") {
+      reservation.status = "CONFIRMED";
+    }
+    await reservation.save();
+
+    emitEvent("reservations:changed");
+    notifier.notifyDepositConfirmed(reservation);
+
+    res.status(200).json({
+      status: "success",
+      message: `[DEMO TEST] Đã giả lập thanh toán nộp cọc ${roundMoney(reservation.depositAmount).toLocaleString("vi-VN")}đ thành công!`,
       data: { reservation },
     });
   } catch (error) {

@@ -79,6 +79,15 @@ export const useReservationStore = defineStore("reservation", {
         throw new Error(err.response?.data?.message || "Xác nhận cọc thất bại!");
       }
     },
+    async demoConfirmDeposit(reservationId) {
+      try {
+        const res = await api.post(`/reservations/${reservationId}/demo-confirm-deposit`);
+        await this.fetchMyReservations();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Giả lập nộp cọc thất bại!");
+      }
+    },
     async cancelReservation(reservationId, reason) {
       try {
         const res = await api.patch(`/reservations/${reservationId}/cancel`, { reason });

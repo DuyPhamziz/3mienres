@@ -68,11 +68,20 @@
             style="max-width: 260px;"
           />
 
-          <div class="small text-secondary bg-white p-3 rounded-3 border text-start">
+          <div class="small text-secondary bg-white p-3 rounded-3 border text-start mb-3">
             <p class="mb-1"><strong>{{ langStore.isEnglish ? 'Bank:' : 'Ngân hàng nhận:' }}</strong> {{ successData.deposit.bankInfo.bankId }} - {{ successData.deposit.bankInfo.accountName }}</p>
             <p class="mb-1"><strong>{{ langStore.isEnglish ? 'Account No:' : 'Số tài khoản:' }}</strong> {{ successData.deposit.bankInfo.accountNo }}</p>
             <p class="mb-0"><strong>{{ langStore.isEnglish ? 'Transfer Note:' : 'Nội dung chuyển khoản:' }}</strong> <span class="text-danger fw-bold">COC {{ successData.data.reservation.reservationCode }}</span></p>
           </div>
+
+          <!-- Nút Giả lập Nộp Cọc Demo cho Giảng viên / Đồ Án -->
+          <button
+            type="button"
+            @click="handleDemoDepositSuccess"
+            class="btn btn-warning rounded-pill px-4 py-2.5 fw-bold shadow-sm w-100 text-dark"
+          >
+            <i class="fa-solid fa-bolt me-1"></i> [⚡ DEMO TEST] Giả Lập Nộp Cọc Thành Công
+          </button>
         </div>
 
         <div class="d-flex justify-content-center gap-3">
@@ -715,6 +724,7 @@ import { useAuthStore } from "../../stores/authStore";
 import { useMenuStore } from "../../stores/menuStore";
 import { useTableStore } from "../../stores/tableStore";
 import { useLangStore } from "../../stores/langStore";
+import { toast } from "../../composables/useToast";
 
 const reservationStore = useReservationStore();
 const authStore = useAuthStore();
@@ -928,6 +938,19 @@ const handleSubmit = async () => {
     successData.value = res;
   } catch (err) {
     errorMsg.value = err.message;
+  }
+};
+
+const handleDemoDepositSuccess = async () => {
+  if (!successData.value?.data?.reservation?._id) return;
+  try {
+    const res = await reservationStore.demoConfirmDeposit(successData.value.data.reservation._id);
+    if (successData.value.deposit) {
+      successData.value.deposit.status = "PAID";
+    }
+    toast.success(res.message || "Đã giả lập thanh toán nộp cọc thành công!");
+  } catch (err) {
+    toast.error(err.message || "Không thể giả lập nộp cọc!");
   }
 };
 

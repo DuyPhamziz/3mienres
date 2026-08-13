@@ -101,6 +101,28 @@
             <!-- Expanded Detail Panel -->
             <transition name="slide-down">
               <div v-if="selectedId === r._id" class="border-top" style="background: #f8fafc;">
+
+                <!-- Timeline trạng thái -->
+                <div class="px-4 pt-3 pb-2">
+                  <div v-if="r.status === 'CANCELLED'" class="text-center text-danger fw-bold small py-2 bg-danger bg-opacity-10 rounded-3">
+                    <i class="fa-solid fa-ban me-1"></i>
+                    {{ langStore.isEnglish ? 'This booking was cancelled' : 'Đơn đặt bàn này đã bị hủy' }}
+                  </div>
+                  <div v-else class="d-flex align-items-start">
+                    <div v-for="(step, idx) in FLOW" :key="step" class="d-flex flex-column align-items-center position-relative flex-grow-1">
+                      <div class="d-flex align-items-center w-100">
+                        <div :class="['rounded-circle d-flex align-items-center justify-content-center flex-shrink-0', idx <= currentFlowIndex(r.status) ? 'bg-danger text-white' : 'bg-light border text-muted']" style="width: 30px; height: 30px;">
+                          <i v-if="idx < currentFlowIndex(r.status)" class="fa-solid fa-check fs-8"></i>
+                          <i v-else-if="idx === currentFlowIndex(r.status)" class="fa-solid fa-location-dot fs-8"></i>
+                          <span v-else class="fw-bold fs-8">{{ idx + 1 }}</span>
+                        </div>
+                        <div v-if="idx < FLOW.length - 1" :class="['flex-grow-1 mx-1', idx < currentFlowIndex(r.status) ? 'bg-danger' : 'bg-light']" style="height: 3px;"></div>
+                      </div>
+                      <small :class="idx <= currentFlowIndex(r.status) ? 'text-danger fw-semibold' : 'text-muted'" class="mt-1 fs-8 text-center">{{ flowStepLabel(step) }}</small>
+                    </div>
+                  </div>
+                </div>
+
                 <div class="row g-0">
 
                   <!-- Left: Check-in QR + Deposit -->
@@ -131,11 +153,18 @@
                           {{ (r.deposit.amount || 0).toLocaleString('vi-VN') }}đ
                         </strong>
                       </div>
-                      <small :class="r.deposit.status === 'PAID' ? 'text-success' : 'text-warning'" class="fw-semibold">
+                      <small :class="r.deposit.status === 'PAID' ? 'text-success' : 'text-warning'" class="fw-semibold d-block mb-1">
                         {{ r.deposit.status === 'PAID'
                             ? (langStore.isEnglish ? 'Deposit Confirmed' : 'Đã xác nhận nộp cọc')
                             : (langStore.isEnglish ? 'Pending deposit confirmation' : 'Chờ xác nhận cọc') }}
                       </small>
+                      <button
+                        v-if="r.deposit.status === 'PENDING' && r.deposit.amount > 0"
+                        @click="handleDemoConfirmDeposit(r)"
+                        class="btn btn-warning btn-sm rounded-pill fw-bold w-100 mt-2 shadow-2xs text-dark"
+                      >
+                        <i class="fa-solid fa-bolt me-1"></i> [⚡ DEMO] Giả Lập Nộp Cọc
+                      </button>
                     </div>
 
                     <!-- Action Buttons -->
@@ -218,6 +247,29 @@
                     <div v-else class="text-muted small py-2">
                       <i class="fa-solid fa-circle-info me-1"></i>
                       {{ langStore.isEnglish ? 'No pre-order dishes for this booking.' : 'Không có món đặt trước cho lượt này.' }}
+                    </div>
+
+                    <!-- Trạng thái món đã gọi (đang dùng bữa) -->
+                    <div v-if="r.orders && r.orders.length > 0" class="mt-4">
+                      <h6 class="fw-bold text-dark mb-2">
+                        <i class="fa-solid fa-fire-burner text-danger me-2"></i>
+                        {{ langStore.isEnglish ? 'Your Order Status' : 'Trạng Thái Món Đã Gọi' }}
+                      </h6>
+                      <div v-for="order in r.orders" :key="order._id" class="p-3 bg-white rounded-3 border mb-2">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                          <span class="badge bg-light text-dark border fs-8">{{ order.orderCode }}</span>
+                          <span :class="['badge rounded-pill fs-8 px-2', orderStatusClass(order.status)]">
+                            <i class="fa-solid me-1" :class="order.status === 'SERVED' ? 'fa-circle-check' : order.status === 'PREPARING' ? 'fa-fire-burner' : 'fa-hourglass-half'"></i>
+                            {{ orderStatusLabel(order.status) }}
+                          </span>
+                        </div>
+                        <div class="small">
+                          <div v-for="(item, i) in order.items" :key="i" class="d-flex justify-content-between py-1 border-bottom border-light">
+                            <span class="text-dark">{{ item.dish?.name || (langStore.isEnglish ? 'Dish' : 'Món') }}</span>
+                            <span class="text-muted">x{{ item.quantity }}</span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -302,6 +354,42 @@ const statusLabel = (s) => {
     COMPLETED: langStore.isEnglish ? "Completed" : "Đã Hoàn Thành",
   };
   return labels[s] || s;
+};
+
+// Luồng trạng thái đơn đặt bàn
+const FLOW = ["PENDING", "CONFIRMED", "ARRIVED", "COMPLETED"];
+
+const flowStepLabel = (key) => ({
+  PENDING: langStore.isEnglish ? "Pending" : "Chờ Xác Nhận",
+  CONFIRMED: langStore.isEnglish ? "Confirmed" : "Đã Xác Nhận",
+  ARRIVED: langStore.isEnglish ? "Checked In" : "Đã Vào Bàn",
+  COMPLETED: langStore.isEnglish ? "Paid" : "Đã Thanh Toán",
+})[key];
+
+const currentFlowIndex = (status) => FLOW.indexOf(status);
+
+const orderStatusClass = (s) => ({
+  PENDING: "bg-warning text-dark",
+  PREPARING: "bg-danger text-white",
+  SERVED: "bg-success text-white",
+  CANCELLED: "bg-secondary text-white",
+})[s] || "bg-secondary text-white";
+
+const orderStatusLabel = (s) => ({
+  PENDING: langStore.isEnglish ? "Pending" : "Chờ Chế Biến",
+  PREPARING: langStore.isEnglish ? "Preparing" : "Đang Chế Biến",
+  SERVED: langStore.isEnglish ? "Served" : "Đã Phục Vụ",
+  CANCELLED: langStore.isEnglish ? "Cancelled" : "Đã Hủy",
+})[s] || s;
+
+const handleDemoConfirmDeposit = async (r) => {
+  try {
+    const res = await reservationStore.demoConfirmDeposit(r._id);
+    toast.success(res.message || "Đã giả lập thanh toán nộp cọc thành công!");
+    await reservationStore.fetchMyReservations();
+  } catch (err) {
+    toast.error(err.message || "Lỗi giả lập nộp cọc!");
+  }
 };
 
 const handleCancel = async (r) => {
