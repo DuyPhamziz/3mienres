@@ -4,11 +4,11 @@
       <div class="text-center mb-5">
         <span class="text-danger fw-bold text-uppercase tracking-wider">Thực đơn đặc sản</span>
         <h1 class="display-5 fw-bold brand-font">Ẩm Thực 3 Miền Bắc – Trung – Nam</h1>
-        <p class="text-muted">Chọn bộ lọc theo Vùng Miền hoặc Danh mục để khám phá món ăn yêu thích</p>
+        <p class="text-muted">Chọn bộ lọc theo Vùng Miền hoặc Tìm kiếm tên món để khám phá món ăn yêu thích</p>
       </div>
 
       <!-- Filters Row -->
-      <div class="glass-card p-3 mb-5 rounded-4">
+      <div class="glass-card p-3 mb-5 rounded-4 shadow-sm">
         <div class="row g-3 align-items-center">
           <div class="col-md-4">
             <div class="input-group">
@@ -59,16 +59,27 @@
       <div v-else-if="menuStore.dishes.length > 0" class="row g-4">
         <div v-for="dish in menuStore.dishes" :key="dish._id" class="col-lg-3 col-md-6">
           <div class="glass-card h-100 d-flex flex-column hover-lift overflow-hidden">
-            <div class="position-relative">
+            <!-- Real Uploaded Image or FontAwesome Dish Icon Box -->
+            <div class="position-relative text-center py-4 bg-light bg-gradient" style="min-height: 180px;">
               <img
-                :src="dish.image || 'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=600&q=80'"
+                v-if="dish.image && dish.image.startsWith('http')"
+                :src="dish.image"
                 :alt="dish.name"
-                class="w-100"
-                style="height: 200px; object-fit: cover;"
+                class="w-100 position-absolute top-0 start-0 h-100"
+                style="object-fit: cover;"
               />
+              <div v-else class="my-3">
+                <i
+                  :class="[
+                    'display-2 d-block',
+                    dish.region === 'Bắc' ? 'fa-solid fa-bowl-food text-primary' : dish.region === 'Trung' ? 'fa-solid fa-pepper-hot text-warning' : 'fa-solid fa-utensils text-danger'
+                  ]"
+                ></i>
+              </div>
+
               <span
                 :class="[
-                  'position-absolute top-0 end-0 m-2 badge rounded-pill px-2 py-1 fs-8',
+                  'position-absolute top-0 end-0 m-2 badge rounded-pill px-2 py-1 fs-8 shadow-sm',
                   dish.region === 'Bắc' ? 'badge-region-bac' : dish.region === 'Trung' ? 'badge-region-trung' : 'badge-region-nam'
                 ]"
               >
@@ -95,7 +106,7 @@
 
       <!-- Empty State -->
       <div v-else class="text-center py-5 glass-card rounded-4">
-        <span class="fs-1 d-block mb-2">🦀</span>
+        <i class="fa-solid fa-utensils display-1 text-secondary mb-3 d-block"></i>
         <h4 class="fw-bold">Chưa tìm thấy món ăn phù hợp</h4>
         <p class="text-muted small">Thử chọn miền khác hoặc tìm kiếm với từ khóa khác xem sao nhé!</p>
       </div>

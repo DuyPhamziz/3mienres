@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
@@ -21,6 +22,7 @@ const importReceiptRouter = require("./app/routes/import-receipt.routes");
 const reviewRouter = require("./app/routes/review.routes");
 const rankRouter = require("./app/routes/rank.routes");
 const chatbotRouter = require("./app/routes/chatbot.routes");
+const uploadRouter = require("./app/routes/upload.routes");
 const settingRouter = require("./app/routes/setting.routes");
 const dashboardRouter = require("./app/routes/dashboard.routes");
 
@@ -31,6 +33,9 @@ app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+// Serve tĩnh thư mục hình ảnh uploads
+app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
 
 // 2. Mount tất cả API Routes
 app.use("/api/auth", authRouter);
@@ -50,6 +55,7 @@ app.use("/api/import-receipts", importReceiptRouter);
 app.use("/api/reviews", reviewRouter);
 app.use("/api/ranks", rankRouter);
 app.use("/api/chatbot", chatbotRouter);
+app.use("/api/upload", uploadRouter);
 app.use("/api/settings", settingRouter);
 app.use("/api/dashboard", dashboardRouter);
 
