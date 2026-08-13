@@ -16,7 +16,9 @@ const orderRouter = require("./app/routes/order.routes");
 const invoiceRouter = require("./app/routes/invoice.routes");
 const ingredientRouter = require("./app/routes/ingredient.routes");
 const recipeRouter = require("./app/routes/recipe.routes");
+const supplierRouter = require("./app/routes/supplier.routes");
 const importReceiptRouter = require("./app/routes/import-receipt.routes");
+const reviewRouter = require("./app/routes/review.routes");
 const settingRouter = require("./app/routes/setting.routes");
 const dashboardRouter = require("./app/routes/dashboard.routes");
 
@@ -41,7 +43,9 @@ app.use("/api/orders", orderRouter);
 app.use("/api/invoices", invoiceRouter);
 app.use("/api/ingredients", ingredientRouter);
 app.use("/api/recipes", recipeRouter);
+app.use("/api/suppliers", supplierRouter);
 app.use("/api/import-receipts", importReceiptRouter);
+app.use("/api/reviews", reviewRouter);
 app.use("/api/settings", settingRouter);
 app.use("/api/dashboard", dashboardRouter);
 
