@@ -51,7 +51,13 @@
               <p class="text-muted small">Điền thông tin bên dưới để đăng ký tài khoản nhanh chóng</p>
             </div>
 
-            <form @submit.prevent="handleRegister">
+            <!-- Success Alert -->
+            <div v-if="successMsg" class="alert alert-success p-3 rounded-3 fs-7 mb-4 d-flex align-items-center gap-2">
+              <i class="fa-solid fa-circle-check fs-4 text-success"></i>
+              <div>{{ successMsg }}</div>
+            </div>
+
+            <form v-else @submit.prevent="handleRegister">
               <!-- Name Input -->
               <div class="mb-3">
                 <label class="form-label fw-semibold text-dark fs-7 mb-1">Họ và tên <span class="text-danger">*</span></label>
@@ -75,7 +81,7 @@
                     v-model="form.phone"
                     type="tel"
                     class="form-control py-2.5"
-                    placeholder="Ví dụ: 0988776655"
+                    placeholder="Ví dụ: 0912345678"
                     required
                   />
                   <i class="fa-solid fa-phone"></i>
@@ -90,7 +96,7 @@
                     v-model="form.email"
                     type="email"
                     class="form-control py-2.5"
-                    placeholder="Ví dụ: khachhang@gmail.com"
+                    placeholder="Ví dụ: khachhang123@gmail.com"
                     required
                   />
                   <i class="fa-solid fa-envelope"></i>
@@ -105,7 +111,7 @@
                     v-model="form.password"
                     :type="showPassword ? 'text' : 'password'"
                     class="form-control py-2.5 pe-5"
-                    placeholder="Nhập mật khẩu từ 6 ký tự"
+                    placeholder="Nhập mật khẩu tối thiểu 6 ký tự"
                     required
                   />
                   <i class="fa-solid fa-lock"></i>
@@ -160,6 +166,7 @@ const router = useRouter();
 
 const showPassword = ref(false);
 const errorMsg = ref("");
+const successMsg = ref("");
 const form = reactive({
   name: "",
   phone: "",
@@ -169,9 +176,13 @@ const form = reactive({
 
 const handleRegister = async () => {
   errorMsg.value = "";
+  successMsg.value = "";
   try {
     await authStore.register(form);
-    router.push("/");
+    successMsg.value = "Đăng ký tài khoản thành công! Tự động chuyển về trang chủ...";
+    setTimeout(() => {
+      router.push("/");
+    }, 1500);
   } catch (err) {
     errorMsg.value = err.message;
   }
