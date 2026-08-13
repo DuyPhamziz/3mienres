@@ -5,7 +5,15 @@ const RestaurantSetting = require("../models/setting.model");
 const AppError = require("../app-error");
 const tableEngine = require("../utils/table-engine");
 
-// 1. Tạo đơn đặt bàn Online (Phục vụ cả khách vãng lai lẫn khách đăng nhập)
+// Helper: Sinh URL Mã QR VietQR chuyển khoản đặt cọc
+const generateVietQRUrl = (bankId, accountNo, accountName, amount, addInfo) => {
+  if (!amount || amount <= 0) return null;
+  const cleanAddInfo = encodeURIComponent(addInfo);
+  const cleanAccountName = encodeURIComponent(accountName);
+  return `https://img.vietqr.io/image/${bankId}-${accountNo}-compact.png?amount=${amount}&addInfo=${cleanAddInfo}&accountName=${cleanAccountName}`;
+};
+
+// 1. Tạo đơn đặt bàn Online (Có tự động tính Tiền Cọc & Sinh Mã QR VietQR)
 exports.createReservation = async (req, res, next) => {
   try {
     const {
@@ -19,16 +27,13 @@ exports.createReservation = async (req, res, next) => {
       notes,
     } = req.body;
 
-    // Lớp 1: Lấy thông tin (Ưu tiên thông tin từ tài khoản nếu khách đã đăng nhập)
     const finalName = req.user ? req.user.name : customerName;
     const finalPhone = req.user ? req.user.phone : customerPhone;
     const finalEmail = req.user ? req.user.email : customerEmail;
     const userId = req.user ? req.user._id : null;
 
     if (!finalName || !finalPhone || !guestsCount || !startAt) {
-      return next(
-        new AppError("Vui lòng cung cấp đầy đủ: Tên, Số điện thoại, Số lượng khách và Thời gian bắt đầu", 400)
-      );
+      return next(new AppError("Vui lòng cung cấp đầy đủ: Tên, Số điện thoại, Số lượng khách và Thời gian bắt đầu", 400));
     }
 
     const guests = parseInt(guestsCount, 10);
@@ -41,28 +46,36 @@ exports.createReservation = async (req, res, next) => {
       return next(new AppError("Thời gian bắt đầu phải là một ngày giờ hợp lệ trong tương lai", 400));
     }
 
-    // Lớp 1.1: Đọc cài đặt quy định thời lượng đặt bàn của quán
-    let durationMinutes = 120; // Mặc định 2 tiếng
+    // Đọc quy định nhà hàng & tài khoản VietQR
+    let durationMinutes = 120;
+    let defaultDeposit = 100000;
+    let bankInfo = { bankId: "MB", accountNo: "0988776655", accountName: "NHA HANG 3 MIEN CUA" };
+
     const settings = await RestaurantSetting.findOne();
-    if (settings && settings.reservation && settings.reservation.defaultDurationMinutes) {
-      durationMinutes = settings.reservation.defaultDurationMinutes;
+    if (settings) {
+      if (settings.reservation) {
+        if (settings.reservation.defaultDurationMinutes) durationMinutes = settings.reservation.defaultDurationMinutes;
+        if (settings.reservation.defaultDepositAmount !== undefined) defaultDeposit = settings.reservation.defaultDepositAmount;
+      }
+      if (settings.bankAccount) {
+        bankInfo = settings.bankAccount;
+      }
     }
 
-    // Nếu là đặt tiệc (EVENT), có thể tùy chỉnh thời lượng
     if (type === "EVENT" && req.body.durationMinutes) {
       durationMinutes = parseInt(req.body.durationMinutes, 10);
     }
 
     const endTime = new Date(startTime.getTime() + durationMinutes * 60000);
 
-    // Lớp 2: Kiểm tra bàn trống và tự động phân bổ bàn giữ chỗ
+    // Kiểm tra bàn trống và gợi ý cụm ghép bàn
     const occupiedTableIds = await tableEngine.getOccupiedTableIds(startTime, endTime);
-    const allTables = await Table.find({ isActive: true, status: { $ne: "MAINTENANCE" } });
+    const allTables = await Table.find({ isActive: { $ne: false }, status: { $ne: "MAINTENANCE" } });
     const availableTables = allTables.filter((t) => !occupiedTableIds.has(t._id.toString()));
 
     let assignedTables = [];
+    let isCombined = false;
 
-    // Nếu khách đi nhóm nhỏ: Tìm 1 bàn đơn nhỏ nhất đủ chỗ
     const singleMatches = availableTables
       .filter((t) => t.capacity >= guests)
       .sort((a, b) => a.capacity - b.capacity);
@@ -70,36 +83,30 @@ exports.createReservation = async (req, res, next) => {
     if (singleMatches.length > 0) {
       assignedTables = [singleMatches[0]._id];
     } else {
-      // Nếu khách đi đoàn đông: Tìm cụm bàn ghép kề nhau tối ưu nhất
       const combinations = await tableEngine.findCombinations(availableTables, guests);
       if (combinations.length > 0) {
-        // Lấy cụm bàn ghép có tổng sức chứa gần với số khách nhất
         combinations.sort((a, b) => a.totalCapacity - b.totalCapacity);
         assignedTables = combinations[0].tables.map((t) => t._id);
+        isCombined = true;
       }
     }
 
-    // Nếu không còn bất kỳ bàn đơn hay cụm bàn ghép nào trống trong khung giờ này
     if (assignedTables.length === 0) {
-      return next(
-        new AppError(
-          "Rất tiếc, nhà hàng đã hết bàn đủ chỗ cho số lượng khách này trong khung giờ bạn chọn. Vui lòng chọn khung giờ khác!",
-          409
-        )
-      );
+      return next(new AppError("Rất tiếc, nhà hàng đã hết bàn đủ chỗ cho số lượng khách này trong khung giờ bạn chọn!", 409));
     }
 
-    // Lớp 2.1: Xử lý món đặt trước (nếu có)
+    // Xử lý món đặt trước & tính cọc
     let formattedDishes = [];
+    let preOrderTotal = 0;
     if (preOrderDishes && Array.isArray(preOrderDishes) && preOrderDishes.length > 0) {
       for (let item of preOrderDishes) {
         const dishInfo = await Dish.findById(item.dish);
-        if (!dishInfo) {
-          return next(new AppError(`Không tìm thấy món ăn với ID: ${item.dish}`, 404));
-        }
-        if (!dishInfo.availability) {
-          return next(new AppError(`Món ăn '${dishInfo.name}' hiện tại đã hết hàng!`, 400));
-        }
+        if (!dishInfo) return next(new AppError(`Không tìm thấy món ăn với ID: ${item.dish}`, 404));
+        if (!dishInfo.availability) return next(new AppError(`Món ăn '${dishInfo.name}' hiện tại đã hết hàng!`, 400));
+        
+        const linePrice = dishInfo.price * (item.quantity || 1);
+        preOrderTotal += linePrice;
+
         formattedDishes.push({
           dish: item.dish,
           quantity: item.quantity || 1,
@@ -108,7 +115,15 @@ exports.createReservation = async (req, res, next) => {
       }
     }
 
-    // Sinh mã đặt bàn ngẫu nhiên không trùng lặp (ví dụ: RES-102938)
+    // Tính tiền cọc bắt buộc (Mặc định 100k cho đoàn >= 4 người, hoặc 30% tiền món pre-order)
+    let depositAmount = 0;
+    if (preOrderTotal > 0) {
+      depositAmount = Math.round(preOrderTotal * 0.3); // Cọc 30% nếu có đặt trước món
+    } else if (guests >= 4) {
+      depositAmount = defaultDeposit;
+    }
+
+    // Sinh mã đặt bàn
     let reservationCode;
     let isUnique = false;
     while (!isUnique) {
@@ -117,7 +132,15 @@ exports.createReservation = async (req, res, next) => {
       if (!existing) isUnique = true;
     }
 
-    // Lớp 3: Lưu đơn đặt bàn
+    // Sinh Mã QR VietQR để khách quét đặt cọc
+    const qrCodeUrl = generateVietQRUrl(
+      bankInfo.bankId,
+      bankInfo.accountNo,
+      bankInfo.accountName,
+      depositAmount,
+      `COC ${reservationCode}`
+    );
+
     const newReservation = await Reservation.create({
       reservationCode,
       user: userId,
@@ -128,9 +151,10 @@ exports.createReservation = async (req, res, next) => {
       startAt: startTime,
       endAt: endTime,
       type: type || "NORMAL",
-      status: "CONFIRMED", // Tự động xác nhận khi đã tìm được bàn phù hợp
+      status: "CONFIRMED",
       tables: assignedTables,
       preOrderDishes: formattedDishes,
+      depositAmount,
       notes,
     });
 
@@ -140,7 +164,15 @@ exports.createReservation = async (req, res, next) => {
 
     res.status(201).json({
       status: "success",
-      message: "Đặt bàn thành công! Nhà hàng đã giữ chỗ cho bạn.",
+      message: isCombined 
+        ? `Đặt bàn thành công! Hệ thống đã tự động ghép cụm bàn cho đoàn ${guests} người của bạn.`
+        : "Đặt bàn thành công! Nhà hàng đã giữ chỗ cho bạn.",
+      isCombinedTable: isCombined,
+      deposit: {
+        amount: depositAmount,
+        bankInfo,
+        qrCodeUrl,
+      },
       data: {
         reservation: populatedReservation,
       },
@@ -150,15 +182,13 @@ exports.createReservation = async (req, res, next) => {
   }
 };
 
-// 2. Khách tra cứu trạng thái đơn đặt bàn (Bằng Mã code + SĐT)
+// 2. Khách tra cứu đơn đặt bàn
 exports.trackReservation = async (req, res, next) => {
   try {
     const { code } = req.params;
     const { phone } = req.query;
 
-    if (!code) {
-      return next(new AppError("Vui lòng cung cấp mã đặt bàn", 400));
-    }
+    if (!code) return next(new AppError("Vui lòng cung cấp mã đặt bàn", 400));
 
     const filter = { reservationCode: code.trim().toUpperCase() };
     if (phone) filter.customerPhone = phone.trim();
@@ -168,11 +198,28 @@ exports.trackReservation = async (req, res, next) => {
       .populate("preOrderDishes.dish", "name price image");
 
     if (!reservation) {
-      return next(new AppError("Không tìm thấy đơn đặt bàn với mã và số điện thoại này", 404));
+      return next(new AppError("Không tìm thấy đơn đặt bàn với mã này", 404));
     }
+
+    let bankInfo = { bankId: "MB", accountNo: "0988776655", accountName: "NHA HANG 3 MIEN CUA" };
+    const settings = await RestaurantSetting.findOne();
+    if (settings && settings.bankAccount) bankInfo = settings.bankAccount;
+
+    const qrCodeUrl = generateVietQRUrl(
+      bankInfo.bankId,
+      bankInfo.accountNo,
+      bankInfo.accountName,
+      reservation.depositAmount,
+      `COC ${reservation.reservationCode}`
+    );
 
     res.status(200).json({
       status: "success",
+      deposit: {
+        amount: reservation.depositAmount,
+        bankInfo,
+        qrCodeUrl,
+      },
       data: { reservation },
     });
   } catch (error) {
@@ -180,25 +227,22 @@ exports.trackReservation = async (req, res, next) => {
   }
 };
 
-// 3. Khách hàng hoặc Nhân viên hủy đặt bàn
+// 3. Hủy đơn đặt bàn
 exports.cancelReservation = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { reason } = req.body;
 
     const reservation = await Reservation.findById(id);
-    if (!reservation) {
-      return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
-    }
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
 
     if (reservation.status === "CANCELLED" || reservation.status === "COMPLETED") {
       return next(new AppError(`Đơn đặt bàn đã ở trạng thái '${reservation.status}', không thể hủy!`, 409));
     }
 
-    // Đổi trạng thái sang CANCELLED và giải phóng bàn đã giữ
     reservation.status = "CANCELLED";
     reservation.cancellationReason = reason ? reason.trim() : "Khách hàng yêu cầu hủy";
-    reservation.tables = []; // Xóa danh sách bàn giữ trước
+    reservation.tables = [];
     await reservation.save();
 
     res.status(200).json({
@@ -211,7 +255,7 @@ exports.cancelReservation = async (req, res, next) => {
   }
 };
 
-// 4. Lấy lịch sử đặt bàn của Khách hàng đang đăng nhập
+// 4. Xem lịch sử đặt bàn cá nhân
 exports.getMyReservations = async (req, res, next) => {
   try {
     const reservations = await Reservation.find({ user: req.user._id })
@@ -229,7 +273,7 @@ exports.getMyReservations = async (req, res, next) => {
   }
 };
 
-// 5. Quản lý lấy danh sách toàn bộ đặt bàn (Chỉ Staff / Manager / Admin)
+// 5. Xem toàn bộ danh sách đặt bàn
 exports.getAllReservations = async (req, res, next) => {
   try {
     const { status, date } = req.query;
@@ -260,15 +304,13 @@ exports.getAllReservations = async (req, res, next) => {
   }
 };
 
-// 6. Xếp lại bàn hoặc đổi bàn dự kiến cho đơn đặt (Chỉ Staff / Manager / Admin)
+// 6. Gán / Đổi bàn dự kiến
 exports.assignTables = async (req, res, next) => {
   try {
-    const { tableIds } = req.body; // Mảng [id1, id2]
+    const { tableIds } = req.body;
     const reservation = await Reservation.findById(req.params.id);
 
-    if (!reservation) {
-      return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
-    }
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
 
     if (!tableIds || !Array.isArray(tableIds) || tableIds.length === 0) {
       return next(new AppError("Vui lòng cung cấp danh sách bàn (tableIds) hợp lệ", 400));
@@ -276,9 +318,7 @@ exports.assignTables = async (req, res, next) => {
 
     for (let tableId of tableIds) {
       const table = await Table.findById(tableId);
-      if (!table) {
-        return next(new AppError(`Bàn với ID '${tableId}' không tồn tại`, 404));
-      }
+      if (!table) return next(new AppError(`Bàn với ID '${tableId}' không tồn tại`, 404));
     }
 
     reservation.tables = tableIds;

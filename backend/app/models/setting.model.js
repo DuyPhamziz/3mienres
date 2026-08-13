@@ -2,45 +2,36 @@ const mongoose = require("mongoose");
 
 const settingSchema = new mongoose.Schema(
   {
-    //1. Quy định về đặt bàn trước (Reservation)
+    restaurantName: {
+      type: String,
+      default: "Nhà hàng 3 Miền Cua",
+    },
+    hotline: {
+      type: String,
+      default: "1900 1234",
+    },
+    address: {
+      type: String,
+      default: "123 Đường 3 Tháng 2, Phường 11, Quận 10, TP. Hồ Chí Minh",
+    },
+    // Cấu hình Chuyển khoản ngân hàng VietQR
+    bankAccount: {
+      bankId: { type: String, default: "MB" }, // MBBank, VCB, ICB, ACB...
+      accountNo: { type: String, default: "0988776655" },
+      accountName: { type: String, default: "NHA HANG 3 MIEN CUA" },
+    },
     reservation: {
-      defaultDurationMinutes: {
-        type: Number,
-        default: 120,
-        min: [30, "Thời lượng tối thiểu phải từ 30 phút"],
-      },
-      gracePeriodMinutes: {
-        type: Number,
-        default: 15,
-        min: [0, "Thời gian chờ không được âm"],
-      },
-      maxAdvanceDays: {
-        type: Number,
-        default: 30,
-        min: [1, "Phải cho phép đặt trước ít nhất 1 ngày"],
-      },
+      defaultDurationMinutes: { type: Number, default: 120 },
+      gracePeriodMinutes: { type: Number, default: 15 },
+      maxAdvanceDays: { type: Number, default: 30 },
+      defaultDepositAmount: { type: Number, default: 100000 }, // Tiền cọc mặc định 100k
     },
-    //2. qui định về bàn ăn
     table: {
-      maxSingleTableCapacity: {
-        type: Number,
-        default: 20,
-        min: [1, "Sức chứa tối đa của bàn phải lớn hơn 0"],
-      },
-      allowCombination: {
-        type: Boolean,
-        default: true, // cho phép ghép bàn khi khác đoàn đông
-      },
-    },
-    // 3. qui định cho khách vãng lai
-    walkIn: {
-      enable: {
-        type: Boolean,
-        default: true, // cho phép tiếp nhận khách hàng vãng lai vào thẳng Dining Session
-      },
+      maxSingleTableCapacity: { type: Number, default: 20 },
+      allowCombination: { type: Boolean, default: true },
     },
   },
-  { timestamps: true },
+  { timestamps: true }
 );
 
 module.exports = mongoose.model("RestaurantSetting", settingSchema);
