@@ -84,11 +84,14 @@
           </button>
         </div>
 
-        <div class="d-flex justify-content-center gap-3">
-          <router-link :to="`/tra-cuu?code=${successData.data.reservation.reservationCode}`" class="btn btn-outline-danger rounded-pill px-4">
+        <div class="d-flex justify-content-center gap-3 flex-wrap">
+          <router-link to="/" class="btn btn-primary-crab rounded-pill px-4 fw-bold">
+            <i class="fa-solid fa-house me-1"></i> {{ langStore.isEnglish ? 'Back to Home' : 'Về Trang Chủ' }}
+          </router-link>
+          <router-link :to="`/tra-cuu?code=${successData.data.reservation.reservationCode}`" class="btn btn-outline-danger rounded-pill px-4 fw-semibold">
             {{ langStore.isEnglish ? 'View Status' : 'Xem Trạng Thái Đơn' }}
           </router-link>
-          <button @click="resetForm" class="btn btn-primary-crab px-4">
+          <button @click="resetForm" class="btn btn-outline-secondary rounded-pill px-4 fw-semibold">
             {{ langStore.isEnglish ? 'Book Another Table' : 'Đặt Thêm Đơn Khác' }}
           </button>
         </div>
@@ -719,6 +722,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { useReservationStore } from "../../stores/reservationStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useMenuStore } from "../../stores/menuStore";
@@ -726,6 +730,7 @@ import { useTableStore } from "../../stores/tableStore";
 import { useLangStore } from "../../stores/langStore";
 import { toast } from "../../composables/useToast";
 
+const router = useRouter();
 const reservationStore = useReservationStore();
 const authStore = useAuthStore();
 const menuStore = useMenuStore();
@@ -948,9 +953,12 @@ const handleDemoDepositSuccess = async () => {
     if (successData.value.deposit) {
       successData.value.deposit.status = "PAID";
     }
-    toast.success(res.message || "Đã giả lập thanh toán nộp cọc thành công!");
+    toast.success("Thanh toán cọc thành công! Đang tự động quay về trang chủ...");
+    setTimeout(() => {
+      router.push("/");
+    }, 1500);
   } catch (err) {
-    toast.error(err.message || "Không thể giả lập nộp cọc!");
+    toast.error(err.message || "Không thể nộp cọc!");
   }
 };
 
