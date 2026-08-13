@@ -29,6 +29,9 @@
         <router-link to="/admin/inventory" class="nav-link text-white rounded-3 px-3 py-2" active-class="bg-danger fw-bold">
           <i class="fa-solid fa-boxes-stacked me-2"></i> Kho & Công Thức Món
         </router-link>
+        <router-link to="/admin/suppliers" class="nav-link text-white rounded-3 px-3 py-2" active-class="bg-danger fw-bold">
+          <i class="fa-solid fa-truck-field me-2"></i> Nhà Cung Cấp
+        </router-link>
       </nav>
 
       <div class="pt-3 border-top border-secondary mt-auto">

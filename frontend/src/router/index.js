@@ -21,6 +21,7 @@ import ReservationManagerView from "../views/admin/ReservationManagerView.vue";
 import POSDiningSessionView from "../views/admin/POSDiningSessionView.vue";
 import MenuManagerView from "../views/admin/MenuManagerView.vue";
 import InventoryManagerView from "../views/admin/InventoryManagerView.vue";
+import SupplierManagerView from "../views/admin/SupplierManagerView.vue";
 
 const routes = [
   {
@@ -48,6 +49,7 @@ const routes = [
       { path: "pos", name: "admin-pos", component: POSDiningSessionView },
       { path: "menu", name: "admin-menu", component: MenuManagerView },
       { path: "inventory", name: "admin-inventory", component: InventoryManagerView },
+      { path: "suppliers", name: "admin-suppliers", component: SupplierManagerView },
     ],
   },
   {
