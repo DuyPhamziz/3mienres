@@ -1,15 +1,15 @@
 <template>
   <nav class="navbar navbar-expand-xl glass-nav sticky-top py-2">
     <div class="container-fluid container-xl">
-      <!-- Logo Brand -->
-      <router-link to="/" class="navbar-brand d-flex align-items-center gap-2 me-3">
-        <div class="p-2 bg-danger bg-opacity-10 rounded-3 text-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+      <!-- Logo Brand (Fixed geometry to prevent layout shift) -->
+      <router-link to="/" class="navbar-brand d-flex align-items-center gap-2 me-3" style="min-width: 220px;">
+        <div class="p-2 bg-danger bg-opacity-10 rounded-3 text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
           <i class="fa-solid fa-utensils fs-4"></i>
         </div>
-        <div class="leading-none">
+        <div class="leading-none overflow-hidden">
           <span class="fw-bold fs-5 brand-font text-danger d-block text-nowrap">3 MIỀN CUA</span>
-          <small class="text-muted fs-8 d-block text-nowrap fw-normal" style="font-size: 0.7rem;">
-            {{ langStore.isEnglish ? 'Specialty Cuisine North - Central - South' : 'Ẩm thực đặc sản Bắc - Trung - Nam' }}
+          <small class="text-muted fs-8 d-block text-nowrap text-truncate fw-normal" style="font-size: 0.7rem; max-width: 170px;">
+            {{ langStore.isEnglish ? 'Specialty Cuisine' : 'Ẩm thực đặc sản 3 miền' }}
           </small>
         </div>
       </router-link>
@@ -24,31 +24,31 @@
       </button>
 
       <div class="collapse navbar-collapse" id="navbarMain">
-        <!-- Main Navigation Links (Single Line, Text-Nowrap) -->
-        <ul class="navbar-nav mx-auto mb-2 mb-xl-0 gap-xl-2 align-items-center fw-semibold fs-7">
+        <!-- Main Navigation Links (Consistent geometry in VI & EN) -->
+        <ul class="navbar-nav mx-auto mb-2 mb-xl-0 gap-xl-1 align-items-center fw-semibold fs-7">
           <li class="nav-item">
-            <router-link to="/" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+            <router-link to="/" class="nav-link px-2.5 text-nowrap" active-class="active text-danger fw-bold">
               {{ langStore.isEnglish ? 'Home' : 'Trang Chủ' }}
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/thuc-don" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+            <router-link to="/thuc-don" class="nav-link px-2.5 text-nowrap" active-class="active text-danger fw-bold">
               {{ langStore.isEnglish ? 'Menu' : 'Thực Đơn 3 Miền' }}
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/dat-ban" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+            <router-link to="/dat-ban" class="nav-link px-2.5 text-nowrap" active-class="active text-danger fw-bold">
               <i class="fa-solid fa-calendar-check me-1 text-danger"></i>
               {{ langStore.isEnglish ? 'Book Table' : 'Đặt Bàn Online' }}
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/tra-cuu" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+            <router-link to="/tra-cuu" class="nav-link px-2.5 text-nowrap" active-class="active text-danger fw-bold">
               {{ langStore.isEnglish ? 'Track Order' : 'Tra Cứu Đơn' }}
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/hang-thanh-vien" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+            <router-link to="/hang-thanh-vien" class="nav-link px-2.5 text-nowrap" active-class="active text-danger fw-bold">
               <i class="fa-solid fa-crown me-1 text-warning"></i>
               {{ langStore.isEnglish ? 'Loyalty Rank' : 'Hạng Thành Viên' }}
             </router-link>
@@ -56,7 +56,7 @@
         </ul>
 
         <!-- Right Side Action Buttons -->
-        <div class="d-flex align-items-center gap-2 ms-xl-2 mt-2 mt-xl-0">
+        <div class="d-flex align-items-center gap-2 ms-xl-2 mt-2 mt-xl-0 flex-shrink-0">
           <!-- Nút Đổi Ngôn Ngữ Tương Tác VI / EN -->
           <button
             @click="langStore.toggleLang()"
@@ -99,12 +99,12 @@
 
           <!-- Nếu chưa đăng nhập -->
           <template v-else>
-            <router-link to="/login" class="btn btn-link text-decoration-none text-dark fw-semibold px-3 text-nowrap fs-7">
+            <router-link to="/login" class="btn btn-link text-decoration-none text-dark fw-semibold px-2.5 text-nowrap fs-7">
               {{ langStore.isEnglish ? 'Login' : 'Đăng Nhập' }}
             </router-link>
           </template>
 
-          <router-link to="/dat-ban" class="btn btn-primary-crab px-4 py-2 text-nowrap fs-7 fw-bold shadow-sm">
+          <router-link to="/dat-ban" class="btn btn-primary-crab px-3.5 py-2 text-nowrap fs-7 fw-bold shadow-sm">
             {{ langStore.isEnglish ? 'Book Now' : 'Đặt Bàn Ngay' }}
           </router-link>
         </div>
