@@ -4,11 +4,11 @@ const { protect, restrictTo } = require("../utils/auth");
 
 const router = express.Router();
 
-router.use(protect, restrictTo("manager", "admin"));
+router.use(protect, restrictTo("staff", "manager", "admin"));
 
-router
-  .route("/")
-  .get(ingredientController.getAllIngredients)
-  .post(ingredientController.createIngredient);
+router.get("/", ingredientController.getAllIngredients);
+router.post("/", restrictTo("manager", "admin"), ingredientController.createIngredient);
+router.patch("/:id", restrictTo("manager", "admin"), ingredientController.updateIngredient);
+router.delete("/:id", restrictTo("manager", "admin"), ingredientController.deleteIngredient);
 
 module.exports = router;

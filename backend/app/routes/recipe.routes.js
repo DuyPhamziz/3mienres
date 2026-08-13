@@ -4,8 +4,9 @@ const { protect, restrictTo } = require("../utils/auth");
 
 const router = express.Router();
 
-router.use(protect, restrictTo("manager", "admin"));
+router.use(protect, restrictTo("staff", "manager", "admin"));
 
-router.post("/", recipeController.createOrUpdateRecipe);
+router.post("/", restrictTo("manager", "admin"), recipeController.saveRecipe);
+router.get("/dish/:dishId", recipeController.getRecipeByDish);
 
 module.exports = router;
