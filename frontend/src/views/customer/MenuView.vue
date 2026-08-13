@@ -98,7 +98,7 @@
             <div class="card border-0 rounded-4 shadow-sm overflow-hidden h-100 glass-card hover-lift bg-white">
               <div class="position-relative bg-light" style="height: 190px;">
                 <img
-                  :src="dish.image && dish.image !== 'default-dish.jpg' && dish.image.startsWith('http') ? dish.image : (dish.image && dish.image !== 'default-dish.jpg' ? `http://localhost:3000/uploads/${dish.image}` : 'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=500&q=80')"
+                  :src="getImageUrl(dish.image)"
                   :alt="dish.name"
                   class="w-100 h-100 object-fit-cover"
                 />
@@ -179,6 +179,7 @@ import { ref, computed, onMounted } from "vue";
 import { useMenuStore } from "../../stores/menuStore";
 import { useLangStore } from "../../stores/langStore";
 import { useRoute } from "vue-router";
+import { getImageUrl } from "../../utils/imageHelper";
 
 const menuStore = useMenuStore();
 const langStore = useLangStore();

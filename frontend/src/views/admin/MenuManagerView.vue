@@ -44,8 +44,8 @@
               <td>
                 <div class="position-relative d-inline-block">
                   <img
-                    v-if="dish.image && dish.image.startsWith('http')"
-                    :src="dish.image"
+                    v-if="dish.image"
+                    :src="getImageUrl(dish.image)"
                     loading="lazy"
                     decoding="async"
                     class="rounded-3 shadow-sm border"
@@ -226,6 +226,7 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { useMenuStore } from "../../stores/menuStore";
 import api from "../../services/api";
 import { toast } from "../../composables/useToast";
+import { getImageUrl } from "../../utils/imageHelper";
 
 const menuStore = useMenuStore();
 

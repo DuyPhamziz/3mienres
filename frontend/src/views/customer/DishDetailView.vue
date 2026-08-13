@@ -15,7 +15,7 @@
           <div class="col-lg-6">
             <div class="position-relative rounded-5 overflow-hidden shadow-sm bg-light" style="height: 380px;">
               <img
-                :src="dish.image && dish.image !== 'default-dish.jpg' && dish.image.startsWith('http') ? dish.image : (dish.image && dish.image !== 'default-dish.jpg' ? `http://localhost:3000/uploads/${dish.image}` : 'https://images.unsplash.com/photo-1559847844-5315695dadae?auto=format&fit=crop&w=800&q=80')"
+                :src="getImageUrl(dish.image)"
                 :alt="dish.name"
                 class="w-100 h-100 object-fit-cover"
               />
@@ -73,6 +73,7 @@ import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import api from "../../services/api";
 import { useLangStore } from "../../stores/langStore";
+import { getImageUrl } from "../../utils/imageHelper";
 
 const route = useRoute();
 const langStore = useLangStore();

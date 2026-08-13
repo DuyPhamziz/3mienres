@@ -452,7 +452,7 @@
                       <div class="d-flex align-items-center gap-2.5 min-w-0">
                         <img
                           v-if="dish.image"
-                          :src="dish.image"
+                          :src="getImageUrl(dish.image)"
                           :alt="dish.name"
                           class="rounded-3 object-fit-cover flex-shrink-0"
                           style="width: 44px; height: 44px;"
@@ -538,7 +538,7 @@
                         <div class="d-flex align-items-center gap-2 min-w-0">
                           <img
                             v-if="item.dish.image"
-                            :src="item.dish.image"
+                            :src="getImageUrl(item.dish.image)"
                             :alt="item.dish.name"
                             class="rounded-2 object-fit-cover flex-shrink-0"
                             style="width: 38px; height: 38px;"
@@ -729,6 +729,7 @@ import { useMenuStore } from "../../stores/menuStore";
 import { useTableStore } from "../../stores/tableStore";
 import { useLangStore } from "../../stores/langStore";
 import { toast } from "../../composables/useToast";
+import { getImageUrl } from "../../utils/imageHelper";
 
 const router = useRouter();
 const reservationStore = useReservationStore();
