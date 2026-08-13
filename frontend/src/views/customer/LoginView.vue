@@ -1,9 +1,9 @@
 <template>
   <div class="py-5 min-vh-100 d-flex align-items-center bg-light">
     <div class="container py-4">
-      <div class="glass-card max-w-4xl mx-auto overflow-hidden rounded-5 shadow-lg border-0">
+      <div class="glass-card max-w-4xl mx-auto overflow-hidden rounded-5 shadow-lg border-0 bg-white">
         <div class="row g-0">
-          <!-- Left Column: High Contrast Dark Crimson Branding Banner -->
+          <!-- Left Column: Branding Visual -->
           <div class="col-lg-5 text-white p-5 d-flex flex-column justify-content-between position-relative" style="background: linear-gradient(135deg, #991b1b 0%, #7f1d1d 50%, #450a0a 100%);">
             <div class="position-relative">
               <div class="d-flex align-items-center gap-2 mb-4">
@@ -47,14 +47,14 @@
               <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8">
                 <i class="fa-solid fa-user-shield me-1"></i> TÀI KHOẢN THÀNH VIÊN
               </span>
-              <h2 class="fw-bold text-dark mb-1">Đăng Nhập Thành Viên</h2>
-              <p class="text-muted small">Vui lòng nhập email và mật khẩu của bạn để tiếp tục</p>
+              <h2 class="fw-bold text-dark mb-1">{{ langStore.t('auth.loginTitle') }}</h2>
+              <p class="text-muted small">{{ langStore.t('auth.loginDesc') }}</p>
             </div>
 
             <form @submit.prevent="handleLogin">
               <!-- Email Input with Icon -->
               <div class="mb-3">
-                <label class="form-label fw-semibold text-dark fs-7 mb-1">Địa chỉ Email</label>
+                <label class="form-label fw-semibold text-dark fs-7 mb-1">{{ langStore.t('auth.email') }}</label>
                 <div class="form-control-icon">
                   <input
                     v-model="email"
@@ -69,7 +69,7 @@
 
               <!-- Password Input with Icon & Toggle -->
               <div class="mb-3">
-                <label class="form-label fw-semibold text-dark fs-7 mb-1">Mật khẩu</label>
+                <label class="form-label fw-semibold text-dark fs-7 mb-1">{{ langStore.t('auth.password') }}</label>
                 <div class="form-control-icon position-relative">
                   <input
                     v-model="password"
@@ -94,7 +94,7 @@
               <div class="d-flex justify-content-between align-items-center mb-4 fs-7">
                 <div class="form-check">
                   <input class="form-check-input" type="checkbox" id="rememberMe" checked />
-                  <label class="form-check-label text-muted" for="rememberMe">Ghi nhớ đăng nhập</label>
+                  <label class="form-check-label text-muted" for="rememberMe">{{ langStore.t('auth.rememberMe') }}</label>
                 </div>
               </div>
 
@@ -111,11 +111,11 @@
                 class="btn btn-primary-crab w-100 py-3 rounded-3 shadow-sm mb-4 fw-bold fs-6"
               >
                 <span v-if="authStore.loading" class="spinner-border spinner-border-sm me-2"></span>
-                <span v-else><i class="fa-solid fa-right-to-bracket me-2"></i> ĐĂNG NHẬP NGAY</span>
+                <span v-else><i class="fa-solid fa-right-to-bracket me-2"></i> {{ langStore.t('auth.loginSubmit') }}</span>
               </button>
 
               <div class="text-center text-muted fs-7">
-                Chưa có tài khoản thành viên?
+                {{ langStore.t('auth.noAccount') }}
                 <router-link to="/register" class="text-danger fw-bold text-decoration-none ms-1">
                   Đăng ký ngay <i class="fa-solid fa-arrow-right fs-8"></i>
                 </router-link>
@@ -131,9 +131,11 @@
 <script setup>
 import { ref } from "vue";
 import { useAuthStore } from "../../stores/authStore";
+import { useLangStore } from "../../stores/langStore";
 import { useRouter, useRoute } from "vue-router";
 
 const authStore = useAuthStore();
+const langStore = useLangStore();
 const router = useRouter();
 const route = useRoute();
 
