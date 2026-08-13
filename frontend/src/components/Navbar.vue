@@ -3,9 +3,7 @@
     <div class="container-fluid container-xl">
       <!-- Logo Brand (Fixed geometry to prevent layout shift) -->
       <router-link to="/" class="navbar-brand d-flex align-items-center gap-2 me-3" style="min-width: 220px;">
-        <div class="p-2 bg-danger bg-opacity-10 rounded-3 text-danger d-flex align-items-center justify-content-center flex-shrink-0" style="width: 40px; height: 40px;">
-          <i class="fa-solid fa-utensils fs-4"></i>
-        </div>
+        <img src="/logo-3mien-cua.svg" alt="3 Miền Cua Logo" style="width: 42px; height: 42px;" class="rounded-3 shadow-sm flex-shrink-0" />
         <div class="leading-none overflow-hidden">
           <span class="fw-bold fs-5 brand-font text-danger d-block text-nowrap">3 MIỀN CUA</span>
           <small class="text-muted fs-8 d-block text-nowrap text-truncate fw-normal" style="font-size: 0.7rem; max-width: 170px;">

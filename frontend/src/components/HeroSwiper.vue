@@ -11,17 +11,17 @@
     >
       <!-- Slide 1: Cua Cà Mau -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm" style="background: linear-gradient(135deg, #991b1b 0%, #b91c1c 50%, #7f1d1d 100%); min-height: 290px;">
-          <div class="p-3 bg-white bg-opacity-20 rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(153, 27, 27, 0.75) 0%, rgba(127, 29, 29, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-cua-ca-mau.jpg') center/cover no-repeat;">
+          <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-water-lower fs-1 text-warning"></i>
           </div>
-          <h3 class="fw-bold brand-font text-white mb-2 fs-4">
+          <h3 class="fw-bold brand-font text-white mb-2 fs-4 text-shadow">
             {{ langStore.isEnglish ? 'Live Ca Mau Crabs' : 'Cua Cà Mau Tươi Sống' }}
           </h3>
           <span class="badge bg-warning text-dark rounded-pill px-3 py-1.5 fw-bold mb-3 fs-8 shadow-sm">
             {{ langStore.isEnglish ? 'Fresh from tank · Cooked to order' : 'Đánh bắt tại bể · Chế biến tại bàn' }}
           </span>
-          <p class="small text-white opacity-90 mb-0 leading-relaxed">
+          <p class="small text-white opacity-95 mb-0 leading-relaxed text-shadow">
             {{ langStore.isEnglish ? 'Firm meaty crabs with rich golden roe, served with signature Southern sweet & sour tamarind sauce.' : 'Thịt cua chắc nịch, gạch thơm béo ngậy với sốt me chua ngọt đậm vị Nam Bộ.' }}
           </p>
         </div>
@@ -29,17 +29,17 @@
 
       <!-- Slide 2: Lẩu Cua Đồng -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm" style="background: linear-gradient(135deg, #1e3a8a 0%, #1d4ed8 50%, #1e40af 100%); min-height: 290px;">
-          <div class="p-3 bg-white bg-opacity-20 rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(30, 58, 138, 0.75) 0%, rgba(30, 64, 175, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-lau-cua-dong.jpg') center/cover no-repeat;">
+          <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-bowl-food fs-1 text-warning"></i>
           </div>
-          <h3 class="fw-bold brand-font text-white mb-2 fs-4">
+          <h3 class="fw-bold brand-font text-white mb-2 fs-4 text-shadow">
             {{ langStore.isEnglish ? 'Northern Field Crab Hotpot' : 'Lẩu Cua Đồng Bắc Bộ' }}
           </h3>
-          <span class="badge bg-amber-400 text-dark bg-warning rounded-pill px-3 py-1.5 fw-bold mb-3 fs-8 shadow-sm">
+          <span class="badge bg-warning text-dark rounded-pill px-3 py-1.5 fw-bold mb-3 fs-8 shadow-sm">
             {{ langStore.isEnglish ? 'Authentic rich flavor' : 'Hương vị thanh ngọt đặc trưng' }}
           </span>
-          <p class="small text-white opacity-90 mb-0 leading-relaxed">
+          <p class="small text-white opacity-95 mb-0 leading-relaxed text-shadow">
             {{ langStore.isEnglish ? 'Rich crab paste broth served with fresh Malabar spinach, luffa, and Northern red noodle cakes.' : 'Riêu cua béo ngậy, ăn kèm rau mồng tơi tươi xanh và bánh đa chuẩn vị miền Bắc.' }}
           </p>
         </div>
@@ -47,17 +47,17 @@
 
       <!-- Slide 3: Cua Sốt Tiêu Xanh -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm" style="background: linear-gradient(135deg, #c2410c 0%, #ea580c 50%, #9a3412 100%); min-height: 290px;">
-          <div class="p-3 bg-white bg-opacity-20 rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(194, 65, 12, 0.75) 0%, rgba(154, 52, 18, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-cua-tieu-xanh.jpg') center/cover no-repeat;">
+          <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-pepper-hot fs-1 text-warning"></i>
           </div>
-          <h3 class="fw-bold brand-font text-white mb-2 fs-4">
+          <h3 class="fw-bold brand-font text-white mb-2 fs-4 text-shadow">
             {{ langStore.isEnglish ? 'Green Peppercorn Crab' : 'Cua Sốt Tiêu Xanh' }}
           </h3>
-          <span class="badge bg-dark text-white rounded-pill px-3 py-1.5 fw-bold mb-3 fs-8 shadow-sm">
+          <span class="badge bg-warning text-dark rounded-pill px-3 py-1.5 fw-bold mb-3 fs-8 shadow-sm">
             {{ langStore.isEnglish ? 'Spicy Central Specialty' : 'Đặc sản Miền Trung cay nồng' }}
           </span>
-          <p class="small text-white opacity-90 mb-0 leading-relaxed">
+          <p class="small text-white opacity-95 mb-0 leading-relaxed text-shadow">
             {{ langStore.isEnglish ? 'Fresh green peppercorn sauce infusing every bite with rich coastal Central flavors.' : 'Sốt tiêu xanh thấm vị từng thớ thịt cua, đậm đà vị biển nắng gió miền Trung.' }}
           </p>
         </div>
@@ -65,17 +65,17 @@
 
       <!-- Slide 4: Ưu Đãi Thành Viên -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm" style="background: linear-gradient(135deg, #15803d 0%, #16a34a 50%, #166534 100%); min-height: 290px;">
-          <div class="p-3 bg-white bg-opacity-20 rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(21, 128, 61, 0.75) 0%, rgba(22, 101, 52, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-loyalty-rewards.jpg') center/cover no-repeat;">
+          <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-crown fs-1 text-warning"></i>
           </div>
-          <h3 class="fw-bold brand-font text-white mb-2 fs-4">
+          <h3 class="fw-bold brand-font text-white mb-2 fs-4 text-shadow">
             {{ langStore.isEnglish ? 'Loyalty Rewards Program' : 'Thẻ Thành Viên Tích Điểm' }}
           </h3>
           <span class="badge bg-warning text-dark rounded-pill px-3 py-1.5 fw-bold mb-3 fs-8 shadow-sm">
             {{ langStore.isEnglish ? 'Up to 15% off every bill' : 'Giảm giá đến 15% Mọi Hóa Đơn' }}
           </span>
-          <p class="small text-white opacity-90 mb-0 leading-relaxed">
+          <p class="small text-white opacity-95 mb-0 leading-relaxed text-shadow">
             {{ langStore.isEnglish ? 'Automatically earn points and upgrade rank to Silver, Gold, and Diamond tiers.' : 'Tự động tích lũy chi tiêu và thăng hạng Bạc, Vàng, Kim Cương khi dùng bữa.' }}
           </p>
         </div>
