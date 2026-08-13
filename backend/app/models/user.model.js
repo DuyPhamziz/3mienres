@@ -12,16 +12,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, "Email là bắt buộc"],
       unique: true,
+      lowercase: true,
     },
     password: {
       type: String,
       required: [true, "Mật khẩu là bắt buộc"],
       minlength: [6, "Mật khẩu phải có ít nhất 6 ký tự"],
-      select: false, // Khi truy vấn User, mặc định sẽ không trả về trường password},
+      select: false,
     },
     role: {
       type: String,
-      enum: ["customer", "manager", "admin"],
+      enum: ["customer", "staff", "manager", "admin"],
       default: "customer",
     },
     phone: {
@@ -33,6 +34,17 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: "default-avatar.png",
     },
+    // Tích lũy điểm & Hạng thành viên (Loyalty Rank Program)
+    totalSpent: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    rank: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Rank",
+      default: null,
+    },
     addresses: [
       {
         title: { type: String, trim: true },
@@ -41,7 +53,7 @@ const userSchema = new mongoose.Schema(
         district: { type: String, trim: true },
         city: { type: String, trim: true },
         isDefault: { type: Boolean, default: false },
-      }
+      },
     ],
     isActive: {
       type: Boolean,
@@ -50,19 +62,16 @@ const userSchema = new mongoose.Schema(
     passwordResetToken: String,
     passwordResetExpires: Date,
   },
-  { timestamps: true },
-); // Tự động tạo trường createdAt và updatedAt
-
-// Middleware (hook) của Mongoose: Tự động chay trước khi lưu User vào database
+  { timestamps: true }
+);
 
 userSchema.pre("save", async function () {
-  // nếu password không được thay đổi (ví dụ khi cập nhật thông tin người dùng mà không thay đổi mật khẩu), thì không cần hash lại
   if (!this.isModified("password")) {
     return;
   }
-  this.password = await bcrypt.hash(this.password, 12); // Hash mật khẩu với salt rounds = 12
+  this.password = await bcrypt.hash(this.password, 12);
 });
-// hàm hổ trợ (method) để so sánh mật khẩu khi đăng nhập
+
 userSchema.methods.comparePassword = async function (candidatePassword) {
   return await bcrypt.compare(candidatePassword, this.password);
 };

@@ -19,6 +19,7 @@ const recipeRouter = require("./app/routes/recipe.routes");
 const supplierRouter = require("./app/routes/supplier.routes");
 const importReceiptRouter = require("./app/routes/import-receipt.routes");
 const reviewRouter = require("./app/routes/review.routes");
+const rankRouter = require("./app/routes/rank.routes");
 const settingRouter = require("./app/routes/setting.routes");
 const dashboardRouter = require("./app/routes/dashboard.routes");
 
@@ -46,6 +47,7 @@ app.use("/api/recipes", recipeRouter);
 app.use("/api/suppliers", supplierRouter);
 app.use("/api/import-receipts", importReceiptRouter);
 app.use("/api/reviews", reviewRouter);
+app.use("/api/ranks", rankRouter);
 app.use("/api/settings", settingRouter);
 app.use("/api/dashboard", dashboardRouter);
 
@@ -71,7 +73,7 @@ app.use((err, req, res, next) => {
     status: err.status || "error",
     statusCode,
     message,
-    stack: process.env.NODE_ENV === "development" ? err.stack : undefined,
+    stack: process.process.env.NODE_ENV === "development" ? err.stack : undefined,
   });
 });
 

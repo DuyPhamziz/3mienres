@@ -2,7 +2,29 @@ const Invoice = require("../models/invoice.model");
 const DiningSession = require("../models/dining-session.model");
 const Order = require("../models/order.model");
 const Table = require("../models/table.model");
+const User = require("../models/user.model");
+const Rank = require("../models/rank.model");
 const AppError = require("../app-error");
+
+// Hàm Helper: Tự động cộng dồn tiền tích lũy và xét thăng hạng thành viên cho khách
+const updateCustomerRank = async (userId, paidAmount) => {
+  if (!userId) return;
+  const user = await User.findById(userId);
+  if (!user) return;
+
+  user.totalSpent = (user.totalSpent || 0) + paidAmount;
+
+  // Lấy tất cả các hạng thành viên xếp theo mức chi tiêu tối thiểu từ cao xuống thấp
+  const ranks = await Rank.find({ isActive: true }).sort({ minSpent: -1 });
+  for (let r of ranks) {
+    if (user.totalSpent >= r.minSpent) {
+      user.rank = r._id;
+      break;
+    }
+  }
+
+  await user.save();
+};
 
 // 1. Xuất hóa đơn & Thanh toán giải phóng bàn
 exports.createInvoice = async (req, res, next) => {
@@ -90,6 +112,11 @@ exports.createInvoice = async (req, res, next) => {
 
     // 2. Giải phóng tất cả các bàn ăn về trạng thái AVAILABLE
     await Table.updateMany({ _id: { $in: session.tables } }, { status: "AVAILABLE" });
+
+    // 3. Tự động tích lũy doanh số và thăng hạng thành viên cho khách hàng (nếu có tài khoản)
+    if (session.reservation && session.reservation.user) {
+      await updateCustomerRank(session.reservation.user, finalAmount);
+    }
 
     const populatedInvoice = await Invoice.findById(newInvoice._id)
       .populate("diningSession")
