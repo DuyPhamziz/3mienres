@@ -69,7 +69,7 @@
     </div>
 
     <div v-else class="glass-card p-5 rounded-4 text-center">
-      <span class="fs-1 d-block mb-2">🍽️</span>
+      <i class="fa-solid fa-utensils display-3 text-secondary mb-3 d-block"></i>
       <h4 class="fw-bold">Hiện tại chưa có bàn nào đang dùng bữa</h4>
       <p class="text-muted small">Bấm nút "Tiếp Nhận Khách Walk-in" hoặc Check-in từ đơn đặt trước để mở bàn</p>
     </div>
@@ -228,7 +228,6 @@ const checkoutForm = reactive({
 const handleCreateWalkIn = async () => {
   modalError.value = "";
   try {
-    // Tìm ID bàn dựa trên số bàn nhập vào
     const numbers = walkInForm.tableNumbers.split(",").map(n => n.trim().toUpperCase());
     const tableIds = tableStore.tables.filter(t => numbers.includes(t.tableNumber)).map(t => t._id);
     

@@ -4,7 +4,9 @@
       <div class="row g-4">
         <div class="col-lg-4 col-md-6">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <span class="fs-2">🦀</span>
+            <div class="p-2 bg-danger bg-opacity-20 rounded-3 text-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+              <i class="fa-solid fa-utensils fs-4"></i>
+            </div>
             <span class="fw-bold fs-3 brand-font text-danger">3 MIỀN CUA</span>
           </div>
           <p class="text-secondary small leading-relaxed">

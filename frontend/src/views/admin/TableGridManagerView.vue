@@ -58,7 +58,9 @@
             {{ table.status }}
           </span>
 
-          <div class="fs-1 my-2">🪑</div>
+          <div class="my-3">
+            <i class="fa-solid fa-chair display-4 text-danger d-block"></i>
+          </div>
           <h3 class="fw-bold brand-font mb-1">Bàn {{ table.tableNumber }}</h3>
           <p class="text-muted small mb-2">Sức chứa: {{ table.capacity }} người</p>
           <small class="badge bg-light text-dark border">{{ table.area?.name || 'Chưa xếp khu vực' }}</small>
@@ -68,7 +70,9 @@
 
     <!-- Table Connections List Table -->
     <div class="mt-5 glass-card p-4 rounded-4">
-      <h4 class="fw-bold brand-font mb-3">🔗 Danh Sách Các Cặp Bàn Kề Nhau Có Thể Ghép</h4>
+      <h4 class="fw-bold brand-font mb-3">
+        <i class="fa-solid fa-link text-danger me-2"></i>Danh Sách Các Cặp Bàn Kề Nhau Có Thể Ghép
+      </h4>
       <div v-if="tableStore.connections.length > 0" class="table-responsive">
         <table class="table table-hover align-middle">
           <thead>

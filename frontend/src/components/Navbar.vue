@@ -2,7 +2,9 @@
   <nav class="navbar navbar-expand-lg glass-nav sticky-top py-3">
     <div class="container">
       <router-link to="/" class="navbar-brand d-flex align-items-center gap-2">
-        <span class="fs-2">🦀</span>
+        <div class="p-2 bg-danger bg-opacity-10 rounded-3 text-danger d-flex align-items-center justify-content-center" style="width: 42px; height: 42px;">
+          <i class="fa-solid fa-utensils fs-4"></i>
+        </div>
         <div>
           <span class="fw-bold fs-4 brand-font text-danger d-block leading-none">3 MIỀN CUA</span>
           <small class="text-muted fs-7 d-block leading-none fw-normal" style="font-size: 0.75rem;">Ẩm thực đặc sản Bắc - Trung - Nam</small>
