@@ -1,12 +1,12 @@
 <template>
   <div class="py-5 bg-light min-vh-100">
     <div class="container">
-      <div class="text-center max-w-2xl mx-auto mb-5">
+      <div class="text-center max-w-2xl mx-auto mb-4">
         <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8">
           <i class="fa-solid fa-calendar-check me-1"></i> {{ langStore.t('reservation.badge') }}
         </span>
         <h1 class="display-5 fw-bold brand-font text-dark">{{ langStore.t('reservation.title') }}</h1>
-        <p class="text-muted small">{{ langStore.t('reservation.subtitle') }}</p>
+        <p class="text-muted small mb-0">{{ langStore.t('reservation.subtitle') }}</p>
       </div>
 
       <!-- VÙNG BẮT BUỘC ĐĂNG NHẬP (AUTH CHECK) -->
@@ -85,19 +85,80 @@
         </div>
       </div>
 
-      <!-- Booking Form when Logged In -->
-      <div v-else class="max-w-5xl mx-auto glass-card p-4 p-md-5 rounded-5 shadow-lg border-0 bg-white">
-        <form @submit.prevent="handleSubmit">
-          <!-- Step 1: User Info -->
-          <div class="mb-5 pb-4 border-bottom">
-            <h5 class="fw-bold text-danger mb-3 d-flex align-items-center gap-2">
-              <span class="badge bg-danger rounded-circle p-2 fs-8">1</span> {{ langStore.t('reservation.step1') }}
-            </h5>
-            <div class="row g-3">
+      <!-- MULTI-STEP WIZARD WHEN LOGGED IN -->
+      <div v-else class="max-w-5xl mx-auto">
+        <!-- WIZARD STEP NAVIGATION BAR -->
+        <div class="wizard-header-steps mb-4">
+          <div class="d-flex justify-content-between align-items-center position-relative px-2">
+            <!-- Step 1 -->
+            <div
+              @click="goToStep(1)"
+              :class="['wizard-step-node cursor-pointer', currentStep === 1 ? 'active' : '', currentStep > 1 ? 'completed' : '']"
+            >
+              <div class="wizard-step-circle">
+                <i v-if="currentStep > 1" class="fa-solid fa-check fs-8"></i>
+                <span v-else>1</span>
+              </div>
+              <span class="wizard-step-label fw-bold">{{ langStore.isEnglish ? '1. Contact Info' : '1. Thông Tin' }}</span>
+            </div>
+
+            <div class="wizard-step-line flex-grow-1 mx-2" :class="{ 'active-line': currentStep > 1 }"></div>
+
+            <!-- Step 2 -->
+            <div
+              @click="goToStep(2)"
+              :class="['wizard-step-node cursor-pointer', currentStep === 2 ? 'active' : '', currentStep > 2 ? 'completed' : '']"
+            >
+              <div class="wizard-step-circle">
+                <i v-if="currentStep > 2" class="fa-solid fa-check fs-8"></i>
+                <span v-else>2</span>
+              </div>
+              <span class="wizard-step-label fw-bold">{{ langStore.isEnglish ? '2. Select Table' : '2. Chọn Bàn' }}</span>
+            </div>
+
+            <div class="wizard-step-line flex-grow-1 mx-2" :class="{ 'active-line': currentStep > 2 }"></div>
+
+            <!-- Step 3 -->
+            <div
+              @click="goToStep(3)"
+              :class="['wizard-step-node cursor-pointer', currentStep === 3 ? 'active' : '', currentStep > 3 ? 'completed' : '']"
+            >
+              <div class="wizard-step-circle">
+                <i v-if="currentStep > 3" class="fa-solid fa-check fs-8"></i>
+                <span v-else>3</span>
+              </div>
+              <span class="wizard-step-label fw-bold">{{ langStore.isEnglish ? '3. Dishes (Drag & Drop)' : '3. Chọn Món' }}</span>
+            </div>
+
+            <div class="wizard-step-line flex-grow-1 mx-2" :class="{ 'active-line': currentStep > 3 }"></div>
+
+            <!-- Step 4 -->
+            <div
+              @click="goToStep(4)"
+              :class="['wizard-step-node cursor-pointer', currentStep === 4 ? 'active' : '']"
+            >
+              <div class="wizard-step-circle">
+                <span>4</span>
+              </div>
+              <span class="wizard-step-label fw-bold">{{ langStore.isEnglish ? '4. Confirm & Deposit' : '4. Xác Nhận' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- WIZARD STEP CONTENT CONTAINER -->
+        <div class="glass-card p-4 p-md-5 rounded-5 shadow-lg border-0 bg-white min-vh-card">
+          <!-- STEP 1: CUSTOMER CONTACT INFO -->
+          <div v-if="currentStep === 1" class="wizard-panel">
+            <h4 class="fw-bold text-danger brand-font mb-4 d-flex align-items-center gap-2">
+              <i class="fa-solid fa-address-card"></i>
+              {{ langStore.isEnglish ? 'Step 1: Customer Contact Information' : 'Bước 1: Thông Tin Người Đặt Bàn' }}
+            </h4>
+
+            <div class="row g-4 mb-4">
               <div class="col-md-6">
                 <label class="form-label fw-semibold fs-7 text-dark">{{ langStore.isEnglish ? 'Full Name' : 'Họ và tên người đặt' }} <span class="text-danger">*</span></label>
                 <div class="form-control-icon">
-                  <input v-model="form.customerName" type="text" class="form-control py-2.5" placeholder="Ví dụ: Nguyễn Văn A" required />
+                  <input v-model="form.customerName" type="text" class="form-control py-3 fs-7" placeholder="Ví dụ: Nguyễn Văn A" required />
                   <i class="fa-solid fa-user"></i>
                 </div>
               </div>
@@ -105,24 +166,44 @@
               <div class="col-md-6">
                 <label class="form-label fw-semibold fs-7 text-dark">{{ langStore.isEnglish ? 'Phone Number' : 'Số điện thoại liên hệ' }} <span class="text-danger">*</span></label>
                 <div class="form-control-icon">
-                  <input v-model="form.customerPhone" type="tel" class="form-control py-2.5" placeholder="Ví dụ: 0988776655" required />
+                  <input v-model="form.customerPhone" type="tel" class="form-control py-3 fs-7" placeholder="Ví dụ: 0988776655" required />
                   <i class="fa-solid fa-phone"></i>
                 </div>
               </div>
+
+              <div class="col-md-12">
+                <label class="form-label fw-semibold fs-7 text-dark">{{ langStore.isEnglish ? 'Email (Optional)' : 'Địa chỉ Email (Nhận mã vé đặt bàn)' }}</label>
+                <div class="form-control-icon">
+                  <input v-model="form.customerEmail" type="email" class="form-control py-3 fs-7" placeholder="email@example.com" />
+                  <i class="fa-solid fa-envelope"></i>
+                </div>
+              </div>
+            </div>
+
+            <div v-if="stepError" class="alert alert-danger py-2 px-3 rounded-3 small mb-4">
+              <i class="fa-solid fa-circle-exclamation me-1"></i>{{ stepError }}
+            </div>
+
+            <div class="d-flex justify-content-end pt-3">
+              <button type="button" @click="validateAndNext(1)" class="btn btn-danger btn-lg rounded-pill px-5 fw-bold shadow-sm">
+                {{ langStore.isEnglish ? 'Next: Select Table' : 'Tiếp Theo: Chọn Thời Gian & Bàn' }}
+                <i class="fa-solid fa-arrow-right ms-2"></i>
+              </button>
             </div>
           </div>
 
-          <!-- Step 2: Date & Visual Table Map Selection -->
-          <div class="mb-5 pb-4 border-bottom">
-            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-              <h5 class="fw-bold text-danger mb-0 d-flex align-items-center gap-2">
-                <span class="badge bg-danger rounded-circle p-2 fs-8">2</span>
-                {{ langStore.isEnglish ? '2. Select Arrival Time & Table' : '2. Thời Gian & Sơ Đồ Chọn Bàn Thực Tế' }}
-              </h5>
+          <!-- STEP 2: ARRIVAL TIME & VISUAL TABLE MAP -->
+          <div v-else-if="currentStep === 2" class="wizard-panel">
+            <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+              <h4 class="fw-bold text-danger brand-font mb-0 d-flex align-items-center gap-2">
+                <i class="fa-solid fa-chair"></i>
+                {{ langStore.isEnglish ? 'Step 2: Select Arrival Time & Table' : 'Bước 2: Thời Gian & Sơ Đồ Chọn Bàn Thực Tế' }}
+              </h4>
+
               <!-- Status legend -->
               <div class="d-flex align-items-center gap-3 fs-8 fw-semibold">
-                <span class="d-inline-flex align-items-center gap-1"><i class="fa-solid fa-circle text-success fs-9"></i> {{ langStore.isEnglish ? 'Available' : 'Bàn trống (Khả dụng)' }}</span>
-                <span class="d-inline-flex align-items-center gap-1"><i class="fa-solid fa-circle text-secondary fs-9"></i> {{ langStore.isEnglish ? 'Booked' : 'Đã đặt / Đang ăn' }}</span>
+                <span class="d-inline-flex align-items-center gap-1"><i class="fa-solid fa-circle text-success fs-9"></i> {{ langStore.isEnglish ? 'Available' : 'Bàn trống' }}</span>
+                <span class="d-inline-flex align-items-center gap-1"><i class="fa-solid fa-circle text-secondary fs-9"></i> {{ langStore.isEnglish ? 'Booked' : 'Đã đặt' }}</span>
                 <span class="d-inline-flex align-items-center gap-1"><i class="fa-solid fa-circle text-warning fs-9"></i> {{ langStore.isEnglish ? 'Custom/Group' : 'Bàn tùy chỉnh' }}</span>
               </div>
             </div>
@@ -157,7 +238,7 @@
             </div>
 
             <!-- Visual Table Map Grid -->
-            <div class="row g-3">
+            <div class="row g-3 mb-4">
               <!-- Regular Tables -->
               <div
                 v-for="table in filteredTables"
@@ -230,15 +311,15 @@
 
                   <div>
                     <span :class="['badge rounded-pill fs-9 fw-bold px-2 py-1', isCustomTable ? 'bg-dark text-warning' : 'bg-warning text-dark']">
-                      {{ isCustomTable ? 'Đã Chọn' : 'Chọn Nhập Số Khách' }}
+                      {{ isCustomTable ? 'Đã Chọn' : 'Nhập Số Khách' }}
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Custom Guests Input (Shown when Custom Table is selected or manually adjusted) -->
-            <div v-if="isCustomTable" class="mt-4 p-3 bg-warning bg-opacity-10 rounded-4 border border-warning">
+            <!-- Custom Guests Input -->
+            <div v-if="isCustomTable" class="mb-4 p-3 bg-warning bg-opacity-10 rounded-4 border border-warning">
               <div class="d-flex align-items-center gap-3 flex-wrap">
                 <i class="fa-solid fa-puzzle-piece fs-4 text-warning"></i>
                 <div class="flex-grow-1">
@@ -265,7 +346,7 @@
             </div>
 
             <!-- Selected Table Info Bar -->
-            <div v-else-if="selectedTableId" class="mt-3 p-3 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div v-else-if="selectedTableId" class="mb-4 p-3 bg-success bg-opacity-10 rounded-4 border border-success border-opacity-25 d-flex justify-content-between align-items-center flex-wrap gap-2">
               <div class="d-flex align-items-center gap-2">
                 <i class="fa-solid fa-circle-check text-success fs-5"></i>
                 <div>
@@ -277,16 +358,31 @@
               </div>
               <span class="badge bg-success rounded-pill px-3 py-1.5 fw-bold fs-8">Sẵn Sàng</span>
             </div>
+
+            <div v-if="stepError" class="alert alert-danger py-2 px-3 rounded-3 small mb-4">
+              <i class="fa-solid fa-circle-exclamation me-1"></i>{{ stepError }}
+            </div>
+
+            <!-- Navigation Actions -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <button type="button" @click="currentStep = 1" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                <i class="fa-solid fa-arrow-left me-2"></i> {{ langStore.isEnglish ? 'Back' : 'Quay Lại' }}
+              </button>
+              <button type="button" @click="validateAndNext(2)" class="btn btn-danger btn-lg rounded-pill px-5 fw-bold shadow-sm">
+                {{ langStore.isEnglish ? 'Next: Pre-order Dishes' : 'Tiếp Theo: Chọn Món Đặt Trước' }}
+                <i class="fa-solid fa-arrow-right ms-2"></i>
+              </button>
+            </div>
           </div>
 
-          <!-- Step 3: Pre-order Dishes (2-Column Interactive Menu with Drag & Drop & Click +) -->
-          <div class="mb-5 pb-4 border-bottom">
+          <!-- STEP 3: PRE-ORDER DISHES (2-COLUMN INTERACTIVE DRAG & DROP) -->
+          <div v-else-if="currentStep === 3" class="wizard-panel">
             <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
               <div>
-                <h5 class="fw-bold text-danger mb-0 d-flex align-items-center gap-2">
-                  <span class="badge bg-danger rounded-circle p-2 fs-8">3</span>
-                  {{ langStore.isEnglish ? '3. Select Pre-order Dishes (Pre-order)' : '3. Chọn Món Ăn Đặt Trước (Pre-order)' }}
-                </h5>
+                <h4 class="fw-bold text-danger brand-font mb-0 d-flex align-items-center gap-2">
+                  <i class="fa-solid fa-utensils"></i>
+                  {{ langStore.isEnglish ? 'Step 3: Select Pre-order Dishes' : 'Bước 3: Chọn Món Ăn Đặt Trước (Pre-order)' }}
+                </h4>
                 <small class="text-muted">Kéo món từ menu thả vào bàn hoặc nhấp dấu (+) để chọn món</small>
               </div>
               <span class="badge bg-warning text-dark px-3 py-1.5 rounded-pill small fw-bold shadow-sm">
@@ -294,8 +390,8 @@
               </span>
             </div>
 
-            <!-- 2-COLUMN LAYOUT -->
-            <div class="row g-4">
+            <!-- 2-COLUMN FULL-WIDTH LAYOUT (NO SCROLLING NEEDED) -->
+            <div class="row g-4 mb-4">
               <!-- LEFT COLUMN: MENU CATALOG -->
               <div class="col-lg-6">
                 <div class="glass-card p-3 rounded-4 border bg-white h-100 shadow-sm">
@@ -342,15 +438,14 @@
                       class="dish-draggable-card p-2.5 rounded-3 border bg-light d-flex align-items-center justify-content-between gap-2 transition-all hover-shadow"
                     >
                       <div class="d-flex align-items-center gap-2.5 min-w-0">
-                        <!-- Dish Image / Thumbnail -->
                         <img
                           v-if="dish.image"
                           :src="dish.image"
                           :alt="dish.name"
                           class="rounded-3 object-fit-cover flex-shrink-0"
-                          style="width: 48px; height: 48px;"
+                          style="width: 44px; height: 44px;"
                         />
-                        <div v-else class="p-2 bg-danger bg-opacity-10 text-danger rounded-3 text-center flex-shrink-0" style="width: 48px; height: 48px; display: flex; align-items: center; justify-content: center;">
+                        <div v-else class="p-2 bg-danger bg-opacity-10 text-danger rounded-3 text-center flex-shrink-0" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center;">
                           <i class="fa-solid fa-utensils fs-6"></i>
                         </div>
 
@@ -373,10 +468,10 @@
                           type="button"
                           @click="updatePreOrderQuantity(dish._id, 1)"
                           class="btn btn-danger btn-sm rounded-circle p-1 d-flex align-items-center justify-content-center shadow-sm"
-                          style="width: 32px; height: 32px;"
+                          style="width: 30px; height: 30px;"
                           title="Thêm vào bàn"
                         >
-                          <i class="fa-solid fa-plus fs-7"></i>
+                          <i class="fa-solid fa-plus fs-8"></i>
                         </button>
                       </div>
                     </div>
@@ -388,7 +483,7 @@
                 </div>
               </div>
 
-              <!-- RIGHT COLUMN: DINING TABLE / PRE-ORDER BILL DROPZONE -->
+              <!-- RIGHT COLUMN: DINING TABLE DROPZONE -->
               <div class="col-lg-6">
                 <div
                   @dragover.prevent="isDraggingOver = true"
@@ -403,15 +498,15 @@
                     <!-- Dropzone Header -->
                     <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
                       <h6 class="fw-bold brand-font text-danger mb-0 d-flex align-items-center gap-2">
-                        <i class="fa-solid fa-utensils"></i>
-                        {{ langStore.isEnglish ? 'Pre-order Dish Summary' : 'Vùng Bàn Ăn — Hóa Đơn Đặt Trước' }}
+                        <i class="fa-solid fa-receipt"></i>
+                        {{ langStore.isEnglish ? 'Pre-order Bill Preview' : 'Vùng Bàn Ăn — Hóa Đơn Đặt Trước' }}
                       </h6>
                       <span class="badge bg-danger rounded-pill fs-8 fw-bold">
                         {{ selectedDishesCount }} {{ langStore.isEnglish ? 'dishes' : 'món' }}
                       </span>
                     </div>
 
-                    <!-- Selected Dishes List or Empty Dropzone Placeholder -->
+                    <!-- Selected Dishes List or Empty Placeholder -->
                     <div v-if="selectedDishesList.length === 0" class="dropzone-empty-box text-center py-5 rounded-4 bg-light border border-dashed my-2">
                       <div class="p-3 bg-danger bg-opacity-10 text-danger rounded-circle d-inline-flex mb-2">
                         <i class="fa-solid fa-cloud-arrow-down fs-3"></i>
@@ -434,7 +529,7 @@
                             :src="item.dish.image"
                             :alt="item.dish.name"
                             class="rounded-2 object-fit-cover flex-shrink-0"
-                            style="width: 40px; height: 40px;"
+                            style="width: 38px; height: 38px;"
                           />
                           <div class="min-w-0">
                             <strong class="text-dark fs-7 d-block text-truncate">{{ item.dish.name }}</strong>
@@ -498,33 +593,116 @@
                 </div>
               </div>
             </div>
+
+            <!-- Navigation Actions -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <button type="button" @click="currentStep = 2" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                <i class="fa-solid fa-arrow-left me-2"></i> {{ langStore.isEnglish ? 'Back' : 'Quay Lại' }}
+              </button>
+
+              <div class="d-flex gap-2">
+                <button v-if="selectedDishesCount === 0" type="button" @click="currentStep = 4" class="btn btn-outline-danger rounded-pill px-4 fw-semibold">
+                  {{ langStore.isEnglish ? 'Skip Dish Pre-order' : 'Bỏ Qua Chọn Món & Tiếp Tục' }}
+                </button>
+                <button type="button" @click="currentStep = 4" class="btn btn-danger btn-lg rounded-pill px-5 fw-bold shadow-sm">
+                  {{ langStore.isEnglish ? 'Next: Review & Confirm' : 'Tiếp Theo: Ghi Chú & Xác Nhận' }}
+                  <i class="fa-solid fa-arrow-right ms-2"></i>
+                </button>
+              </div>
+            </div>
           </div>
 
-          <!-- Step 4: Special Notes -->
-          <div class="mb-4">
-            <h5 class="fw-bold text-danger mb-3 d-flex align-items-center gap-2">
-              <span class="badge bg-danger rounded-circle p-2 fs-8">4</span> {{ langStore.t('reservation.step4') }}
-            </h5>
-            <textarea
-              v-model="form.notes"
-              class="form-control rounded-3 p-3"
-              rows="3"
-              :placeholder="langStore.isEnglish ? 'e.g. Need window table, baby chair, birthday celebration...' : 'Ví dụ: Cần bàn gần cửa sổ, có ghế trẻ em, tiệc sinh nhật...'"
-            ></textarea>
-          </div>
+          <!-- STEP 4: NOTES & FINAL CONFIRMATION -->
+          <div v-else-if="currentStep === 4" class="wizard-panel">
+            <h4 class="fw-bold text-danger brand-font mb-4 d-flex align-items-center gap-2">
+              <i class="fa-solid fa-clipboard-check"></i>
+              {{ langStore.isEnglish ? 'Step 4: Special Notes & Confirmation' : 'Bước 4: Ghi Chú & Hoàn Tất Đặt Bàn' }}
+            </h4>
 
-          <div v-if="errorMsg" class="alert alert-danger mb-4 p-3 rounded-3 small d-flex align-items-center gap-2">
-            <i class="fa-solid fa-circle-exclamation fs-5"></i>
-            <div>{{ errorMsg }}</div>
-          </div>
+            <!-- Booking Summary Review Card -->
+            <div class="p-4 bg-light rounded-4 border mb-4">
+              <h6 class="fw-bold brand-font text-dark mb-3">
+                <i class="fa-solid fa-list-check me-2 text-danger"></i>
+                {{ langStore.isEnglish ? 'Booking Summary Review' : 'Tóm Tắt Đơn Đặt Bàn' }}
+              </h6>
 
-          <div class="text-center pt-2">
-            <button type="submit" :disabled="reservationStore.loading" class="btn btn-primary-crab btn-lg px-5 py-3 w-100 shadow-sm fw-bold">
-              <span v-if="reservationStore.loading" class="spinner-border spinner-border-sm me-2"></span>
-              <span v-else><i class="fa-solid fa-paper-plane me-2"></i> {{ langStore.t('reservation.submitBtn') }}</span>
-            </button>
+              <div class="row g-3 small mb-3">
+                <div class="col-md-6">
+                  <span class="text-muted d-block">{{ langStore.isEnglish ? 'Customer:' : 'Người đặt:' }}</span>
+                  <strong class="text-dark fs-7">{{ form.customerName }} ({{ form.customerPhone }})</strong>
+                </div>
+                <div class="col-md-6">
+                  <span class="text-muted d-block">{{ langStore.isEnglish ? 'Arrival time:' : 'Thời gian đến:' }}</span>
+                  <strong class="text-dark fs-7">{{ form.startAt ? new Date(form.startAt).toLocaleString('vi-VN') : 'Chưa chọn' }}</strong>
+                </div>
+                <div class="col-md-6">
+                  <span class="text-muted d-block">{{ langStore.isEnglish ? 'Selected Table:' : 'Bàn chọn:' }}</span>
+                  <strong v-if="isCustomTable" class="text-warning fs-7">Bàn tùy chỉnh cho {{ form.guestsCount }} người (Tự động ghép)</strong>
+                  <strong v-else-if="selectedTableId" class="text-success fs-7">Bàn {{ getSelectedTableObj?.tableNumber }} ({{ getSelectedTableObj?.capacity }} chỗ)</strong>
+                  <strong v-else class="text-dark fs-7">{{ form.guestsCount }} người</strong>
+                </div>
+                <div class="col-md-6">
+                  <span class="text-muted d-block">{{ langStore.isEnglish ? 'Pre-order dishes:' : 'Món đặt trước:' }}</span>
+                  <strong class="text-dark fs-7">{{ selectedDishesCount }} món</strong>
+                </div>
+              </div>
+
+              <!-- List of pre-order dishes preview -->
+              <div v-if="selectedDishesList.length > 0" class="pt-2 border-top">
+                <small class="fw-bold text-dark d-block mb-1">Món ăn đã chọn:</small>
+                <ul class="list-unstyled mb-0 small text-secondary">
+                  <li v-for="item in selectedDishesList" :key="item.dish._id" class="d-flex justify-content-between py-0.5">
+                    <span>• {{ item.dish.name }} x{{ item.quantity }}</span>
+                    <strong class="text-dark">{{ (item.dish.price * item.quantity).toLocaleString('vi-VN') }}đ</strong>
+                  </li>
+                </ul>
+              </div>
+            </div>
+
+            <!-- Total Deposit Required Banner -->
+            <div class="p-3 bg-danger text-white rounded-4 shadow-sm mb-4 d-flex justify-content-between align-items-center flex-wrap gap-2">
+              <div>
+                <small class="d-block text-white-50 fs-8">{{ langStore.isEnglish ? 'REQUIRED VIETQR DEPOSIT:' : 'TỔNG TIỀN CỌC CẦN THANH TOÁN QUA VIETQR:' }}</small>
+                <strong class="fs-4 brand-font">{{ estimatedDeposit.toLocaleString('vi-VN') }}đ</strong>
+              </div>
+              <span class="badge bg-white text-danger px-3 py-2 rounded-pill fw-bold fs-8">
+                <i class="fa-solid fa-qrcode me-1"></i> VietQR Auto Gen
+              </span>
+            </div>
+
+            <!-- Special Notes Input -->
+            <div class="mb-4">
+              <label class="form-label fw-semibold fs-7 text-dark">{{ langStore.t('reservation.step4') }}</label>
+              <textarea
+                v-model="form.notes"
+                class="form-control rounded-3 p-3 fs-7"
+                rows="3"
+                :placeholder="langStore.isEnglish ? 'e.g. Need window table, baby chair, birthday celebration...' : 'Ví dụ: Cần bàn gần cửa sổ, có ghế trẻ em, tiệc sinh nhật...'"
+              ></textarea>
+            </div>
+
+            <div v-if="errorMsg" class="alert alert-danger mb-4 p-3 rounded-3 small d-flex align-items-center gap-2">
+              <i class="fa-solid fa-circle-exclamation fs-5"></i>
+              <div>{{ errorMsg }}</div>
+            </div>
+
+            <!-- Navigation Actions -->
+            <div class="d-flex justify-content-between align-items-center pt-3 border-top">
+              <button type="button" @click="currentStep = 3" class="btn btn-outline-secondary rounded-pill px-4 fw-bold">
+                <i class="fa-solid fa-arrow-left me-2"></i> {{ langStore.isEnglish ? 'Back to Dishes' : 'Quay Lại Sửa Món' }}
+              </button>
+              <button
+                type="button"
+                @click="handleSubmit"
+                :disabled="reservationStore.loading"
+                class="btn btn-primary-crab btn-lg px-5 py-3 rounded-pill fw-bold shadow-lg"
+              >
+                <span v-if="reservationStore.loading" class="spinner-border spinner-border-sm me-2"></span>
+                <span v-else><i class="fa-solid fa-paper-plane me-2"></i> {{ langStore.isEnglish ? 'Confirm & Get VietQR Deposit Code' : 'XÁC NHẬN ĐẶT BÀN & NHẬN MÃ VIETQR' }}</span>
+              </button>
+            </div>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   </div>
@@ -544,6 +722,8 @@ const menuStore = useMenuStore();
 const tableStore = useTableStore();
 const langStore = useLangStore();
 
+const currentStep = ref(1);
+const stepError = ref("");
 const errorMsg = ref("");
 const successData = ref(null);
 const preOrderDishesMap = reactive({});
@@ -578,12 +758,54 @@ onMounted(async () => {
     tableStore.fetchTables(),
   ]);
 
-  // Select first available table by default if exists
   const firstAvailable = tableStore.tables.find((t) => t.status === "AVAILABLE");
   if (firstAvailable) {
     selectTable(firstAvailable);
   }
 });
+
+/* ── Wizard Step Navigation & Validation ── */
+const goToStep = (step) => {
+  if (step === 2 && !validateStep1()) return;
+  if (step === 3 && (!validateStep1() || !validateStep2())) return;
+  if (step === 4 && (!validateStep1() || !validateStep2())) return;
+  stepError.value = "";
+  currentStep.value = step;
+};
+
+const validateStep1 = () => {
+  stepError.value = "";
+  if (!form.customerName.trim() || !form.customerPhone.trim()) {
+    stepError.value = "Vui lòng nhập đầy đủ Họ tên và Số điện thoại liên hệ!";
+    return false;
+  }
+  return true;
+};
+
+const validateStep2 = () => {
+  stepError.value = "";
+  if (!form.startAt) {
+    stepError.value = "Vui lòng chọn thời gian đến ăn!";
+    return false;
+  }
+  if (!selectedTableId.value && !isCustomTable.value) {
+    stepError.value = "Vui lòng chọn 1 bàn trống trên sơ đồ hoặc chọn 'Bàn Tùy Chỉnh'!";
+    return false;
+  }
+  return true;
+};
+
+const validateAndNext = (fromStep) => {
+  if (fromStep === 1) {
+    if (validateStep1()) {
+      currentStep.value = 2;
+    }
+  } else if (fromStep === 2) {
+    if (validateStep2()) {
+      currentStep.value = 3;
+    }
+  }
+};
 
 /* ── Table Selection Helpers ── */
 const filteredTables = computed(() => {
@@ -635,10 +857,6 @@ const handleDrop = (evt) => {
   if (dishId) {
     updatePreOrderQuantity(dishId, 1);
   }
-};
-
-const getPreOrderQuantity = (dishId) => {
-  return preOrderDishesMap[dishId] || 0;
 };
 
 const updatePreOrderQuantity = (dishId, delta) => {
@@ -715,18 +933,75 @@ const handleSubmit = async () => {
 
 const resetForm = () => {
   successData.value = null;
+  currentStep.value = 1;
   form.notes = "";
   Object.keys(preOrderDishesMap).forEach((k) => delete preOrderDishesMap[k]);
 };
 </script>
 
 <style scoped>
+.min-vh-card {
+  min-height: 480px;
+}
+.wizard-header-steps {
+  background: #ffffff;
+  padding: 1rem 1.5rem;
+  border-radius: 100px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+.wizard-step-node {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  opacity: 0.5;
+  transition: all 0.3s ease;
+}
+.wizard-step-node.active,
+.wizard-step-node.completed {
+  opacity: 1;
+}
+.wizard-step-circle {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #e2e8f0;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  transition: all 0.3s ease;
+}
+.wizard-step-node.active .wizard-step-circle {
+  background: #d32f2f;
+  color: #ffffff;
+  box-shadow: 0 0 0 4px rgba(211, 47, 47, 0.2);
+}
+.wizard-step-node.completed .wizard-step-circle {
+  background: #16a34a;
+  color: #ffffff;
+}
+.wizard-step-label {
+  font-size: 0.82rem;
+  color: #1e293b;
+}
+.wizard-step-line {
+  height: 3px;
+  background: #e2e8f0;
+  border-radius: 2px;
+  transition: all 0.3s ease;
+}
+.wizard-step-line.active-line {
+  background: #d32f2f;
+}
 .dish-scroll-container {
-  max-height: 420px;
+  max-height: 380px;
   overflow-y: auto;
 }
 .selected-dishes-scroll {
-  max-height: 280px;
+  max-height: 260px;
   overflow-y: auto;
 }
 .dish-draggable-card {
