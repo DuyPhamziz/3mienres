@@ -1,60 +1,66 @@
 <template>
-  <footer class="bg-dark text-white pt-5 pb-4 mt-5">
+  <footer class="bg-dark text-white pt-5 pb-4 mt-auto">
     <div class="container">
-      <div class="row g-4">
+      <div class="row g-4 mb-4">
+        <!-- Col 1: Brand Info -->
         <div class="col-lg-4 col-md-6">
           <div class="d-flex align-items-center gap-2 mb-3">
-            <div class="p-2 bg-danger bg-opacity-20 rounded-3 text-danger d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-              <i class="fa-solid fa-utensils fs-4"></i>
+            <div class="p-2 bg-danger bg-opacity-20 text-danger rounded-3">
+              <i class="fa-solid fa-utensils fs-4 text-warning"></i>
             </div>
-            <span class="fw-bold fs-3 brand-font text-danger">3 MIỀN CUA</span>
+            <span class="fw-bold fs-4 brand-font text-white">3 MIỀN CUA</span>
           </div>
-          <p class="text-secondary small leading-relaxed">
-            Nhà hàng 3 Miền Cua tự hào mang tới tinh hoa ẩm thực đặc sản 3 miền Bắc – Trung – Nam. Chuyên các món Cua Cà Mau tươi sống, lẩu cua đồng, tôm hùm và hải sản chọn lọc.
+          <p class="text-white-50 small leading-relaxed mb-3">
+            {{ langStore.t('nav.brandSub') }}. {{ langStore.t('home.desc') }}
           </p>
-          <div class="d-flex gap-3 mt-3">
-            <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="fa-brands fa-facebook-f"></i></a>
-            <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="fa-brands fa-tiktok"></i></a>
-            <a href="#" class="btn btn-outline-light btn-sm rounded-circle"><i class="fa-brands fa-youtube"></i></a>
+          <div class="d-flex gap-3 text-warning">
+            <i class="fa-brands fa-facebook fs-4 cursor-pointer"></i>
+            <i class="fa-brands fa-youtube fs-4 cursor-pointer"></i>
+            <i class="fa-brands fa-tiktok fs-4 cursor-pointer"></i>
           </div>
         </div>
 
+        <!-- Col 2: Navigation Links -->
         <div class="col-lg-2 col-md-6">
-          <h5 class="fw-bold mb-3 brand-font text-warning">Liên Kết Nhanh</h5>
-          <ul class="list-unstyled text-secondary small space-y-2">
-            <li class="mb-2"><router-link to="/" class="text-secondary text-decoration-none hover-text-white">Trang Chủ</router-link></li>
-            <li class="mb-2"><router-link to="/thuc-don" class="text-secondary text-decoration-none hover-text-white">Thực Đơn 3 Miền</router-link></li>
-            <li class="mb-2"><router-link to="/dat-ban" class="text-secondary text-decoration-none hover-text-white">Đặt Bàn Trực Tuyến</router-link></li>
-            <li class="mb-2"><router-link to="/tra-cuu" class="text-secondary text-decoration-none hover-text-white">Tra Cứu Mã Đơn</router-link></li>
-            <li class="mb-2"><router-link to="/hang-thanh-vien" class="text-secondary text-decoration-none hover-text-white">Thẻ Thành Viên</router-link></li>
+          <h6 class="fw-bold text-white mb-3 brand-font">Menu Navigation</h6>
+          <ul class="list-unstyled space-y-2 fs-7 text-white-50">
+            <li class="mb-2"><router-link to="/" class="text-white-50 text-decoration-none hover-text-white">{{ langStore.t('nav.home') }}</router-link></li>
+            <li class="mb-2"><router-link to="/thuc-don" class="text-white-50 text-decoration-none hover-text-white">{{ langStore.t('nav.menu') }}</router-link></li>
+            <li class="mb-2"><router-link to="/dat-ban" class="text-white-50 text-decoration-none hover-text-white">{{ langStore.t('nav.bookTable') }}</router-link></li>
+            <li class="mb-2"><router-link to="/tra-cuu" class="text-white-50 text-decoration-none hover-text-white">{{ langStore.t('nav.trackOrder') }}</router-link></li>
+            <li class="mb-2"><router-link to="/hang-thanh-vien" class="text-white-50 text-decoration-none hover-text-white">{{ langStore.t('nav.loyalty') }}</router-link></li>
           </ul>
         </div>
 
+        <!-- Col 3: Opening Hours & Contact -->
         <div class="col-lg-3 col-md-6">
-          <h5 class="fw-bold mb-3 brand-font text-warning">Thời Gian Mở Cửa</h5>
-          <ul class="list-unstyled text-secondary small">
-            <li class="mb-2"><i class="fa-regular fa-clock me-2 text-danger"></i> Thứ 2 - Thứ 6: 10:00 - 22:00</li>
-            <li class="mb-2"><i class="fa-regular fa-clock me-2 text-danger"></i> Thứ 7 - Chủ Nhật: 09:30 - 23:00</li>
-            <li class="mt-3 text-warning fw-semibold"><i class="fa-solid fa-mug-hot me-1"></i> Phục vụ xuyên lễ tết</li>
+          <h6 class="fw-bold text-white mb-3 brand-font">{{ langStore.t('nav.contact') }}</h6>
+          <ul class="list-unstyled space-y-2 fs-7 text-white-50">
+            <li class="mb-2"><i class="fa-solid fa-clock text-warning me-2"></i> {{ langStore.t('nav.hours') }}</li>
+            <li class="mb-2"><i class="fa-solid fa-phone text-warning me-2"></i> Hotline: 1900 1234</li>
+            <li class="mb-2"><i class="fa-solid fa-envelope text-warning me-2"></i> info@3miencua.vn</li>
+            <li class="mb-2"><i class="fa-solid fa-location-dot text-warning me-2"></i> 123 Đường Hải Sản, TP. Hồ Chí Minh</li>
           </ul>
         </div>
 
+        <!-- Col 4: Member Perks -->
         <div class="col-lg-3 col-md-6">
-          <h5 class="fw-bold mb-3 brand-font text-warning">Liên Hệ & Hotline</h5>
-          <ul class="list-unstyled text-secondary small">
-            <li class="mb-2"><i class="fa-solid fa-location-dot me-2 text-danger"></i> 123 Đường 3 Tháng 2, Phường 11, Quận 10, TP.HCM</li>
-            <li class="mb-2"><i class="fa-solid fa-phone me-2 text-danger"></i> Hotline Đặt Bàn: <strong class="text-white">1900 1234</strong></li>
-            <li class="mb-2"><i class="fa-solid fa-envelope me-2 text-danger"></i> contact@3miencua.vn</li>
-          </ul>
+          <h6 class="fw-bold text-white mb-3 brand-font">Hội Viên 3 Miền Cua</h6>
+          <p class="text-white-50 small mb-3">Đăng ký thành viên để tự động tích điểm chi tiêu và nhận ưu đãi giảm đến 15% cho mọi đơn hàng.</p>
+          <router-link to="/register" class="btn btn-warning btn-sm w-100 rounded-pill fw-bold">
+            <i class="fa-solid fa-crown me-1"></i> Đăng Ký Hội Viên
+          </router-link>
         </div>
       </div>
 
-      <hr class="border-secondary my-4" />
-
-      <div class="d-flex flex-column flex-md-row justify-content-between align-items-center small text-secondary">
-        <p class="mb-0">&copy; 2026 Nhà hàng 3 Miền Cua. All rights reserved.</p>
-        <p class="mb-0">Hệ thống Quản lý & Đặt Bàn Thông Minh v2.0</p>
+      <div class="border-top border-secondary pt-3 text-center text-white-50 fs-8">
+        {{ langStore.t('nav.copyright') }}
       </div>
     </div>
   </footer>
 </template>
+
+<script setup>
+import { useLangStore } from "../stores/langStore";
+const langStore = useLangStore();
+</script>
