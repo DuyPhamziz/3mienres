@@ -7,5 +7,6 @@ const router = express.Router();
 router.use(protect, restrictTo("manager", "admin"));
 
 router.get("/stats", dashboardController.getDashboardStats);
+router.get("/export-invoices", dashboardController.exportInvoicesCsv);
 
 module.exports = router;

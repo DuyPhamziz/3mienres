@@ -61,6 +61,11 @@
                 </router-link>
               </li>
               <li>
+                <router-link to="/ho-so" class="dropdown-item rounded-3 py-2 fw-medium">
+                  <i class="fa-solid fa-id-card me-2 text-danger"></i> Hồ Sơ Cá Nhân
+                </router-link>
+              </li>
+              <li>
                 <router-link to="/hang-thanh-vien" class="dropdown-item rounded-3 py-2 fw-medium">
                   <i class="fa-solid fa-gem me-2 text-warning"></i> Điểm Tích Lũy: {{ (authStore.user?.totalSpent || 0).toLocaleString('vi-VN') }}đ
                 </router-link>

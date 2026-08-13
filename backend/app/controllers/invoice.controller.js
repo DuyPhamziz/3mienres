@@ -4,7 +4,16 @@ const Order = require("../models/order.model");
 const Table = require("../models/table.model");
 const User = require("../models/user.model");
 const Rank = require("../models/rank.model");
+const Voucher = require("../models/voucher.model");
 const AppError = require("../app-error");
+const { computeDiscount } = require("./voucher.controller");
+const { generateInvoiceCode } = require("../utils/code-generator");
+const { roundMoney, toNonNegative, toPercent } = require("../utils/money");
+const { emitEvent } = require("../socket");
+const config = require("../config");
+const vnpay = require("../utils/vnpay");
+const { logAction } = require("../utils/audit");
+const { getPagination, buildPaginationMeta } = require("../utils/pagination");
 
 // Hàm Helper: Tự động cộng dồn tiền tích lũy và xét thăng hạng thành viên cho khách
 const updateCustomerRank = async (userId, paidAmount) => {
@@ -24,6 +33,22 @@ const updateCustomerRank = async (userId, paidAmount) => {
   }
 
   await user.save();
+};
+
+// Hoàn tất hóa đơn: đóng phiên ăn, giải phóng bàn, tích lũy hạng thành viên
+const finalizeInvoiceSession = async (session, finalAmount) => {
+  const now = new Date();
+  session.status = "COMPLETED";
+  session.checkOutTime = now;
+  await session.save();
+
+  await Table.updateMany({ _id: { $in: session.tables } }, { status: "AVAILABLE" });
+
+  const loyaltyUserId = session.reservation ? session.reservation.user : session.customer;
+  if (loyaltyUserId) await updateCustomerRank(loyaltyUserId, finalAmount);
+
+  emitEvent("sessions:changed");
+  emitEvent("tables:changed");
 };
 
 // 1. Xuất hóa đơn & Thanh toán giải phóng bàn
@@ -63,29 +88,52 @@ exports.createInvoice = async (req, res, next) => {
     // Tính tổng tiền các đợt gọi món
     const subtotal = validOrders.reduce((sum, ord) => sum + ord.subtotal, 0);
 
-    const discount = discountAmount ? parseFloat(discountAmount) : 0;
-    const vatPercent = taxPercent ? parseFloat(taxPercent) : 0;
+    const discount = toNonNegative(discountAmount);
+    const vatPercent = toPercent(taxPercent);
     const taxAmount = (subtotal * vatPercent) / 100;
 
-    // Tự động trừ tiền đặt cọc nếu có đơn đặt bàn trước đó
+    // Xử lý mã voucher giảm giá (nếu có)
+    let voucherDiscount = 0;
+    let voucherCode = null;
+    if (req.body.voucherCode) {
+      voucherCode = req.body.voucherCode.trim().toUpperCase();
+      const voucher = await Voucher.findOne({ code: voucherCode });
+      if (!voucher) return next(new AppError("Mã voucher không tồn tại", 404));
+      if (!voucher.isActive) return next(new AppError("Voucher đã bị vô hiệu hóa", 400));
+
+      const nowTime = new Date();
+      if (nowTime < voucher.startDate || nowTime > voucher.endDate) {
+        return next(new AppError("Voucher đã hết hạn hoặc chưa bắt đầu", 400));
+      }
+      if (voucher.usageLimit > 0 && voucher.usedCount >= voucher.usageLimit) {
+        return next(new AppError("Voucher đã hết lượt sử dụng", 409));
+      }
+
+      voucherDiscount = roundMoney(computeDiscount(voucher, subtotal));
+      voucher.usedCount += 1;
+      await voucher.save();
+    }
+
+    const totalDiscount = discount + voucherDiscount;
+
+    // Chỉ trừ tiền cọc khi nhân viên đã xác nhận khách thực sự nộp cọc (depositStatus = PAID)
     let depositDeducted = 0;
-    if (session.reservation && session.reservation.depositAmount) {
+    if (
+      session.reservation &&
+      session.reservation.depositAmount > 0 &&
+      session.reservation.depositStatus === "PAID"
+    ) {
       depositDeducted = session.reservation.depositAmount;
     }
 
     // Số tiền thực tế phải thanh toán
-    const finalAmount = Math.max(0, subtotal - discount + taxAmount - depositDeducted);
+    const finalAmount = roundMoney(Math.max(0, subtotal - totalDiscount + taxAmount - depositDeducted));
 
-    // Sinh mã hóa đơn (VD: INV-20260813-102938)
+    // Sinh mã hóa đơn duy nhất (VD: INV-20260813-1029)
     const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, "");
-    let invoiceCode;
-    let isUnique = false;
-    while (!isUnique) {
-      invoiceCode = `INV-${dateStr}-${Math.floor(1000 + Math.random() * 9000)}`;
-      const existing = await Invoice.findOne({ invoiceCode });
-      if (!existing) isUnique = true;
-    }
+    const invoiceCode = await generateInvoiceCode(Invoice, now);
+
+    const isVnpay = paymentMethod === "VNPAY";
 
     // Lớp 3: Tạo Hóa đơn
     const newInvoice = await Invoice.create({
@@ -93,34 +141,53 @@ exports.createInvoice = async (req, res, next) => {
       diningSession: session._id,
       orders: validOrders.map((o) => o._id),
       subtotal,
-      discountAmount: discount,
+      discountAmount: totalDiscount,
       taxPercent: vatPercent,
       taxAmount,
       depositDeducted,
       finalAmount,
       paymentMethod,
-      paymentStatus: "PAID",
-      paidAt: now,
+      voucherCode,
+      paymentStatus: isVnpay ? "UNPAID" : "PAID",
+      paidAt: isVnpay ? null : now,
       cashier: req.user ? req.user._id : null,
       notes: notes ? notes.trim() : "",
     });
 
-    // 1. Cập nhật lượt dùng bữa sang COMPLETED
-    session.status = "COMPLETED";
-    session.checkOutTime = now;
-    await session.save();
-
-    // 2. Giải phóng tất cả các bàn ăn về trạng thái AVAILABLE
-    await Table.updateMany({ _id: { $in: session.tables } }, { status: "AVAILABLE" });
-
-    // 3. Tự động tích lũy doanh số và thăng hạng thành viên cho khách hàng (nếu có tài khoản)
-    if (session.reservation && session.reservation.user) {
-      await updateCustomerRank(session.reservation.user, finalAmount);
-    }
-
     const populatedInvoice = await Invoice.findById(newInvoice._id)
       .populate("diningSession")
       .populate("orders");
+
+    logAction(req, "CREATE_INVOICE", "Invoice", newInvoice._id, {
+      invoiceCode: newInvoice.invoiceCode,
+      finalAmount: newInvoice.finalAmount,
+      paymentMethod: newInvoice.paymentMethod,
+    });
+
+    // Nếu thanh toán qua VNPay: tạo URL thanh toán và chờ callback, chưa hoàn tất phiên ăn
+    if (isVnpay) {
+      const paymentUrl = vnpay.createPaymentUrl(config.vnpay, {
+        amount: finalAmount,
+        txnRef: `${invoiceCode}-${Date.now()}`,
+        orderInfo: `THANH TOAN ${invoiceCode}`,
+        orderType: "billpayment",
+        returnUrl: `${config.vnpay.returnUrl}?target=invoice&invoiceId=${newInvoice._id}`,
+      });
+
+      emitEvent("invoices:changed");
+
+      return res.status(201).json({
+        status: "success",
+        message: "Đã tạo hóa đơn chờ thanh toán qua VNPay",
+        paymentUrl,
+        data: { invoice: populatedInvoice },
+      });
+    }
+
+    // Các phương thức trực tiếp: hoàn tất phiên ăn & giải phóng bàn ngay
+    await finalizeInvoiceSession(session, finalAmount);
+
+    emitEvent("invoices:changed");
 
     res.status(201).json({
       status: "success",
@@ -137,7 +204,10 @@ exports.getInvoiceBySession = async (req, res, next) => {
   try {
     const { sessionId } = req.params;
     const invoice = await Invoice.findOne({ diningSession: sessionId })
-      .populate("diningSession")
+      .populate({
+        path: "diningSession",
+        populate: { path: "tables", select: "tableNumber" },
+      })
       .populate({
         path: "orders",
         populate: { path: "items.dish", select: "name price image" },
@@ -158,7 +228,7 @@ exports.getInvoiceBySession = async (req, res, next) => {
 // 3. Quản lý xem toàn bộ danh sách hóa đơn / Báo cáo doanh thu
 exports.getAllInvoices = async (req, res, next) => {
   try {
-    const { date, paymentMethod } = req.query;
+    const { date, paymentMethod, search } = req.query;
     const filter = {};
 
     if (paymentMethod) filter.paymentMethod = paymentMethod;
@@ -169,20 +239,36 @@ exports.getAllInvoices = async (req, res, next) => {
       endOfDay.setHours(23, 59, 59, 999);
       filter.paidAt = { $gte: startOfDay, $lte: endOfDay };
     }
+    if (search && search.trim()) {
+      filter.invoiceCode = { $regex: search.trim(), $options: "i" };
+    }
+
+    const { page, limit, skip } = getPagination(req.query);
+    const total = await Invoice.countDocuments(filter);
 
     const invoices = await Invoice.find(filter)
       .populate("diningSession", "sessionCode customerName customerPhone")
-      .sort({ paidAt: -1 });
+      .sort({ paidAt: -1 })
+      .skip(skip)
+      .limit(limit);
 
-    const totalRevenue = invoices.reduce((sum, inv) => sum + inv.finalAmount, 0);
+    // Doanh thu tổng theo toàn bộ kết quả lọc (không chỉ trang hiện tại)
+    const totalRevenue = await Invoice.aggregate([
+      { $match: filter },
+      { $group: { _id: null, total: { $sum: "$finalAmount" } } },
+    ]);
 
     res.status(200).json({
       status: "success",
       results: invoices.length,
-      totalRevenue,
+      totalRevenue: totalRevenue.length > 0 ? totalRevenue[0].total : 0,
+      ...buildPaginationMeta(total, page, limit),
       data: { invoices },
     });
   } catch (error) {
     next(error);
   }
 };
+
+// Export để payment.controller dùng khi VNPay callback xác nhận thanh toán
+exports.finalizeInvoiceSession = finalizeInvoiceSession;

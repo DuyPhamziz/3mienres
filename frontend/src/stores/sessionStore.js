@@ -57,7 +57,7 @@ export const useSessionStore = defineStore("session", {
         throw new Error(err.response?.data?.message || "Ghi nhận đợt gọi món thất bại!");
       }
     },
-    async createInvoice(diningSessionId, paymentMethod, discountAmount, taxPercent, notes) {
+    async createInvoice(diningSessionId, paymentMethod, discountAmount, taxPercent, notes, voucherCode = "") {
       try {
         const res = await api.post("/invoices", {
           diningSessionId,
@@ -65,6 +65,7 @@ export const useSessionStore = defineStore("session", {
           discountAmount,
           taxPercent,
           notes,
+          voucherCode,
         });
         await this.fetchActiveSessions();
         return res.data;

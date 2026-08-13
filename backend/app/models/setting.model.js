@@ -26,6 +26,12 @@ const settingSchema = new mongoose.Schema(
       maxAdvanceDays: { type: Number, default: 30 },
       defaultDepositAmount: { type: Number, default: 100000 }, // Tiền cọc mặc định 100k
     },
+    // Chính sách hoàn cọc khi khách hủy
+    refund: {
+      fullRefundHours: { type: Number, default: 24 }, // Hủy trước >= 24h → hoàn 100%
+      partialRefundHours: { type: Number, default: 2 }, // Hủy trước >= 2h → hoàn %
+      partialRefundPercent: { type: Number, default: 50 }, // % hoàn ở mức partial
+    },
     table: {
       maxSingleTableCapacity: { type: Number, default: 20 },
       allowCombination: { type: Boolean, default: true },

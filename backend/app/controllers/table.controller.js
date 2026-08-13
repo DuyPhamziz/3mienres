@@ -3,6 +3,7 @@ const Area = require("../models/area.model");
 const TableConnection = require("../models/table-connection.model");
 const AppError = require("../app-error");
 const tableEngine = require("../utils/table-engine");
+const { emitEvent } = require("../socket");
 
 // 1. Tạo bàn ăn mới (Chỉ Manager / Admin)
 exports.createTable = async (req, res, next) => {
@@ -39,6 +40,8 @@ exports.createTable = async (req, res, next) => {
       status: "AVAILABLE",
       isActive: true,
     });
+
+    emitEvent("tables:changed");
 
     res.status(201).json({
       status: "success",
@@ -201,6 +204,8 @@ exports.updateTable = async (req, res, next) => {
 
     await table.save();
 
+    emitEvent("tables:changed");
+
     res.status(200).json({
       status: "success",
       message: "Cập nhật bàn ăn thành công",
@@ -232,6 +237,9 @@ exports.deleteTable = async (req, res, next) => {
     });
 
     await Table.findByIdAndDelete(id);
+
+    emitEvent("tables:changed");
+    emitEvent("connections:changed");
 
     res.status(200).json({
       status: "success",

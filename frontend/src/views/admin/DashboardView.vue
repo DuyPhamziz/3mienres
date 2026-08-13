@@ -5,9 +5,14 @@
         <h2 class="fw-bold brand-font mb-1">Báo Cáo Dashboard Tổng Quan</h2>
         <p class="text-muted small mb-0">Theo dõi doanh thu, tỷ lệ lấp đầy bàn ăn và chỉ số kinh doanh real-time</p>
       </div>
-      <button @click="fetchStats" class="btn btn-outline-danger btn-sm rounded-pill px-3">
-        <i class="fa-solid fa-rotate me-1"></i> Làm mới dữ liệu
-      </button>
+      <div class="d-flex gap-2">
+        <button @click="downloadCsv" class="btn btn-outline-success btn-sm rounded-pill px-3">
+          <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+        </button>
+        <button @click="fetchStats" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+          <i class="fa-solid fa-rotate me-1"></i> Làm mới dữ liệu
+        </button>
+      </div>
     </div>
 
     <div v-if="loading" class="text-center py-5">
@@ -135,13 +140,46 @@
           </div>
         </div>
       </div>
+
+      <!-- Biểu đồ doanh thu & phương thức thanh toán -->
+      <div class="row g-4 mt-1">
+        <div class="col-lg-7">
+          <div class="glass-card p-4 rounded-4 h-100">
+            <h5 class="fw-bold brand-font mb-3">📈 Doanh Thu Theo Ngày</h5>
+            <div v-if="stats.revenueByDay && stats.revenueByDay.length > 0" class="d-flex align-items-end gap-2" style="height: 180px;">
+              <div v-for="day in stats.revenueByDay" :key="day._id" class="d-flex flex-column align-items-center flex-grow-1">
+                <div class="rev-bar w-100 rounded-top" :style="{ height: barHeight(day.total) + '%' }" :title="day.total.toLocaleString('vi-VN') + 'đ'"></div>
+                <small class="text-muted fs-8 mt-1">{{ day._id.slice(5) }}</small>
+              </div>
+            </div>
+            <p v-else class="text-muted small py-4 text-center">Chưa có dữ liệu doanh thu</p>
+          </div>
+        </div>
+
+        <div class="col-lg-5">
+          <div class="glass-card p-4 rounded-4 h-100">
+            <h5 class="fw-bold brand-font mb-3">💳 Phương Thức Thanh Toán</h5>
+            <div v-if="stats.paymentMethodBreakdown && stats.paymentMethodBreakdown.length > 0">
+              <div v-for="pm in stats.paymentMethodBreakdown" :key="pm._id" class="d-flex justify-content-between align-items-center mb-2 p-2 bg-light rounded-3">
+                <span class="small fw-semibold">{{ paymentLabel(pm._id) }}</span>
+                <div class="text-end">
+                  <strong class="d-block text-danger small">{{ pm.total.toLocaleString('vi-VN') }}đ</strong>
+                  <small class="text-muted fs-8">{{ pm.count }} hóa đơn</small>
+                </div>
+              </div>
+            </div>
+            <p v-else class="text-muted small py-4 text-center">Chưa có dữ liệu</p>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import api from "../../services/api";
+import { toast } from "../../composables/useToast";
 
 const stats = ref(null);
 const loading = ref(false);
@@ -158,7 +196,45 @@ const fetchStats = async () => {
   }
 };
 
+const maxRevenue = computed(() => {
+  const days = stats.value?.revenueByDay || [];
+  return Math.max(1, ...days.map((d) => d.total));
+});
+
+const barHeight = (total) => Math.round((total / maxRevenue.value) * 100);
+
+const paymentLabel = (key) => ({
+  CASH: "Tiền mặt",
+  CARD: "Thẻ",
+  BANK_TRANSFER: "Chuyển khoản",
+  MOMO: "Ví MoMo",
+  VNPAY: "VNPay",
+})[key] || key;
+
+const downloadCsv = async () => {
+  try {
+    const res = await api.get("/dashboard/export-invoices", { responseType: "blob" });
+    const url = window.URL.createObjectURL(new Blob([res.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "bao-cao-hoa-don.csv");
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    toast.success("Đã xuất báo cáo Excel!");
+  } catch (err) {
+    toast.error("Xuất báo cáo thất bại!");
+  }
+};
+
 onMounted(() => {
   fetchStats();
 });
 </script>
+
+<style scoped>
+.rev-bar {
+  background: linear-gradient(180deg, #d32f2f, #ef6c00);
+  min-height: 4px;
+}
+</style>

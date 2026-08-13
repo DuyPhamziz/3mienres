@@ -41,6 +41,12 @@ const invoiceSchema = new mongoose.Schema(
       default: 0, // Tiền giảm giá (nếu có)
       min: 0,
     },
+    voucherCode: {
+      type: String,
+      default: null, // Mã voucher đã áp dụng (nếu có)
+      trim: true,
+      uppercase: true,
+    },
     taxPercent: {
       type: Number,
       default: 0, // Thuế VAT (ví dụ: 8 hoặc 10%)

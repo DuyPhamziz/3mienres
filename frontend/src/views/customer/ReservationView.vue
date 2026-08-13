@@ -130,6 +130,11 @@
                 </div>
               </div>
             </div>
+
+            <!-- Chọn bàn cụ thể (tùy chọn) -->
+            <div class="mt-3 p-3 bg-light rounded-4 border">
+              <TablePicker v-model="selectedTableIds" :start-at="form.startAt" :guests-count="form.guestsCount" />
+            </div>
           </div>
 
           <!-- Step 3: Pre-order Dishes Menu Selection (Chống Boom Hàng) -->
@@ -141,32 +146,85 @@
               <span class="badge bg-warning text-dark px-3 py-1 rounded-pill small fw-bold">Chống Boom Hàng: Cọc 50% tiền món</span>
             </div>
 
-            <!-- Dishes Selector Grid -->
+            <!-- Dishes Picker (Kéo thả) + Giỏ món (Thả vào) -->
             <div class="row g-3 mb-3">
-              <div v-for="dish in menuStore.dishes" :key="dish._id" class="col-md-6">
-                <div class="p-3 border rounded-4 d-flex align-items-center justify-content-between bg-light">
-                  <div>
-                    <strong class="d-block text-dark fs-7">{{ dish.name }}</strong>
-                    <small class="text-danger fw-bold">{{ dish.price.toLocaleString('vi-VN') }}đ</small>
+              <div class="col-lg-7">
+                <div class="p-3 bg-light rounded-4 border h-100">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="fa-solid fa-hand-pointer text-danger"></i>
+                    <small class="text-muted">Kéo món ăn thả vào giỏ bên cạnh, hoặc bấm nút + / −</small>
                   </div>
-                  <div class="d-flex align-items-center gap-2">
-                    <button
-                      type="button"
-                      @click="updatePreOrderQuantity(dish._id, -1)"
-                      class="btn btn-outline-secondary btn-sm rounded-circle p-1 d-flex align-items-center justify-content-center"
-                      style="width: 28px; height: 28px;"
+                  <div class="dish-picker-scroll pe-1">
+                    <VueDraggable
+                      v-model="dishList"
+                      :group="{ name: 'preorder', pull: 'clone', put: false }"
+                      :sort="false"
+                      :clone="cloneDish"
+                      :animation="150"
+                      :filter="'.no-drag'"
+                      :prevent-on-filter="true"
+                      class="row g-2"
                     >
-                      <i class="fa-solid fa-minus fs-8"></i>
-                    </button>
-                    <span class="fw-bold px-1 fs-7">{{ getPreOrderQuantity(dish._id) }}</span>
-                    <button
-                      type="button"
-                      @click="updatePreOrderQuantity(dish._id, 1)"
-                      class="btn btn-outline-danger btn-sm rounded-circle p-1 d-flex align-items-center justify-content-center"
-                      style="width: 28px; height: 28px;"
+                      <div v-for="dish in dishList" :key="dish._id" class="col-12">
+                        <DishCard
+                          :dish="dish"
+                          :quantity="getQty(dish._id)"
+                          @increment="addDish(dish)"
+                          @decrement="removeDish(dish._id)"
+                        />
+                      </div>
+                    </VueDraggable>
+                  </div>
+                </div>
+              </div>
+
+              <div class="col-lg-5">
+                <div class="basket-drop p-3 rounded-4 h-100 d-flex flex-column">
+                  <h6 class="fw-bold text-danger mb-2 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-cart-plus"></i> Giỏ món đã chọn
+                    <span class="badge bg-danger rounded-pill ms-auto">{{ basketItems.length }}</span>
+                  </h6>
+                  <VueDraggable
+                    v-model="basketItems"
+                    :group="{ name: 'preorder', put: true }"
+                    :sort="false"
+                    :animation="150"
+                    @add="onBasketAdd"
+                    class="basket-list flex-grow-1"
+                  >
+                    <div
+                      v-for="item in basketItems"
+                      :key="item.dishId"
+                      class="basket-item p-2 bg-white rounded-3 border mb-2 d-flex align-items-center justify-content-between"
                     >
-                      <i class="fa-solid fa-plus fs-8"></i>
-                    </button>
+                      <div class="min-w-0">
+                        <strong class="d-block text-dark text-truncate fs-7">{{ item.name }}</strong>
+                        <small class="text-danger fw-bold">{{ (item.price * item.quantity).toLocaleString('vi-VN') }}đ</small>
+                      </div>
+                      <div class="no-drag d-flex align-items-center gap-2 flex-shrink-0">
+                        <button
+                          type="button"
+                          @click="removeDish(item.dishId)"
+                          class="btn btn-outline-secondary btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center"
+                          style="width: 26px; height: 26px;"
+                        >
+                          <i class="fa-solid fa-minus fs-8"></i>
+                        </button>
+                        <span class="fw-bold fs-7">x{{ item.quantity }}</span>
+                        <button
+                          type="button"
+                          @click="addDish({ _id: item.dishId, name: item.name, price: item.price, image: item.image, region: item.region })"
+                          class="btn btn-outline-danger btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center"
+                          style="width: 26px; height: 26px;"
+                        >
+                          <i class="fa-solid fa-plus fs-8"></i>
+                        </button>
+                      </div>
+                    </div>
+                  </VueDraggable>
+                  <div v-if="basketItems.length === 0" class="basket-empty-hint text-center text-muted small py-3">
+                    <i class="fa-solid fa-arrows-up-down fs-4 d-block mb-1 opacity-50"></i>
+                    Kéo món ăn thả vào đây
                   </div>
                 </div>
               </div>
@@ -220,10 +278,13 @@
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted } from "vue";
+import { ref, reactive, computed, watch, onMounted } from "vue";
+import { VueDraggable } from "vue-draggable-plus";
 import { useReservationStore } from "../../stores/reservationStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useMenuStore } from "../../stores/menuStore";
+import DishCard from "../../components/customer/DishCard.vue";
+import TablePicker from "../../components/customer/TablePicker.vue";
 
 const reservationStore = useReservationStore();
 const authStore = useAuthStore();
@@ -231,7 +292,20 @@ const menuStore = useMenuStore();
 
 const errorMsg = ref("");
 const successData = ref(null);
-const preOrderDishesMap = reactive({}); // Map { dishId: quantity }
+const selectedTableIds = ref([]);
+
+// Bản sao danh sách món cho vùng kéo thả (không bị drag làm biến đổi)
+const dishList = ref([]);
+// Giỏ món pre-order (mỗi phần tử: dishId, name, price, image, region, quantity)
+const basketItems = ref([]);
+
+watch(
+  () => menuStore.dishes,
+  (dishes) => {
+    dishList.value = dishes || [];
+  },
+  { immediate: true },
+);
 
 const form = reactive({
   customerName: authStore.user?.name || "",
@@ -251,29 +325,65 @@ onMounted(() => {
   menuStore.fetchDishes();
 });
 
-const getPreOrderQuantity = (dishId) => {
-  return preOrderDishesMap[dishId] || 0;
+// Clone dữ liệu khi kéo món từ danh sách vào giỏ
+const cloneDish = (dish) => ({
+  dishId: dish._id,
+  name: dish.name,
+  price: dish.price,
+  image: dish.image,
+  region: dish.region,
+  quantity: 1,
+});
+
+const getQty = (dishId) => {
+  const item = basketItems.value.find((i) => i.dishId === dishId);
+  return item ? item.quantity : 0;
 };
 
-const updatePreOrderQuantity = (dishId, delta) => {
-  const current = preOrderDishesMap[dishId] || 0;
-  const next = Math.max(0, current + delta);
-  if (next === 0) {
-    delete preOrderDishesMap[dishId];
+const addDish = (dish) => {
+  const existing = basketItems.value.find((i) => i.dishId === dish._id);
+  if (existing) {
+    existing.quantity += 1;
   } else {
-    preOrderDishesMap[dishId] = next;
+    basketItems.value.push({
+      dishId: dish._id,
+      name: dish.name,
+      price: dish.price,
+      image: dish.image,
+      region: dish.region,
+      quantity: 1,
+    });
+  }
+};
+
+const removeDish = (dishId) => {
+  const idx = basketItems.value.findIndex((i) => i.dishId === dishId);
+  if (idx === -1) return;
+  if (basketItems.value[idx].quantity > 1) {
+    basketItems.value[idx].quantity -= 1;
+  } else {
+    basketItems.value.splice(idx, 1);
+  }
+};
+
+// Xử lý khi thả món vào giỏ bằng kéo thả
+const onBasketAdd = (evt) => {
+  const cloned = evt.clonedData || evt.data;
+  if (!cloned || !cloned.dishId) return;
+  const justAddedIndex = basketItems.value.indexOf(cloned);
+  const dupIndex = basketItems.value.findIndex(
+    (it, i) => i !== justAddedIndex && it.dishId === cloned.dishId,
+  );
+  if (dupIndex !== -1) {
+    basketItems.value[dupIndex].quantity += 1;
+    if (justAddedIndex !== -1) basketItems.value.splice(justAddedIndex, 1);
   }
 };
 
 // Tính tổng tiền món pre-order
-const preOrderTotal = computed(() => {
-  let sum = 0;
-  for (const [dishId, qty] of Object.entries(preOrderDishesMap)) {
-    const dish = menuStore.dishes.find((d) => d._id === dishId);
-    if (dish) sum += dish.price * qty;
-  }
-  return sum;
-});
+const preOrderTotal = computed(() =>
+  basketItems.value.reduce((sum, it) => sum + it.price * it.quantity, 0),
+);
 
 // Tính tổng tiền cọc ước tính
 const estimatedDeposit = computed(() => {
@@ -285,10 +395,9 @@ const estimatedDeposit = computed(() => {
 const handleSubmit = async () => {
   errorMsg.value = "";
   try {
-    // Chuyển map preOrderDishesMap sang mảng [{ dish, quantity }]
-    const preOrderDishes = Object.entries(preOrderDishesMap).map(([dish, quantity]) => ({
-      dish,
-      quantity,
+    const preOrderDishes = basketItems.value.map((it) => ({
+      dish: it.dishId,
+      quantity: it.quantity,
     }));
 
     const res = await reservationStore.createReservation({
@@ -299,6 +408,7 @@ const handleSubmit = async () => {
       startAt: new Date(form.startAt).toISOString(),
       preOrderDishes,
       notes: form.notes,
+      tableIds: selectedTableIds.value,
     });
     successData.value = res;
   } catch (err) {
@@ -309,6 +419,25 @@ const handleSubmit = async () => {
 const resetForm = () => {
   successData.value = null;
   form.notes = "";
-  Object.keys(preOrderDishesMap).forEach((k) => delete preOrderDishesMap[k]);
+  basketItems.value = [];
+  selectedTableIds.value = [];
 };
 </script>
+
+<style scoped>
+.dish-picker-scroll {
+  max-height: 340px;
+  overflow-y: auto;
+}
+.basket-drop {
+  border: 2px dashed rgba(211, 47, 47, 0.5);
+  background: rgba(211, 47, 47, 0.04);
+}
+.basket-list {
+  min-height: 180px;
+}
+.basket-empty-hint {
+  border-top: 1px dashed #e2e8f0;
+  margin-top: 0.5rem;
+}
+</style>

@@ -57,6 +57,9 @@
           </div>
 
           <div class="d-flex gap-2 mt-auto pt-2 border-top">
+            <button @click="openQrModal(session)" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" title="QR cho khách tự gọi món">
+              <i class="fa-solid fa-qrcode"></i>
+            </button>
             <button @click="openOrderModal(session)" class="btn btn-outline-danger btn-sm rounded-pill flex-fill fw-bold">
               <i class="fa-solid fa-utensils me-1"></i> Gọi Món
             </button>
@@ -92,14 +95,47 @@
               <input v-model.number="walkInForm.guestsCount" type="number" min="1" class="form-control" required />
             </div>
             <div class="mb-3">
-              <label class="form-label fw-semibold">Nhập số bàn xếp cho khách (VD: B01, B02)</label>
-              <input v-model="walkInForm.tableNumbers" type="text" class="form-control text-uppercase" placeholder="Ví dụ: B01" required />
+              <label class="form-label fw-semibold">Chọn bàn trống xếp cho khách</label>
+              <div class="table-select-scroll border rounded-3 p-2 bg-light">
+                <div v-for="table in availableTables" :key="table._id" class="form-check d-flex align-items-center gap-2">
+                  <input
+                    class="form-check-input"
+                    type="checkbox"
+                    :id="`walkin-table-${table._id}`"
+                    :value="table._id"
+                    v-model="walkInForm.tableIds"
+                  />
+                  <label class="form-check-label small" :for="`walkin-table-${table._id}`">
+                    Bàn {{ table.tableNumber }} ({{ table.capacity }} chỗ)
+                  </label>
+                </div>
+                <div v-if="availableTables.length === 0" class="text-muted small text-center py-2">
+                  <i class="fa-solid fa-circle-info me-1"></i>Không còn bàn trống
+                </div>
+              </div>
             </div>
             <div v-if="modalError" class="alert alert-danger small rounded-3">{{ modalError }}</div>
           </div>
           <div class="modal-footer border-0">
             <button @click="showWalkInModal = false" class="btn btn-light rounded-pill px-4">Hủy</button>
             <button @click="handleCreateWalkIn" class="btn btn-danger rounded-pill px-4 fw-bold">Mở Bàn Ngay</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QR Gọi Món Modal -->
+    <div v-if="showQrModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-5 p-3">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold brand-font text-danger"><i class="fa-solid fa-qrcode me-2"></i>QR Gọi Món Tại Bàn</h5>
+            <button @click="showQrModal = false" type="button" class="btn-close"></button>
+          </div>
+          <div class="modal-body text-center">
+            <p class="small text-muted">Đưa mã QR này cho khách quét để tự gọi món (không cần đăng nhập):</p>
+            <img v-if="selfOrderQrUrl" :src="selfOrderQrUrl" class="img-fluid rounded-3 border p-2 bg-white mb-2" style="max-width: 240px;" alt="QR gọi món" />
+            <div class="small text-secondary bg-light p-2 rounded-3 border text-break">{{ selfOrderUrl }}</div>
           </div>
         </div>
       </div>
@@ -117,29 +153,74 @@
           </div>
           <div class="modal-body">
             <div class="row g-3">
-              <div v-for="dish in menuStore.dishes" :key="dish._id" class="col-md-6">
-                <div class="p-3 border rounded-4 d-flex justify-content-between align-items-center">
-                  <div>
-                    <strong class="d-block text-dark">{{ dish.name }}</strong>
-                    <small class="text-danger fw-bold">{{ dish.price.toLocaleString('vi-VN') }}đ</small>
+              <!-- Danh sách món (kéo thả) -->
+              <div class="col-md-7">
+                <div class="p-3 bg-light rounded-4 border">
+                  <div class="d-flex align-items-center gap-2 mb-2">
+                    <i class="fa-solid fa-hand-pointer text-danger"></i>
+                    <small class="text-muted">Kéo món thả vào giỏ bên cạnh, hoặc bấm +</small>
                   </div>
-                  <button @click="addDishToOrder(dish)" class="btn btn-outline-danger btn-sm rounded-circle">
-                    <i class="fa-solid fa-plus"></i>
-                  </button>
+                  <div class="pos-dish-scroll pe-1">
+                    <VueDraggable
+                      v-model="orderDishList"
+                      :group="{ name: 'order', pull: 'clone', put: false }"
+                      :sort="false"
+                      :clone="cloneDishToOrder"
+                      :animation="150"
+                      :filter="'.no-drag'"
+                      :prevent-on-filter="true"
+                      class="row g-2"
+                    >
+                      <div v-for="dish in orderDishList" :key="dish._id" class="col-12">
+                        <div class="pos-dish-card p-2 border rounded-3 bg-white d-flex justify-content-between align-items-center">
+                          <div class="min-w-0">
+                            <strong class="d-block text-dark text-truncate fs-7">{{ dish.name }}</strong>
+                            <small class="text-danger fw-bold">{{ dish.price.toLocaleString('vi-VN') }}đ</small>
+                          </div>
+                          <button type="button" @click="addDishToOrder(dish)" class="no-drag btn btn-outline-danger btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center flex-shrink-0" style="width: 30px; height: 30px;">
+                            <i class="fa-solid fa-plus fs-8"></i>
+                          </button>
+                        </div>
+                      </div>
+                    </VueDraggable>
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <!-- Current Order Basket -->
-            <div class="mt-4 p-3 bg-light rounded-4">
-              <h6 class="fw-bold brand-font mb-2">Danh sách món vừa chọn:</h6>
-              <div v-if="orderBasket.length > 0">
-                <div v-for="(item, idx) in orderBasket" :key="idx" class="d-flex justify-content-between align-items-center mb-2 small">
-                  <span>{{ item.dishName }} (x{{ item.quantity }})</span>
-                  <span class="fw-bold text-danger">{{ (item.price * item.quantity).toLocaleString('vi-VN') }}đ</span>
+              <!-- Giỏ gọi món (thả vào) -->
+              <div class="col-md-5">
+                <div class="order-basket p-3 rounded-4 h-100 d-flex flex-column">
+                  <h6 class="fw-bold text-danger mb-2 d-flex align-items-center gap-2">
+                    <i class="fa-solid fa-cart-shopping"></i> Món đã chọn
+                    <span class="badge bg-danger rounded-pill ms-auto">{{ orderBasket.length }}</span>
+                  </h6>
+                  <VueDraggable
+                    v-model="orderBasket"
+                    :group="{ name: 'order', put: true }"
+                    :sort="false"
+                    :animation="150"
+                    @add="onOrderBasketAdd"
+                    class="order-basket-list flex-grow-1"
+                  >
+                    <div v-for="item in orderBasket" :key="item.dishId" class="p-2 bg-white rounded-3 border mb-2 d-flex align-items-center justify-content-between">
+                      <div class="min-w-0">
+                        <strong class="d-block text-dark text-truncate fs-7">{{ item.dishName }}</strong>
+                        <small class="text-danger fw-bold">{{ (item.price * item.quantity).toLocaleString('vi-VN') }}đ</small>
+                      </div>
+                      <div class="no-drag d-flex align-items-center gap-2 flex-shrink-0">
+                        <button type="button" @click="removeDishFromOrder(item.dishId)" class="btn btn-outline-secondary btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px;">
+                          <i class="fa-solid fa-minus fs-8"></i>
+                        </button>
+                        <span class="fw-bold fs-7">x{{ item.quantity }}</span>
+                      </div>
+                    </div>
+                  </VueDraggable>
+                  <div v-if="orderBasket.length === 0" class="text-center text-muted small py-3">
+                    <i class="fa-solid fa-arrows-up-down fs-4 d-block mb-1 opacity-50"></i>
+                    Kéo món thả vào đây
+                  </div>
                 </div>
               </div>
-              <span v-else class="text-muted small">Chưa chọn món nào</span>
             </div>
           </div>
           <div class="modal-footer border-0">
@@ -174,6 +255,10 @@
               </select>
             </div>
             <div class="mb-3">
+              <label class="form-label fw-semibold">Mã voucher (nếu có)</label>
+              <input v-model="checkoutForm.voucherCode" type="text" class="form-control text-uppercase" placeholder="VD: GIAM10" />
+            </div>
+            <div class="mb-3">
               <label class="form-label fw-semibold">Tiền giảm giá (nếu có)</label>
               <input v-model.number="checkoutForm.discountAmount" type="number" min="0" class="form-control" />
             </div>
@@ -196,10 +281,12 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, watch, onMounted } from "vue";
+import { VueDraggable } from "vue-draggable-plus";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useTableStore } from "../../stores/tableStore";
 import { useMenuStore } from "../../stores/menuStore";
+import { toast } from "../../composables/useToast";
 
 const sessionStore = useSessionStore();
 const tableStore = useTableStore();
@@ -208,31 +295,44 @@ const menuStore = useMenuStore();
 const showWalkInModal = ref(false);
 const showOrderModal = ref(false);
 const showCheckoutModal = ref(false);
+const showQrModal = ref(false);
+const qrSession = ref(null);
 const selectedSession = ref(null);
 const modalError = ref("");
 const orderBasket = ref([]);
+const orderDishList = ref([]);
+
+watch(
+  () => menuStore.dishes,
+  (dishes) => {
+    orderDishList.value = dishes || [];
+  },
+  { immediate: true },
+);
 
 const walkInForm = reactive({
   customerName: "Khách Walk-in",
   customerPhone: "",
   guestsCount: 2,
-  tableNumbers: "B01",
+  tableIds: [],
 });
+
+const availableTables = computed(() =>
+  tableStore.tables.filter((t) => t.status === "AVAILABLE"),
+);
 
 const checkoutForm = reactive({
   paymentMethod: "CASH",
   discountAmount: 0,
   taxPercent: 8,
+  voucherCode: "",
 });
 
 const handleCreateWalkIn = async () => {
   modalError.value = "";
   try {
-    const numbers = walkInForm.tableNumbers.split(",").map(n => n.trim().toUpperCase());
-    const tableIds = tableStore.tables.filter(t => numbers.includes(t.tableNumber)).map(t => t._id);
-    
-    if (tableIds.length === 0) {
-      modalError.value = "Không tìm thấy số bàn tương ứng trên hệ thống!";
+    if (!walkInForm.tableIds || walkInForm.tableIds.length === 0) {
+      modalError.value = "Vui lòng chọn ít nhất 1 bàn trống để xếp cho khách!";
       return;
     }
 
@@ -240,12 +340,15 @@ const handleCreateWalkIn = async () => {
       walkInForm.customerName,
       walkInForm.customerPhone,
       walkInForm.guestsCount,
-      tableIds,
+      walkInForm.tableIds,
       "Khách đi ngang vào ăn"
     );
+    toast.success("Tiếp nhận khách Walk-in thành công!");
+    walkInForm.tableIds = [];
     showWalkInModal.value = false;
   } catch (err) {
     modalError.value = err.message;
+    toast.error(err.message);
   }
 };
 
@@ -256,7 +359,7 @@ const openOrderModal = (session) => {
 };
 
 const addDishToOrder = (dish) => {
-  const existing = orderBasket.value.find(i => i.dishId === dish._id);
+  const existing = orderBasket.value.find((i) => i.dishId === dish._id);
   if (existing) {
     existing.quantity += 1;
   } else {
@@ -269,14 +372,45 @@ const addDishToOrder = (dish) => {
   }
 };
 
+const removeDishFromOrder = (dishId) => {
+  const idx = orderBasket.value.findIndex((i) => i.dishId === dishId);
+  if (idx === -1) return;
+  if (orderBasket.value[idx].quantity > 1) {
+    orderBasket.value[idx].quantity -= 1;
+  } else {
+    orderBasket.value.splice(idx, 1);
+  }
+};
+
+// Clone dữ liệu khi kéo món vào giỏ gọi món
+const cloneDishToOrder = (dish) => ({
+  dishId: dish._id,
+  dishName: dish.name,
+  price: dish.price,
+  quantity: 1,
+});
+
+const onOrderBasketAdd = (evt) => {
+  const cloned = evt.clonedData || evt.data;
+  if (!cloned || !cloned.dishId) return;
+  const justAddedIndex = orderBasket.value.indexOf(cloned);
+  const dupIndex = orderBasket.value.findIndex(
+    (it, i) => i !== justAddedIndex && it.dishId === cloned.dishId,
+  );
+  if (dupIndex !== -1) {
+    orderBasket.value[dupIndex].quantity += 1;
+    if (justAddedIndex !== -1) orderBasket.value.splice(justAddedIndex, 1);
+  }
+};
+
 const submitOrder = async () => {
   try {
     const items = orderBasket.value.map(i => ({ dish: i.dishId, quantity: i.quantity }));
     await sessionStore.createOrder(selectedSession.value._id, items, "Ghi nhận từ POS");
-    alert("Đã gửi đơn gọi món xuống bếp!");
+    toast.success("Đã gửi đơn gọi món xuống bếp!");
     showOrderModal.value = false;
   } catch (err) {
-    alert("Lỗi gọi món: " + err.message);
+    toast.error("Lỗi gọi món: " + err.message);
   }
 };
 
@@ -285,20 +419,45 @@ const openCheckoutModal = (session) => {
   showCheckoutModal.value = true;
 };
 
+const openQrModal = (session) => {
+  qrSession.value = session;
+  showQrModal.value = true;
+};
+
+const selfOrderUrl = computed(() => {
+  if (!qrSession.value) return "";
+  return `${window.location.origin}/goi-mon?session=${qrSession.value.sessionCode}`;
+});
+
+const selfOrderQrUrl = computed(() => {
+  if (!selfOrderUrl.value) return "";
+  return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(selfOrderUrl.value)}`;
+});
+
 const submitCheckout = async () => {
   modalError.value = "";
   try {
-    await sessionStore.createInvoice(
+    const result = await sessionStore.createInvoice(
       selectedSession.value._id,
       checkoutForm.paymentMethod,
       checkoutForm.discountAmount,
       checkoutForm.taxPercent,
-      "Thanh toán tại quầy"
+      "Thanh toán tại quầy",
+      checkoutForm.voucherCode
     );
-    alert("Thanh toán thành công! Bàn ăn đã được tự động giải phóng về AVAILABLE.");
+    if (result.paymentUrl) {
+      // VNPay: chuyển hướng sang cổng thanh toán
+      showCheckoutModal.value = false;
+      window.location.href = result.paymentUrl;
+      return;
+    }
+    toast.success("Thanh toán thành công! Bàn ăn đã được tự động giải phóng.");
     showCheckoutModal.value = false;
+    // Mở trang in hóa đơn
+    window.open(`/admin/invoice/${selectedSession.value._id}`, "_blank");
   } catch (err) {
     modalError.value = err.message;
+    toast.error(err.message);
   }
 };
 
@@ -308,3 +467,31 @@ onMounted(() => {
   menuStore.fetchDishes();
 });
 </script>
+
+<style scoped>
+.pos-dish-scroll {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.pos-dish-card {
+  cursor: grab;
+  transition: box-shadow 0.2s ease;
+}
+.pos-dish-card:active {
+  cursor: grabbing;
+}
+.pos-dish-card:hover {
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+}
+.order-basket {
+  border: 2px dashed rgba(211, 47, 47, 0.5);
+  background: rgba(211, 47, 47, 0.04);
+}
+.order-basket-list {
+  min-height: 200px;
+}
+.table-select-scroll {
+  max-height: 180px;
+  overflow-y: auto;
+}
+</style>

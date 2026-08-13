@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 const TableConnection = require("../models/table-connection.model");
 const Table = require("../models/table.model");
 const AppError = require("../app-error");
+const { emitEvent } = require("../socket");
 
 // Hàm Helper: Tìm bàn linh hoạt (Hỗ trợ cả _id MongoDB lẫn số bàn như "B01", "B02")
 const findTableFlexible = async (identifier) => {
@@ -62,6 +63,8 @@ exports.createConnection = async (req, res, next) => {
       note: note ? note.trim() : "",
     });
 
+    emitEvent("connections:changed");
+
     res.status(201).json({
       status: "success",
       message: `Đã liên kết ghép bàn thành công giữa ${foundTableA.tableNumber} và ${foundTableB.tableNumber}`,
@@ -98,6 +101,8 @@ exports.deleteConnection = async (req, res, next) => {
     if (!deletedConnection) {
       return next(new AppError("Không tìm thấy liên kết ghép bàn này để xóa", 404));
     }
+
+    emitEvent("connections:changed");
 
     res.status(200).json({
       status: "success",

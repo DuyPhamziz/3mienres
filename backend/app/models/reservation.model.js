@@ -89,9 +89,32 @@ const reservationSchema = new mongoose.Schema(
       type: Number,
       default: 0, // Tiền đặt cọc trước (nếu có)
     },
+    depositStatus: {
+      type: String,
+      enum: ["UNPAID", "PAID"],
+      default: "UNPAID", // Trạng thái xác nhận khách đã nộp cọc hay chưa
+    },
+    depositConfirmedAt: {
+      type: Date,
+      default: null, // Thời điểm nhân viên xác nhận đã nhận cọc
+    },
+    depositConfirmedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null, // Nhân viên xác nhận đã nhận cọc
+    },
     cancellationReason: {
       type: String,
       trim: true,
+    },
+    refundAmount: {
+      type: Number,
+      default: 0, // Số tiền cọc sẽ hoàn lại khi hủy (theo chính sách)
+    },
+    refundStatus: {
+      type: String,
+      enum: ["NONE", "PENDING", "DONE"],
+      default: "NONE",
     },
     notes: {
       type: String,

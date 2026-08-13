@@ -62,5 +62,14 @@ export const useTableStore = defineStore("table", {
         throw new Error(err.response?.data?.message || "Không thể tạo liên kết ghép bàn!");
       }
     },
+    async deleteConnection(connectionId) {
+      try {
+        const res = await api.delete(`/table-connections/${connectionId}`);
+        await this.fetchConnections();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Không thể xóa liên kết ghép bàn!");
+      }
+    },
   },
 });

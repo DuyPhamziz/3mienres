@@ -1,18 +1,27 @@
 <template>
   <div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
-        <h2 class="fw-bold brand-font mb-1">Quản Lý Sơ Đồ Bàn Ăn & Ma Trận Ghép Bàn</h2>
-        <p class="text-muted small mb-0">Theo dõi trạng thái từng bàn và thiết lập liên kết kề nhau để ghép bàn tự động</p>
+        <h2 class="fw-bold brand-font mb-1">Sơ Đồ Bàn Ăn & Ghép Bàn Kéo Thả</h2>
+        <p class="text-muted small mb-0">Kéo thả một bàn lên bàn khác cùng khu vực để tạo liên kết ghép bàn tự động</p>
       </div>
       <div class="d-flex gap-2">
         <button @click="showConnectModal = true" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold">
-          <i class="fa-solid fa-puzzle-piece me-1"></i> Liên Kết Ghép Bàn Kề Nhau
+          <i class="fa-solid fa-puzzle-piece me-1"></i> Liên Kết Thủ Công
         </button>
-        <button @click="tableStore.fetchTables()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+        <button @click="refreshAll" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
           <i class="fa-solid fa-rotate me-1"></i> Làm mới
         </button>
       </div>
+    </div>
+
+    <!-- Hướng dẫn kéo thả -->
+    <div class="glass-card p-3 mb-3 rounded-4 d-flex align-items-center gap-3">
+      <i class="fa-solid fa-hand-pointer text-danger fs-4"></i>
+      <span class="small text-muted">
+        Giữ chuột kéo 1 bàn rồi <strong>thả lên bàn khác cùng khu vực</strong> để liên kết ghép bàn.
+        Hai bàn đã liên kết sẽ được hệ thống ưu tiên ghép khi có đoàn đông khách.
+      </span>
     </div>
 
     <!-- Status Legend Badges -->
@@ -36,39 +45,57 @@
       </div>
     </div>
 
-    <!-- Tables Grid by Area -->
+    <!-- Loading -->
     <div v-if="tableStore.loading" class="text-center py-5">
       <div class="spinner-border text-danger" role="status"></div>
     </div>
 
-    <div v-else class="row g-4">
-      <div v-for="table in tableStore.tables" :key="table._id" class="col-md-3 col-sm-6">
-        <div
-          :class="[
-            'glass-card p-4 rounded-4 hover-lift text-center position-relative border-2',
-            table.status === 'AVAILABLE' ? 'border-success' : table.status === 'RESERVED' ? 'border-warning' : table.status === 'OCCUPIED' ? 'border-danger' : 'border-secondary'
-          ]"
-        >
-          <span
-            :class="[
-              'position-absolute top-0 end-0 m-3 badge rounded-pill fs-8',
-              table.status === 'AVAILABLE' ? 'bg-success' : table.status === 'RESERVED' ? 'bg-warning text-dark' : table.status === 'OCCUPIED' ? 'bg-danger' : 'bg-secondary'
-            ]"
-          >
-            {{ table.status }}
-          </span>
+    <!-- Floor plan grouped by area -->
+    <div v-else>
+      <div v-for="(areaTables, areaName) in tablesByArea" :key="areaName" class="mb-4">
+        <h5 class="fw-bold text-dark mb-2">
+          <i class="fa-solid fa-map-pin text-danger me-1"></i>{{ areaName }}
+        </h5>
+        <div class="row g-3">
+          <div v-for="table in areaTables" :key="table._id" class="col-md-3 col-sm-6">
+            <div
+              :class="[
+                'table-card glass-card p-3 rounded-4 text-center position-relative border-2',
+                statusClass(table.status),
+                { 'drag-source': dragTableId === table._id, 'drop-target': dropTargetId === table._id },
+              ]"
+              draggable="true"
+              @dragstart="onDragStart(table)"
+              @dragend="onDragEnd"
+              @dragover.prevent="onDragOver(table)"
+              @dragleave="onDragLeave(table)"
+              @drop.prevent="onDrop(table)"
+            >
+              <span
+                :class="[
+                  'position-absolute top-0 end-0 m-2 badge rounded-pill fs-8',
+                  statusBadgeClass(table.status),
+                ]"
+              >
+                {{ table.status }}
+              </span>
 
-          <div class="my-3">
-            <i class="fa-solid fa-chair display-4 text-danger d-block"></i>
+              <div class="my-3">
+                <i class="fa-solid fa-chair display-4 text-danger d-block"></i>
+              </div>
+              <h4 class="fw-bold brand-font mb-1">Bàn {{ table.tableNumber }}</h4>
+              <p class="text-muted small mb-2">Sức chứa: {{ table.capacity }} người</p>
+              <small class="badge bg-light text-dark border">{{ table.area?.name || 'Chưa xếp khu vực' }}</small>
+              <div class="mt-2 text-secondary opacity-50 small">
+                <i class="fa-solid fa-grip-vertical me-1"></i>Kéo để ghép bàn
+              </div>
+            </div>
           </div>
-          <h3 class="fw-bold brand-font mb-1">Bàn {{ table.tableNumber }}</h3>
-          <p class="text-muted small mb-2">Sức chứa: {{ table.capacity }} người</p>
-          <small class="badge bg-light text-dark border">{{ table.area?.name || 'Chưa xếp khu vực' }}</small>
         </div>
       </div>
     </div>
 
-    <!-- Table Connections List Table -->
+    <!-- Table Connections List -->
     <div class="mt-5 glass-card p-4 rounded-4">
       <h4 class="fw-bold brand-font mb-3">
         <i class="fa-solid fa-link text-danger me-2"></i>Danh Sách Các Cặp Bàn Kề Nhau Có Thể Ghép
@@ -81,6 +108,7 @@
               <th></th>
               <th>Bàn thứ hai (Kề nhau)</th>
               <th>Ghi chú vị trí</th>
+              <th class="text-end">Thao Tác</th>
             </tr>
           </thead>
           <tbody>
@@ -89,14 +117,19 @@
               <td class="text-center text-muted fs-5"><i class="fa-solid fa-link"></i></td>
               <td><span class="badge bg-danger px-3 py-2 fs-7">Bàn {{ conn.tableB?.tableNumber }} ({{ conn.tableB?.capacity }} chỗ)</span></td>
               <td class="small text-muted">{{ conn.note || 'Kề sát nhau' }}</td>
+              <td class="text-end">
+                <button @click="handleDeleteConnection(conn)" class="btn btn-outline-danger btn-sm rounded-pill">
+                  <i class="fa-solid fa-trash-can me-1"></i> Gỡ
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p v-else class="text-muted small mb-0">Chưa có liên kết ghép bàn nào được tạo</p>
+      <p v-else class="text-muted small mb-0">Chưa có liên kết ghép bàn nào. Hãy kéo thả hoặc tạo liên kết thủ công.</p>
     </div>
 
-    <!-- Connect Tables Modal -->
+    <!-- Connect Tables Modal (fallback thủ công) -->
     <div v-if="showConnectModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
       <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-5 p-3">
@@ -130,12 +163,16 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from "vue";
+import { ref, reactive, computed, onMounted } from "vue";
 import { useTableStore } from "../../stores/tableStore";
+import { toast } from "../../composables/useToast";
 
 const tableStore = useTableStore();
 const showConnectModal = ref(false);
 const modalError = ref("");
+const dragTableId = ref(null);
+const dropTargetId = ref(null);
+const merging = ref(false);
 
 const connForm = reactive({
   tableA: "",
@@ -143,10 +180,67 @@ const connForm = reactive({
   note: "",
 });
 
+const tablesByArea = computed(() => {
+  const grouped = {};
+  for (const t of tableStore.tables) {
+    const areaName = t.area?.name || "Chưa xếp khu vực";
+    if (!grouped[areaName]) grouped[areaName] = [];
+    grouped[areaName].push(t);
+  }
+  return grouped;
+});
+
+const statusClass = (status) => ({
+  "border-success": status === "AVAILABLE",
+  "border-warning": status === "RESERVED",
+  "border-danger": status === "OCCUPIED",
+  "border-secondary": status === "MAINTENANCE",
+});
+
+const statusBadgeClass = (status) => ({
+  "bg-success": status === "AVAILABLE",
+  "bg-warning text-dark": status === "RESERVED",
+  "bg-danger": status === "OCCUPIED",
+  "bg-secondary": status === "MAINTENANCE",
+});
+
+const onDragStart = (table) => {
+  dragTableId.value = table._id;
+};
+const onDragEnd = () => {
+  dragTableId.value = null;
+  dropTargetId.value = null;
+};
+const onDragOver = (table) => {
+  if (dragTableId.value && dragTableId.value !== table._id) {
+    dropTargetId.value = table._id;
+  }
+};
+const onDragLeave = (table) => {
+  if (dropTargetId.value === table._id) dropTargetId.value = null;
+};
+const onDrop = async (target) => {
+  const source = tableStore.tables.find((t) => t._id === dragTableId.value);
+  dragTableId.value = null;
+  dropTargetId.value = null;
+  if (!source || source._id === target._id) return;
+
+  merging.value = true;
+  try {
+    await tableStore.createConnection(source.tableNumber, target.tableNumber, "Kéo thả ghép bàn");
+    toast.success(`Đã liên kết ghép bàn ${source.tableNumber} + ${target.tableNumber}`);
+  } catch (err) {
+    toast.error(err.message);
+  } finally {
+    merging.value = false;
+  }
+};
+
 const handleCreateConnection = async () => {
   modalError.value = "";
   try {
     await tableStore.createConnection(connForm.tableA, connForm.tableB, connForm.note);
+    toast.success("Tạo liên kết ghép bàn thành công");
     showConnectModal.value = false;
     connForm.tableA = "";
     connForm.tableB = "";
@@ -156,9 +250,42 @@ const handleCreateConnection = async () => {
   }
 };
 
-onMounted(() => {
+const handleDeleteConnection = async (conn) => {
+  if (!confirm(`Gỡ liên kết giữa Bàn ${conn.tableA?.tableNumber} và Bàn ${conn.tableB?.tableNumber}?`)) return;
+  try {
+    await tableStore.deleteConnection(conn._id);
+    toast.success("Đã gỡ liên kết ghép bàn");
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
+
+const refreshAll = () => {
   tableStore.fetchTables();
   tableStore.fetchConnections();
   tableStore.fetchAreas();
+};
+
+onMounted(() => {
+  refreshAll();
 });
 </script>
+
+<style scoped>
+.table-card {
+  cursor: grab;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+.table-card:active {
+  cursor: grabbing;
+}
+.drag-source {
+  opacity: 0.55;
+  transform: scale(0.97);
+}
+.drop-target {
+  border-color: #ffb300 !important;
+  box-shadow: 0 0 0 4px rgba(255, 179, 0, 0.35);
+  transform: scale(1.03);
+}
+</style>

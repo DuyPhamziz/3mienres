@@ -2,6 +2,8 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
+const helmet = require("helmet");
+const rateLimit = require("express-rate-limit");
 const AppError = require("./app/app-error");
 
 // Importer tất cả Router chuẩn hóa
@@ -25,17 +27,42 @@ const chatbotRouter = require("./app/routes/chatbot.routes");
 const uploadRouter = require("./app/routes/upload.routes");
 const settingRouter = require("./app/routes/setting.routes");
 const dashboardRouter = require("./app/routes/dashboard.routes");
+const paymentRouter = require("./app/routes/payment.routes");
+const userRouter = require("./app/routes/user.routes");
+const voucherRouter = require("./app/routes/voucher.routes");
+const auditRouter = require("./app/routes/audit.routes");
 
 const app = express();
 
 // 1. Cài đặt các Middleware cơ bản
+app.use(helmet());
 app.use(cors());
 app.use(morgan("dev"));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Giới hạn tốc độ chung (chống spam / brute-force)
+const generalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 500,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Quá nhiều yêu cầu, vui lòng thử lại sau 15 phút",
+});
+app.use(generalLimiter);
+
+// Giới hạn tốc độ riêng cho /api/auth (chống brute-force đăng nhập)
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: "Quá nhiều lần đăng nhập, vui lòng thử lại sau 15 phút",
+});
+app.use("/api/auth", authLimiter);
+
 // Serve tĩnh thư mục hình ảnh uploads
-app.use("/uploads", express.static(path.join(__dirname, "../public/uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "public/uploads")));
 
 // 2. Mount tất cả API Routes
 app.use("/api/auth", authRouter);
@@ -58,6 +85,10 @@ app.use("/api/chatbot", chatbotRouter);
 app.use("/api/upload", uploadRouter);
 app.use("/api/settings", settingRouter);
 app.use("/api/dashboard", dashboardRouter);
+app.use("/api/payments", paymentRouter);
+app.use("/api/users", userRouter);
+app.use("/api/vouchers", voucherRouter);
+app.use("/api/audit-logs", auditRouter);
 
 // 3. Route trang chủ
 app.get("/", (req, res) => {

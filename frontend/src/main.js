@@ -16,3 +16,10 @@ const pinia = createPinia();
 app.use(pinia);
 app.use(router);
 app.mount("#app");
+
+// Đăng ký service worker cho PWA (chỉ ở môi trường production)
+if ("serviceWorker" in navigator && import.meta.env.PROD) {
+  window.addEventListener("load", () => {
+    navigator.serviceWorker.register("/sw.js").catch(() => {});
+  });
+}

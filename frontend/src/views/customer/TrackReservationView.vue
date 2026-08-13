@@ -118,9 +118,35 @@
             <span v-else class="text-muted small">Đang tự động gán bàn...</span>
           </div>
 
+          <!-- Hành động quản lý đơn (hủy / dời lịch) -->
+          <div v-if="reservation.status === 'CONFIRMED' || reservation.status === 'PENDING'" class="d-flex gap-2 mb-4">
+            <button @click="showRescheduleModal = true" class="btn btn-outline-primary rounded-pill flex-fill fw-semibold">
+              <i class="fa-solid fa-calendar-days me-1"></i> Dời Lịch
+            </button>
+            <button @click="handleCancel" class="btn btn-outline-danger rounded-pill flex-fill fw-semibold">
+              <i class="fa-solid fa-ban me-1"></i> Hủy Đơn
+            </button>
+          </div>
+
+          <!-- Thông tin hoàn cọc khi đã hủy -->
+          <div v-if="reservation.status === 'CANCELLED'" class="alert alert-warning rounded-4 p-3 mb-4 d-flex align-items-center gap-2">
+            <i class="fa-solid fa-money-bill-transfer fs-4"></i>
+            <div class="small">
+              <strong class="d-block">Đơn đã bị hủy.</strong>
+              <span v-if="reservation.refundAmount > 0">Số tiền cọc được hoàn lại: <strong class="text-danger">{{ reservation.refundAmount.toLocaleString('vi-VN') }}đ</strong></span>
+              <span v-else>Không hoàn cọc theo chính sách hủy của nhà hàng.</span>
+            </div>
+          </div>
+
           <!-- Deposit VietQR QR Code if Deposit Required -->
           <div v-if="depositInfo && depositInfo.amount > 0" class="p-4 bg-white rounded-4 border text-center mb-4">
             <h6 class="fw-bold text-danger mb-2">Thanh Toán Tiền Cọc: {{ depositInfo.amount.toLocaleString('vi-VN') }}đ</h6>
+            <span
+              :class="['badge rounded-pill px-3 py-1 mb-2', depositInfo.status === 'PAID' ? 'bg-success' : 'bg-warning text-dark']"
+            >
+              <i :class="depositInfo.status === 'PAID' ? 'fa-solid fa-circle-check' : 'fa-solid fa-hourglass-half'" class="me-1"></i>
+              {{ depositInfo.status === 'PAID' ? 'Nhà hàng đã xác nhận nhận cọc' : 'Chờ xác nhận nộp cọc' }}
+            </span>
             <img
               v-if="depositInfo.qrCodeUrl"
               :src="depositInfo.qrCodeUrl"
@@ -129,6 +155,32 @@
               style="max-width: 220px;"
             />
             <p class="small text-muted mb-0">Nộp cọc qua VietQR để nhà hàng giữ chỗ và chuẩn bị món pre-order.</p>
+            <div v-if="depositInfo.status !== 'PAID'" class="mt-3">
+              <button @click="payVnpay" class="btn btn-outline-primary rounded-pill px-4 fw-bold">
+                <i class="fa-solid fa-credit-card me-1"></i> Thanh Toán Cọc Qua VNPay
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Modal dời lịch -->
+        <div v-if="showRescheduleModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+          <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content rounded-5 p-3">
+              <div class="modal-header border-0">
+                <h5 class="modal-title fw-bold brand-font text-danger"><i class="fa-solid fa-calendar-days me-2"></i>Dời Lịch Đặt Bàn</h5>
+                <button @click="showRescheduleModal = false" type="button" class="btn-close"></button>
+              </div>
+              <div class="modal-body">
+                <label class="form-label fw-semibold">Thời gian dùng bữa mới</label>
+                <input v-model="newStartAt" type="datetime-local" class="form-control" />
+                <div v-if="actionError" class="alert alert-danger small mt-3 mb-0">{{ actionError }}</div>
+              </div>
+              <div class="modal-footer border-0">
+                <button @click="showRescheduleModal = false" class="btn btn-light rounded-pill px-4">Hủy</button>
+                <button @click="handleReschedule" class="btn btn-primary-crab rounded-pill px-4 fw-bold">Xác Nhận Dời</button>
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -141,6 +193,7 @@ import { ref, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useReservationStore } from "../../stores/reservationStore";
 import { useAuthStore } from "../../stores/authStore";
+import { toast } from "../../composables/useToast";
 
 const route = useRoute();
 const reservationStore = useReservationStore();
@@ -151,6 +204,9 @@ const errorMsg = ref("");
 const reservation = ref(null);
 const depositInfo = ref(null);
 const checkInQrUrl = ref("");
+const showRescheduleModal = ref(false);
+const newStartAt = ref("");
+const actionError = ref("");
 
 const handleSearch = async () => {
   errorMsg.value = "";
@@ -165,7 +221,49 @@ const handleSearch = async () => {
   }
 };
 
+const handleCancel = async () => {
+  if (!confirm("Bạn có chắc muốn hủy đơn đặt bàn này?")) return;
+  try {
+    const res = await reservationStore.cancelReservation(reservation.value._id, "Khách tự hủy online");
+    reservation.value = res.data.reservation;
+    if (res.refundAmount > 0) {
+      toast.warning(`Đã hủy. Hoàn cọc ${res.refundAmount.toLocaleString('vi-VN')}đ`);
+    } else {
+      toast.info("Đã hủy đơn đặt bàn");
+    }
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
+
+const handleReschedule = async () => {
+  actionError.value = "";
+  if (!newStartAt.value) {
+    actionError.value = "Vui lòng chọn thời gian mới";
+    return;
+  }
+  try {
+    await reservationStore.rescheduleReservation(reservation.value._id, new Date(newStartAt.value).toISOString());
+    toast.success("Dời lịch đặt bàn thành công!");
+    showRescheduleModal.value = false;
+    await handleSearch();
+  } catch (err) {
+    actionError.value = err.message;
+  }
+};
+
+const payVnpay = async () => {
+  try {
+    const url = await reservationStore.createDepositPaymentUrl(reservation.value._id);
+    window.location.href = url;
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
+
 onMounted(() => {
   if (searchCode.value && authStore.isAuthenticated) handleSearch();
+  if (route.query.paid === "1") toast.success("Thanh toán cọc thành công!");
+  else if (route.query.paid === "0") toast.error("Thanh toán cọc chưa hoàn tất.");
 });
 </script>

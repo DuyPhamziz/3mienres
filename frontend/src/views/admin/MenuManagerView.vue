@@ -156,6 +156,7 @@
 import { ref, reactive, onMounted } from "vue";
 import { useMenuStore } from "../../stores/menuStore";
 import api from "../../services/api";
+import { toast } from "../../composables/useToast";
 
 const menuStore = useMenuStore();
 
@@ -179,8 +180,9 @@ const toggleAvailability = async (dish) => {
   try {
     await api.patch(`/dishes/${dish._id}/toggle-availability`);
     await menuStore.fetchDishes();
+    toast.success(dish.availability ? "Đã đánh dấu hết hàng" : "Đã mở bán lại món");
   } catch (err) {
-    alert("Lỗi đổi trạng thái: " + err.message);
+    toast.error("Lỗi đổi trạng thái: " + err.message);
   }
 };
 
@@ -218,7 +220,7 @@ const submitImageUpload = async () => {
     // Cập nhật đường dẫn ảnh vào món ăn
     await api.put(`/dishes/${selectedDish.value._id}`, { image: imageUrl });
 
-    alert("Tải ảnh lên và cập nhật thành công!");
+    toast.success("Tải ảnh lên và cập nhật thành công!");
     showUploadModal.value = false;
     await menuStore.fetchDishes();
   } catch (err) {

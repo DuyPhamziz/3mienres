@@ -1,0 +1,18 @@
+{
+  "name": "3 Miền Cua - Đặt Bàn Online",
+  "short_name": "3 Miền Cua",
+  "description": "Nhà hàng ẩm thực đặc sản 3 miền Bắc Trung Nam - Đặt bàn & gọi món online",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#d32f2f",
+  "lang": "vi",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

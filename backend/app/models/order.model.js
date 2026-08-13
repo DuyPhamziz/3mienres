@@ -56,6 +56,10 @@ const orderSchema = new mongoose.Schema(
       enum: ["PENDING", "PREPARING", "SERVED", "CANCELLED"],
       default: "PENDING",
     },
+    stockDeducted: {
+      type: Boolean,
+      default: false, // Đánh dấu đã trừ kho theo công thức khi món được SERVED
+    },
     orderedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User", // Nhân viên ghi order hoặc khách hàng

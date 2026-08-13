@@ -27,6 +27,12 @@ const diningSessionSchema = new mongoose.Schema(
       ref: "Reservation",
       default: null, // Null nếu là khách Walk-in
     },
+    // Khách hàng có tài khoản (nếu có) - dùng để tích lũy hạng thành viên cho khách Walk-in
+    customer: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+      default: null,
+    },
     customerName: {
       type: String,
       required: [true, "Tên khách hàng là bắt buộc"],

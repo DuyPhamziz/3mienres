@@ -6,6 +6,7 @@ const router = express.Router();
 
 // Route công khai: Khách hàng xem thực đơn, chi tiết món ăn
 router.get("/", dishController.getAllDishes);
+router.get("/slug/:slug", dishController.getDishBySlug);
 router.get("/:id", dishController.getDishById);
 
 // Các route quản lý món ăn
@@ -16,7 +17,6 @@ router.patch("/:id/toggle-availability", restrictTo("staff", "manager", "admin")
 
 // Chỉ Manager và Admin mới được Tạo/Sửa/Xóa món
 router.use(restrictTo("manager", "admin"));
-router.get("/slug/:slug", dishController.getDishBySlug);
 router.post("/", dishController.createDish);
 router.patch("/:id", dishController.updateDish);
 router.delete("/:id", dishController.deleteDish);

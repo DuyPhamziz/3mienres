@@ -1,8 +1,13 @@
 const DiningSession = require("../models/dining-session.model");
 const Reservation = require("../models/reservation.model");
 const Table = require("../models/table.model");
+const Order = require("../models/order.model");
+const User = require("../models/user.model");
 const RestaurantSetting = require("../models/setting.model");
 const AppError = require("../app-error");
+const { generateUniqueCode } = require("../utils/code-generator");
+const { emitEvent } = require("../socket");
+const { logAction } = require("../utils/audit");
 
 // 1. Check-in cho khách đã đặt bàn trước (Reservation -> DiningSession)
 exports.checkInReservation = async (req, res, next) => {
@@ -46,20 +51,15 @@ exports.checkInReservation = async (req, res, next) => {
       }
     }
 
-    // Sinh mã lượt dùng bữa ngẫu nhiên (Ví dụ: SES-839201)
-    let sessionCode;
-    let isUnique = false;
-    while (!isUnique) {
-      sessionCode = `SES-${Math.floor(100000 + Math.random() * 900000)}`;
-      const existing = await DiningSession.findOne({ sessionCode });
-      if (!existing) isUnique = true;
-    }
+    // Sinh mã lượt dùng bữa duy nhất (Ví dụ: SES-839201)
+    const sessionCode = await generateUniqueCode(DiningSession, "SES", "sessionCode");
 
     // Lớp 3: Tạo DiningSession thực tế
     const newSession = await DiningSession.create({
       sessionCode,
       type: "RESERVATION",
       reservation: reservation._id,
+      customer: reservation.user || null,
       customerName: reservation.customerName,
       customerPhone: reservation.customerPhone,
       actualGuestsCount: finalGuests,
@@ -77,9 +77,43 @@ exports.checkInReservation = async (req, res, next) => {
     // Cập nhật trạng thái các bàn thực tế sang OCCUPIED (Đang có khách)
     await Table.updateMany({ _id: { $in: finalTableIds } }, { status: "OCCUPIED" });
 
+    // Tự động tạo đợt gọi món đầu tiên từ các món Pre-order (nếu có)
+    if (reservation.preOrderDishes && reservation.preOrderDishes.length > 0) {
+      let preOrderSubtotal = 0;
+      const items = reservation.preOrderDishes.map((item) => {
+        preOrderSubtotal += item.priceAtBooking * item.quantity;
+        return {
+          dish: item.dish,
+          quantity: item.quantity,
+          price: item.priceAtBooking,
+          notes: "Món đặt trước (Pre-order)",
+        };
+      });
+
+      const preOrderCode = await generateUniqueCode(Order, "ORD", "orderCode");
+      await Order.create({
+        orderCode: preOrderCode,
+        diningSession: newSession._id,
+        items,
+        subtotal: preOrderSubtotal,
+        status: "PENDING",
+        orderedBy: req.user ? req.user._id : null,
+        notes: "Tự động tạo từ món Pre-order của đơn đặt bàn",
+      });
+    }
+
     const populatedSession = await DiningSession.findById(newSession._id)
       .populate("tables", "tableNumber capacity area")
       .populate("reservation", "reservationCode startAt endAt");
+
+    emitEvent("sessions:changed");
+    emitEvent("tables:changed");
+    emitEvent("reservations:changed");
+    emitEvent("orders:changed");
+    logAction(req, "CHECK_IN", "DiningSession", newSession._id, {
+      sessionCode: newSession.sessionCode,
+      reservationCode: reservation.reservationCode,
+    });
 
     res.status(201).json({
       status: "success",
@@ -94,7 +128,7 @@ exports.checkInReservation = async (req, res, next) => {
 // 2. Tiếp nhận khách Walk-in (Đi ngang vào trực tiếp không đặt trước)
 exports.createWalkInSession = async (req, res, next) => {
   try {
-    const { customerName, customerPhone, guestsCount, tableIds, notes } = req.body;
+    const { customerName, customerPhone, guestsCount, tableIds, notes, customerId } = req.body;
 
     // Lớp 1: Kiểm tra thiếu dữ liệu (400 Bad Request)
     if (!customerName || !guestsCount || !tableIds || !Array.isArray(tableIds) || tableIds.length === 0) {
@@ -127,20 +161,26 @@ exports.createWalkInSession = async (req, res, next) => {
     const now = new Date();
     const expectedEndTime = new Date(now.getTime() + durationMinutes * 60000);
 
-    // Sinh mã session
-    let sessionCode;
-    let isUnique = false;
-    while (!isUnique) {
-      sessionCode = `SES-${Math.floor(100000 + Math.random() * 900000)}`;
-      const existing = await DiningSession.findOne({ sessionCode });
-      if (!existing) isUnique = true;
+    // Kiểm tra & gắn tài khoản khách hàng (nếu có) để tích lũy hạng thành viên
+    let customer = null;
+    if (customerId) {
+      const customerUser = await User.findById(customerId);
+      if (!customerUser) return next(new AppError("Không tìm thấy tài khoản khách hàng được chọn", 404));
+      if (customerUser.role !== "customer") {
+        return next(new AppError("Tài khoản được chọn phải là khách hàng (customer)", 400));
+      }
+      customer = customerUser._id;
     }
+
+    // Sinh mã session duy nhất
+    const sessionCode = await generateUniqueCode(DiningSession, "SES", "sessionCode");
 
     // Lớp 3: Tạo lượt dùng bữa Walk-in
     const newSession = await DiningSession.create({
       sessionCode,
       type: "WALK_IN",
       reservation: null, // Khách Walk-in không có đơn đặt trước
+      customer,
       customerName: customerName.trim(),
       customerPhone: customerPhone ? customerPhone.trim() : "",
       actualGuestsCount: guests,
@@ -156,6 +196,13 @@ exports.createWalkInSession = async (req, res, next) => {
     await Table.updateMany({ _id: { $in: tableIds } }, { status: "OCCUPIED" });
 
     const populatedSession = await DiningSession.findById(newSession._id).populate("tables", "tableNumber capacity area");
+
+    emitEvent("sessions:changed");
+    emitEvent("tables:changed");
+    logAction(req, "WALK_IN", "DiningSession", newSession._id, {
+      sessionCode: newSession.sessionCode,
+      customerName: newSession.customerName,
+    });
 
     res.status(201).json({
       status: "success",
@@ -242,6 +289,9 @@ exports.changeTables = async (req, res, next) => {
     await session.save();
 
     const updatedSession = await DiningSession.findById(session._id).populate("tables", "tableNumber capacity area");
+
+    emitEvent("sessions:changed");
+    emitEvent("tables:changed");
 
     res.status(200).json({
       status: "success",
