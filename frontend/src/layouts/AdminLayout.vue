@@ -1,7 +1,7 @@
 <template>
   <div class="d-flex min-vh-100 bg-light">
     <!-- Sidebar Left -->
-    <aside class="bg-dark text-white p-3 d-flex flex-column justify-content-between" style="width: 260px; min-height: 100vh;">
+    <aside class="admin-sidebar bg-dark text-white p-3 d-flex flex-column justify-content-between" style="width: 260px; min-height: 100vh; flex-shrink: 0;">
       <div>
         <!-- Brand Header -->
         <div class="d-flex align-items-center gap-2 mb-4 p-2 rounded-3 bg-white bg-opacity-10">
@@ -37,6 +37,11 @@
             </router-link>
           </li>
           <li class="nav-item">
+            <router-link to="/admin/kitchen" class="nav-link text-white-50 d-flex align-items-center gap-2.5 py-2.5 px-3 rounded-3" active-class="active bg-danger text-white fw-bold">
+              <i class="fa-solid fa-fire-burner"></i> {{ langStore.t('admin.sidebar.kitchen') }}
+            </router-link>
+          </li>
+          <li class="nav-item">
             <router-link to="/admin/menu" class="nav-link text-white-50 d-flex align-items-center gap-2.5 py-2.5 px-3 rounded-3" active-class="active bg-danger text-white fw-bold">
               <i class="fa-solid fa-book-open"></i> {{ langStore.t('admin.sidebar.menuManager') }}
             </router-link>
@@ -49,6 +54,26 @@
           <li class="nav-item">
             <router-link to="/admin/suppliers" class="nav-link text-white-50 d-flex align-items-center gap-2.5 py-2.5 px-3 rounded-3" active-class="active bg-danger text-white fw-bold">
               <i class="fa-solid fa-truck-field"></i> {{ langStore.t('admin.sidebar.suppliers') }}
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/admin/vouchers" class="nav-link text-white-50 d-flex align-items-center gap-2.5 py-2.5 px-3 rounded-3" active-class="active bg-danger text-white fw-bold">
+              <i class="fa-solid fa-tags"></i> {{ langStore.t('admin.sidebar.vouchers') }}
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/admin/staff" class="nav-link text-white-50 d-flex align-items-center gap-2.5 py-2.5 px-3 rounded-3" active-class="active bg-danger text-white fw-bold">
+              <i class="fa-solid fa-users-gear"></i> {{ langStore.t('admin.sidebar.staff') }}
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/admin/audit-logs" class="nav-link text-white-50 d-flex align-items-center gap-2.5 py-2.5 px-3 rounded-3" active-class="active bg-danger text-white fw-bold">
+              <i class="fa-solid fa-clock-rotate-left"></i> {{ langStore.t('admin.sidebar.audit') }}
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/admin/settings" class="nav-link text-white-50 d-flex align-items-center gap-2.5 py-2.5 px-3 rounded-3" active-class="active bg-danger text-white fw-bold">
+              <i class="fa-solid fa-gear"></i> {{ langStore.t('admin.sidebar.settings') }}
             </router-link>
           </li>
         </ul>
