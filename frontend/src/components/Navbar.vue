@@ -8,7 +8,9 @@
         </div>
         <div class="leading-none">
           <span class="fw-bold fs-5 brand-font text-danger d-block text-nowrap">3 MIỀN CUA</span>
-          <small class="text-muted fs-8 d-block text-nowrap fw-normal" style="font-size: 0.7rem;">Ẩm thực đặc sản Bắc - Trung - Nam</small>
+          <small class="text-muted fs-8 d-block text-nowrap fw-normal" style="font-size: 0.7rem;">
+            {{ langStore.isEnglish ? 'Specialty Cuisine North - Central - South' : 'Ẩm thực đặc sản Bắc - Trung - Nam' }}
+          </small>
         </div>
       </router-link>
 
@@ -25,33 +27,45 @@
         <!-- Main Navigation Links (Single Line, Text-Nowrap) -->
         <ul class="navbar-nav mx-auto mb-2 mb-xl-0 gap-xl-2 align-items-center fw-semibold fs-7">
           <li class="nav-item">
-            <router-link to="/" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">Trang Chủ</router-link>
-          </li>
-          <li class="nav-item">
-            <router-link to="/thuc-don" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">Thực Đơn 3 Miền</router-link>
-          </li>
-          <li class="nav-item">
-            <router-link to="/dat-ban" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
-              <i class="fa-solid fa-calendar-check me-1 text-danger"></i> Đặt Bàn Online
+            <router-link to="/" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+              {{ langStore.isEnglish ? 'Home' : 'Trang Chủ' }}
             </router-link>
           </li>
           <li class="nav-item">
-            <router-link to="/tra-cuu" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">Tra Cứu Đơn</router-link>
+            <router-link to="/thuc-don" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+              {{ langStore.isEnglish ? 'Menu' : 'Thực Đơn 3 Miền' }}
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/dat-ban" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+              <i class="fa-solid fa-calendar-check me-1 text-danger"></i>
+              {{ langStore.isEnglish ? 'Book Table' : 'Đặt Bàn Online' }}
+            </router-link>
+          </li>
+          <li class="nav-item">
+            <router-link to="/tra-cuu" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
+              {{ langStore.isEnglish ? 'Track Order' : 'Tra Cứu Đơn' }}
+            </router-link>
           </li>
           <li class="nav-item">
             <router-link to="/hang-thanh-vien" class="nav-link px-3 text-nowrap" active-class="active text-danger fw-bold">
-              <i class="fa-solid fa-crown me-1 text-warning"></i> Hạng Thành Viên
+              <i class="fa-solid fa-crown me-1 text-warning"></i>
+              {{ langStore.isEnglish ? 'Loyalty Rank' : 'Hạng Thành Viên' }}
             </router-link>
           </li>
         </ul>
 
         <!-- Right Side Action Buttons -->
         <div class="d-flex align-items-center gap-2 ms-xl-2 mt-2 mt-xl-0">
-          <!-- Nút Ngôn ngữ VI -->
-          <div class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-1.5 fs-7 d-flex align-items-center gap-1.5 text-nowrap">
-            <i class="fa-solid fa-globe text-danger"></i>
-            <span class="fw-semibold">VI</span>
-          </div>
+          <!-- Nút Đổi Ngôn Ngữ Tương Tác VI / EN -->
+          <button
+            @click="langStore.toggleLang()"
+            class="btn btn-outline-danger btn-sm rounded-pill px-3 py-1.5 fs-7 d-flex align-items-center gap-1.5 text-nowrap fw-bold shadow-sm"
+            title="Đổi ngôn ngữ Tiếng Việt / Tiếng Anh"
+          >
+            <i class="fa-solid fa-globe"></i>
+            <span>{{ langStore.currentLang }}</span>
+          </button>
 
           <!-- Nếu đã đăng nhập -->
           <div v-if="authStore.isAuthenticated" class="dropdown">
@@ -66,18 +80,18 @@
             <ul class="dropdown-menu dropdown-menu-end shadow border-0 rounded-4 p-2 mt-2">
               <li v-if="authStore.isStaff">
                 <router-link to="/admin" class="dropdown-item rounded-3 py-2 fw-medium text-danger">
-                  <i class="fa-solid fa-chart-line me-2"></i> Trang Quản Lý POS
+                  <i class="fa-solid fa-chart-line me-2"></i> {{ langStore.isEnglish ? 'POS Dashboard' : 'Trang Quản Lý POS' }}
                 </router-link>
               </li>
               <li>
                 <router-link to="/hang-thanh-vien" class="dropdown-item rounded-3 py-2 fw-medium">
-                  <i class="fa-solid fa-gem me-2 text-warning"></i> Điểm Tích Lũy: {{ (authStore.user?.totalSpent || 0).toLocaleString('vi-VN') }}đ
+                  <i class="fa-solid fa-gem me-2 text-warning"></i> {{ langStore.isEnglish ? 'Points:' : 'Điểm Tích Lũy:' }} {{ (authStore.user?.totalSpent || 0).toLocaleString('vi-VN') }}đ
                 </router-link>
               </li>
               <li><hr class="dropdown-divider" /></li>
               <li>
                 <button @click="handleLogout" class="dropdown-item rounded-3 py-2 fw-medium text-muted">
-                  <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> Đăng Xuất
+                  <i class="fa-solid fa-arrow-right-from-bracket me-2"></i> {{ langStore.isEnglish ? 'Logout' : 'Đăng Xuất' }}
                 </button>
               </li>
             </ul>
@@ -86,12 +100,12 @@
           <!-- Nếu chưa đăng nhập -->
           <template v-else>
             <router-link to="/login" class="btn btn-link text-decoration-none text-dark fw-semibold px-3 text-nowrap fs-7">
-              Đăng Nhập
+              {{ langStore.isEnglish ? 'Login' : 'Đăng Nhập' }}
             </router-link>
           </template>
 
           <router-link to="/dat-ban" class="btn btn-primary-crab px-4 py-2 text-nowrap fs-7 fw-bold shadow-sm">
-            Đặt Bàn Ngay
+            {{ langStore.isEnglish ? 'Book Now' : 'Đặt Bàn Ngay' }}
           </router-link>
         </div>
       </div>
@@ -101,9 +115,11 @@
 
 <script setup>
 import { useAuthStore } from "../stores/authStore";
+import { useLangStore } from "../stores/langStore";
 import { useRouter } from "vue-router";
 
 const authStore = useAuthStore();
+const langStore = useLangStore();
 const router = useRouter();
 
 const handleLogout = () => {
