@@ -60,6 +60,12 @@
             <button @click="openQrModal(session)" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" title="QR cho khách tự gọi món">
               <i class="fa-solid fa-qrcode"></i>
             </button>
+            <button @click="openChangeTableModal(session)" class="btn btn-outline-primary btn-sm rounded-pill fw-bold" title="Đổi bàn / ghép thêm bàn">
+              <i class="fa-solid fa-right-left"></i>
+            </button>
+            <button @click="openDishStatusModal(session)" class="btn btn-outline-warning btn-sm rounded-pill fw-bold" title="Xem danh sách món & trạng thái bếp">
+              <i class="fa-solid fa-list-check"></i>
+            </button>
             <button @click="openOrderModal(session)" class="btn btn-outline-danger btn-sm rounded-pill flex-fill fw-bold">
               <i class="fa-solid fa-utensils me-1"></i> Gọi Món
             </button>
@@ -136,6 +142,36 @@
             <p class="small text-muted">Đưa mã QR này cho khách quét để tự gọi món (không cần đăng nhập):</p>
             <img v-if="selfOrderQrUrl" :src="selfOrderQrUrl" class="img-fluid rounded-3 border p-2 bg-white mb-2" style="max-width: 240px;" alt="QR gọi món" />
             <div class="small text-secondary bg-light p-2 rounded-3 border text-break">{{ selfOrderUrl }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Đổi bàn / ghép thêm bàn Modal -->
+    <div v-if="showChangeTableModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-5 p-3">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold brand-font text-primary"><i class="fa-solid fa-right-left me-2"></i>Đổi Bàn / Ghép Thêm Bàn</h5>
+            <button @click="showChangeTableModal = false" type="button" class="btn-close"></button>
+          </div>
+          <div class="modal-body">
+            <p class="small text-muted">Bàn hiện tại: <strong class="text-dark">{{ currentTables }}</strong></p>
+            <label class="form-label fw-semibold">Chọn bàn mới (giữ bàn hiện tại + thêm bàn trống)</label>
+            <div class="table-select-scroll border rounded-3 p-2 bg-light">
+              <div v-for="t in changeTableOptions" :key="t._id" class="form-check d-flex align-items-center gap-2">
+                <input class="form-check-input" type="checkbox" :id="`ct-${t._id}`" :value="t._id" v-model="changeTableForm.tableIds" />
+                <label class="form-check-label small" :for="`ct-${t._id}`">
+                  Bàn {{ t.tableNumber }} ({{ t.capacity }} chỗ)
+                  <span v-if="t.isCurrent" class="text-primary fw-bold">· đang ngồi</span>
+                </label>
+              </div>
+            </div>
+            <div v-if="modalError" class="alert alert-danger small rounded-3 mt-3 mb-0">{{ modalError }}</div>
+          </div>
+          <div class="modal-footer border-0">
+            <button @click="showChangeTableModal = false" class="btn btn-light rounded-pill px-4">Hủy</button>
+            <button @click="submitChangeTables" class="btn btn-primary rounded-pill px-4 fw-bold">Xác Nhận Đổi Bàn</button>
           </div>
         </div>
       </div>
@@ -277,6 +313,57 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Xem Danh Sách Món & Trạng Thái Bếp -->
+    <div v-if="showDishStatusModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-5 p-3">
+          <div class="modal-header border-0">
+            <h5 class="modal-title fw-bold brand-font text-danger">
+              <i class="fa-solid fa-list-check me-2"></i>Món Đã Gọi & Trạng Thái Bếp (Bàn {{ selectedSession?.tables?.map(t => t.tableNumber).join(' + ') }})
+            </h5>
+            <button @click="showDishStatusModal = false" type="button" class="btn-close"></button>
+          </div>
+          <div class="modal-body">
+            <div v-if="loadingOrders" class="text-center py-4">
+              <div class="spinner-border text-danger" role="status"></div>
+            </div>
+            <div v-else-if="sessionOrders.length === 0" class="text-center text-muted py-4">
+              <i class="fa-solid fa-utensils fs-3 d-block mb-2 opacity-50"></i>
+              Bàn này chưa gọi bất kỳ món nào
+            </div>
+            <div v-else class="space-y-3">
+              <div v-for="ord in sessionOrders" :key="ord._id" class="p-3 bg-light rounded-4 border">
+                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                  <div>
+                    <strong class="text-dark fs-7">Đợt gọi món: {{ ord.orderCode }}</strong>
+                    <small class="text-muted ms-2">{{ new Date(ord.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }}</small>
+                  </div>
+                  <span :class="['badge rounded-pill px-3 py-1.5 fw-bold fs-8', dishStatusBadge(ord.status)]">
+                    {{ dishStatusText(ord.status) }}
+                  </span>
+                </div>
+                <div class="space-y-1">
+                  <div v-for="(item, idx) in ord.items" :key="idx" class="d-flex justify-content-between align-items-center py-1">
+                    <span class="text-dark fw-semibold fs-7">{{ item.dish?.name || 'Món ăn' }}</span>
+                    <div class="d-flex align-items-center gap-3">
+                      <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-2.5 py-1 fw-bold fs-8">x{{ item.quantity }}</span>
+                      <strong class="text-dark fs-7">{{ ((item.dish?.price || item.price || 0) * item.quantity).toLocaleString('vi-VN') }}đ</strong>
+                    </div>
+                  </div>
+                </div>
+                <small v-if="ord.notes" class="text-warning d-block mt-2">
+                  <i class="fa-solid fa-note-sticky me-1"></i>{{ ord.notes }}
+                </small>
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer border-0">
+            <button @click="showDishStatusModal = false" class="btn btn-light rounded-pill px-4">Đóng</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -287,6 +374,7 @@ import { useSessionStore } from "../../stores/sessionStore";
 import { useTableStore } from "../../stores/tableStore";
 import { useMenuStore } from "../../stores/menuStore";
 import { toast } from "../../composables/useToast";
+import api from "../../services/api";
 
 const sessionStore = useSessionStore();
 const tableStore = useTableStore();
@@ -296,9 +384,43 @@ const showWalkInModal = ref(false);
 const showOrderModal = ref(false);
 const showCheckoutModal = ref(false);
 const showQrModal = ref(false);
+const showChangeTableModal = ref(false);
+const showDishStatusModal = ref(false);
+const loadingOrders = ref(false);
+const sessionOrders = ref([]);
 const qrSession = ref(null);
 const selectedSession = ref(null);
 const modalError = ref("");
+
+const openDishStatusModal = async (session) => {
+  selectedSession.value = session;
+  showDishStatusModal.value = true;
+  loadingOrders.value = true;
+  try {
+    const res = await api.get(`/orders/session/${session._id}`);
+    sessionOrders.value = res.data.data.orders;
+  } catch (err) {
+    toast.error("Không tải được danh sách món của bàn này");
+  } finally {
+    loadingOrders.value = false;
+  }
+};
+
+const dishStatusBadge = (s) => ({
+  PENDING: "bg-warning text-dark",
+  PREPARING: "bg-primary text-white",
+  SERVED: "bg-success text-white",
+  CANCELLED: "bg-danger text-white",
+})[s] || "bg-secondary text-white";
+
+const dishStatusText = (s) => ({
+  PENDING: "🟡 Chờ Bếp Nhận",
+  PREPARING: "🟠 Bếp Đang Nấu",
+  SERVED: "🟢 Đã Ra Bàn",
+  CANCELLED: "🔴 Đã Hủy Món",
+})[s] || s;
+
+const changeTableForm = reactive({ tableIds: [] });
 const orderBasket = ref([]);
 const orderDishList = ref([]);
 
@@ -433,6 +555,55 @@ const selfOrderQrUrl = computed(() => {
   if (!selfOrderUrl.value) return "";
   return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(selfOrderUrl.value)}`;
 });
+
+// Đổi bàn / ghép thêm bàn
+const currentTableIds = computed(() => {
+  const tables = selectedSession.value?.tables || [];
+  return tables.map((t) => t._id);
+});
+
+const currentTables = computed(() => {
+  const tables = selectedSession.value?.tables || [];
+  return tables.map((t) => t.tableNumber).join(' + ') || '—';
+});
+
+const changeTableOptions = computed(() => {
+  const currentIds = new Set(currentTableIds.value);
+  const current = (selectedSession.value?.tables || []).map((t) => ({
+    _id: t._id,
+    tableNumber: t.tableNumber,
+    capacity: t.capacity,
+    isCurrent: true,
+  }));
+  const available = tableStore.tables
+    .filter((t) => t.status === "AVAILABLE" && !currentIds.has(t._id))
+    .map((t) => ({ ...t, isCurrent: false }));
+  return [...current, ...available];
+});
+
+const openChangeTableModal = (session) => {
+  selectedSession.value = session;
+  changeTableForm.tableIds = currentTableIds.value.slice();
+  modalError.value = "";
+  tableStore.fetchTables();
+  showChangeTableModal.value = true;
+};
+
+const submitChangeTables = async () => {
+  modalError.value = "";
+  if (!changeTableForm.tableIds.length) {
+    modalError.value = "Vui lòng chọn ít nhất 1 bàn";
+    return;
+  }
+  try {
+    await sessionStore.changeTables(selectedSession.value._id, changeTableForm.tableIds, "Đổi bàn / ghép bàn tại quầy");
+    toast.success("Đổi bàn / ghép bàn thành công!");
+    showChangeTableModal.value = false;
+  } catch (err) {
+    modalError.value = err.message;
+    toast.error(err.message);
+  }
+};
 
 const submitCheckout = async () => {
   modalError.value = "";

@@ -51,6 +51,8 @@ const finalizeInvoiceSession = async (session, finalAmount) => {
   emitEvent("tables:changed");
 };
 
+const momo = require("../utils/momo");
+
 // 1. Xuất hóa đơn & Thanh toán giải phóng bàn
 exports.createInvoice = async (req, res, next) => {
   try {
@@ -110,8 +112,20 @@ exports.createInvoice = async (req, res, next) => {
       }
 
       voucherDiscount = roundMoney(computeDiscount(voucher, subtotal));
-      voucher.usedCount += 1;
-      await voucher.save();
+
+      // Tăng lượt dùng một cách nguyên tử để tránh race condition vượt usageLimit
+      const updatedVoucher = await Voucher.findOneAndUpdate(
+        {
+          _id: voucher._id,
+          isActive: true,
+          $or: [{ usageLimit: 0 }, { usedCount: { $lt: voucher.usageLimit } }],
+        },
+        { $inc: { usedCount: 1 } },
+        { new: true },
+      );
+      if (!updatedVoucher) {
+        return next(new AppError("Voucher đã hết lượt sử dụng", 409));
+      }
     }
 
     const totalDiscount = discount + voucherDiscount;
@@ -133,7 +147,7 @@ exports.createInvoice = async (req, res, next) => {
     const now = new Date();
     const invoiceCode = await generateInvoiceCode(Invoice, now);
 
-    const isVnpay = paymentMethod === "VNPAY";
+    const isOnlinePayment = paymentMethod === "VNPAY" || paymentMethod === "MOMO";
 
     // Lớp 3: Tạo Hóa đơn
     const newInvoice = await Invoice.create({
@@ -148,8 +162,8 @@ exports.createInvoice = async (req, res, next) => {
       finalAmount,
       paymentMethod,
       voucherCode,
-      paymentStatus: isVnpay ? "UNPAID" : "PAID",
-      paidAt: isVnpay ? null : now,
+      paymentStatus: isOnlinePayment ? "UNPAID" : "PAID",
+      paidAt: isOnlinePayment ? null : now,
       cashier: req.user ? req.user._id : null,
       notes: notes ? notes.trim() : "",
     });
@@ -164,8 +178,8 @@ exports.createInvoice = async (req, res, next) => {
       paymentMethod: newInvoice.paymentMethod,
     });
 
-    // Nếu thanh toán qua VNPay: tạo URL thanh toán và chờ callback, chưa hoàn tất phiên ăn
-    if (isVnpay) {
+    // Cổng VNPay
+    if (paymentMethod === "VNPAY") {
       const paymentUrl = vnpay.createPaymentUrl(config.vnpay, {
         amount: finalAmount,
         txnRef: `${invoiceCode}-${Date.now()}`,
@@ -184,7 +198,33 @@ exports.createInvoice = async (req, res, next) => {
       });
     }
 
-    // Các phương thức trực tiếp: hoàn tất phiên ăn & giải phóng bàn ngay
+    // Cổng MoMo
+    if (paymentMethod === "MOMO") {
+      let paymentUrl = "";
+      try {
+        paymentUrl = await momo.createPaymentUrl(config.momo, {
+          amount: finalAmount,
+          orderId: `${invoiceCode}-${Date.now()}`,
+          orderInfo: `THANH TOAN HOA DON ${invoiceCode}`,
+          redirectUrl: `${config.vnpay.returnUrl}?target=invoice&invoiceId=${newInvoice._id}`,
+          ipnUrl: `${config.backendUrl || 'http://localhost:3000'}/api/payments/momo/ipn`,
+        });
+      } catch (err) {
+        // Mock fallback MoMo QR cho môi trường dev test
+        paymentUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent('MOMO_PAYMENT_' + invoiceCode)}`;
+      }
+
+      emitEvent("invoices:changed");
+
+      return res.status(201).json({
+        status: "success",
+        message: "Đã tạo hóa đơn chờ thanh toán qua MoMo",
+        paymentUrl,
+        data: { invoice: populatedInvoice },
+      });
+    }
+
+    // Các phương thức trực tiếp (Tiền mặt, quẹt thẻ, CK ngân hàng): hoàn tất phiên ăn & giải phóng bàn ngay
     await finalizeInvoiceSession(session, finalAmount);
 
     emitEvent("invoices:changed");

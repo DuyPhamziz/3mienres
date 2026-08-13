@@ -1,15 +1,67 @@
 <template>
   <div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+    <!-- Header & Date Filter Bar -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
       <div>
         <h2 class="fw-bold brand-font mb-1">{{ langStore.t('admin.dashboard.title') }}</h2>
         <p class="text-muted small mb-0">{{ langStore.t('admin.dashboard.subtitle') }}</p>
       </div>
-      <button @click="fetchData" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
-        <i class="fa-solid fa-rotate me-1"></i> {{ langStore.isEnglish ? 'Refresh Data' : 'Làm mới' }}
-      </button>
+
+      <div class="d-flex align-items-center gap-2 flex-wrap">
+        <!-- Date Presets -->
+        <div class="btn-group btn-group-sm rounded-pill overflow-hidden border">
+          <button
+            @click="setPreset('today')"
+            :class="['btn', activePreset === 'today' ? 'btn-danger fw-bold' : 'btn-light']"
+          >
+            {{ langStore.isEnglish ? 'Today' : 'Hôm Nay' }}
+          </button>
+          <button
+            @click="setPreset('7days')"
+            :class="['btn', activePreset === '7days' ? 'btn-danger fw-bold' : 'btn-light']"
+          >
+            {{ langStore.isEnglish ? '7 Days' : '7 Ngày Qua' }}
+          </button>
+          <button
+            @click="setPreset('thisMonth')"
+            :class="['btn', activePreset === 'thisMonth' ? 'btn-danger fw-bold' : 'btn-light']"
+          >
+            {{ langStore.isEnglish ? 'This Month' : 'Tháng Này' }}
+          </button>
+        </div>
+
+        <!-- Custom Date Range Pickers -->
+        <div class="d-flex align-items-center gap-1 bg-white p-1 rounded-pill border">
+          <input
+            type="date"
+            v-model="startDate"
+            @change="activePreset = 'custom'; fetchData();"
+            class="form-control form-control-sm border-0 bg-transparent text-dark fw-semibold"
+            style="width: 130px; font-size: 0.78rem;"
+          />
+          <span class="text-muted fs-8">→</span>
+          <input
+            type="date"
+            v-model="endDate"
+            @change="activePreset = 'custom'; fetchData();"
+            class="form-control form-control-sm border-0 bg-transparent text-dark fw-semibold"
+            style="width: 130px; font-size: 0.78rem;"
+          />
+        </div>
+
+        <!-- Export CSV Button -->
+        <button @click="exportCsv" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-bold">
+          <i class="fa-solid fa-file-excel me-1"></i> {{ langStore.isEnglish ? 'Export Excel' : 'Xuất Excel' }}
+        </button>
+
+        <!-- Refresh Button -->
+        <button @click="fetchData" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold">
+          <i class="fa-solid fa-rotate me-1"></i> {{ langStore.isEnglish ? 'Refresh' : 'Làm mới' }}
+        </button>
+      </div>
     </div>
 
+    <!-- Loading -->
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-danger" role="status"></div>
     </div>
@@ -36,7 +88,7 @@
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <small class="text-muted fw-semibold d-block mb-1">{{ langStore.t('admin.dashboard.occupancyRate') }}</small>
-                <h3 class="fw-bold text-dark brand-font mb-0">{{ kpis.occupancyRate || 0 }}%</h3>
+                <h3 class="fw-bold text-dark brand-font mb-0">{{ kpis.occupancyRate || '0%' }}</h3>
               </div>
               <div class="p-3 bg-warning bg-opacity-15 text-warning rounded-circle">
                 <i class="fa-solid fa-chart-pie fs-4"></i>
@@ -50,7 +102,7 @@
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <small class="text-muted fw-semibold d-block mb-1">{{ langStore.t('admin.dashboard.totalReservations') }}</small>
-                <h3 class="fw-bold text-primary brand-font mb-0">{{ kpis.totalReservations || 0 }}</h3>
+                <h3 class="fw-bold text-primary brand-font mb-0">{{ kpis.reservationsCount || kpis.totalReservations || 0 }}</h3>
               </div>
               <div class="p-3 bg-primary bg-opacity-10 text-primary rounded-circle">
                 <i class="fa-solid fa-calendar-check fs-4"></i>
@@ -64,7 +116,7 @@
             <div class="d-flex justify-content-between align-items-center">
               <div>
                 <small class="text-muted fw-semibold d-block mb-1">{{ langStore.t('admin.dashboard.activeSessions') }}</small>
-                <h3 class="fw-bold text-success brand-font mb-0">{{ kpis.activeSessions || 0 }}</h3>
+                <h3 class="fw-bold text-success brand-font mb-0">{{ kpis.occupiedTables || kpis.activeSessions || 0 }}</h3>
               </div>
               <div class="p-3 bg-success bg-opacity-10 text-success rounded-circle">
                 <i class="fa-solid fa-utensils fs-4"></i>
@@ -85,77 +137,65 @@
             <div v-if="topDishes.length > 0" class="list-group list-group-flush">
               <div v-for="(item, idx) in topDishes" :key="idx" class="list-group-item px-0 py-2.5 d-flex justify-content-between align-items-center">
                 <div class="d-flex align-items-center gap-3">
-                  <span class="badge bg-danger rounded-circle p-2 fs-8" style="width: 28px; height: 28px;">{{ idx + 1 }}</span>
-                  <strong class="text-dark fs-7">{{ item.dishName }}</strong>
+                  <span class="badge bg-danger rounded-circle p-2 fs-8" style="width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center;">{{ idx + 1 }}</span>
+                  <strong class="text-dark fs-7">{{ item.name || item.dishName }}</strong>
                 </div>
                 <div class="text-end">
                   <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill px-3 py-1 fw-bold fs-8 me-2">
                     {{ item.totalQuantity }} suất
                   </span>
-                  <strong class="text-dark fs-7">{{ item.totalRevenue.toLocaleString('vi-VN') }}đ</strong>
+                  <strong class="text-dark fs-7">{{ (item.totalRevenue || 0).toLocaleString('vi-VN') }}đ</strong>
                 </div>
               </div>
             </div>
-            <p v-else class="text-muted small py-4 text-center mb-0">Chưa có dữ liệu bán món ăn trong ngày</p>
+            <p v-else class="text-muted small py-4 text-center mb-0">Chưa có dữ liệu bán món ăn trong khoảng thời gian này</p>
           </div>
         </div>
 
-        <!-- Low Stock Inventory Alerts -->
+        <!-- Inventory Alerts -->
         <div class="col-lg-6">
           <div class="glass-card p-4 rounded-4 bg-white shadow-sm h-100">
-            <h5 class="fw-bold brand-font text-danger mb-3">
-              <i class="fa-solid fa-triangle-exclamation me-2"></i>{{ langStore.t('admin.dashboard.lowStock') }}
-            </h5>
-            <div v-if="lowStockIngredients.length > 0" class="space-y-2">
-              <div v-for="ing in lowStockIngredients" :key="ing._id" class="p-3 bg-danger bg-opacity-10 rounded-3 d-flex justify-content-between align-items-center border border-danger border-opacity-25 mb-2">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+              <h5 class="fw-bold brand-font text-dark mb-0">
+                <i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>{{ langStore.t('admin.dashboard.lowStock') }}
+              </h5>
+              <span class="badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold fs-8">
+                {{ lowStockIngredients.length }} nguyên liệu
+              </span>
+            </div>
+            <div v-if="lowStockIngredients.length > 0" class="list-group list-group-flush">
+              <div v-for="ing in lowStockIngredients" :key="ing._id" class="list-group-item px-0 py-2.5 d-flex justify-content-between align-items-center">
                 <div>
-                  <strong class="d-block text-dark fs-7">{{ ing.name }}</strong>
-                  <small class="text-danger">Tồn kho còn: {{ ing.quantityInStock }} {{ ing.unit }} (Mức tối thiểu: {{ ing.minQuantity }})</small>
+                  <strong class="text-dark fs-7 d-block">{{ ing.name }}</strong>
+                  <small class="text-muted">Ngưỡng cảnh báo: {{ ing.minStockLevel }} {{ ing.unit }}</small>
                 </div>
-                <router-link to="/admin/inventory" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
-                  Nhập kho
-                </router-link>
+                <span class="badge bg-danger rounded-pill px-3 py-1.5 fw-bold fs-8">
+                  Còn: {{ ing.stockQuantity }} {{ ing.unit }}
+                </span>
               </div>
             </div>
-            <p v-else class="text-muted small py-4 text-center mb-0">
-              <i class="fa-solid fa-circle-check text-success me-1"></i> Kho nguyên liệu đang ở mức an toàn
+            <p v-else class="text-success small py-4 text-center mb-0 fw-semibold">
+              <i class="fa-solid fa-circle-check me-1"></i> Tất cả nguyên liệu kho đều đầy đủ trên ngưỡng an toàn!
             </p>
           </div>
         </div>
       </div>
 
-      <!-- Recent Invoices Table -->
-      <div class="glass-card p-4 rounded-4 bg-white shadow-sm">
+      <!-- Payment Breakdown & Method Summary -->
+      <div v-if="paymentBreakdown.length > 0" class="glass-card p-4 rounded-4 bg-white shadow-sm mb-4">
         <h5 class="fw-bold brand-font text-dark mb-3">
-          <i class="fa-solid fa-receipt me-2 text-danger"></i>{{ langStore.t('admin.dashboard.recentInvoices') }}
+          <i class="fa-solid fa-wallet text-primary me-2"></i>
+          {{ langStore.isEnglish ? 'Payment Method Breakdown' : 'Phân Bổ Doanh Thu Theo Phương Thức Thanh Toán' }}
         </h5>
-        <div v-if="recentInvoices.length > 0" class="table-responsive">
-          <table class="table table-hover align-middle">
-            <thead>
-              <tr class="text-muted small">
-                <th>Mã Hóa Đơn</th>
-                <th>Khách Hàng</th>
-                <th>Thanh Toán</th>
-                <th>Tổng Tiền</th>
-                <th>Thời Gian</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr v-for="inv in recentInvoices" :key="inv._id">
-                <td><strong class="text-danger fs-7">{{ inv.invoiceCode }}</strong></td>
-                <td>{{ inv.customerName || 'Khách Vãng Lai' }}</td>
-                <td>
-                  <span class="badge bg-success bg-opacity-10 text-success px-2.5 py-1 rounded-pill fs-8 fw-semibold">
-                    {{ inv.paymentMethod }}
-                  </span>
-                </td>
-                <td><strong class="text-dark fs-7">{{ inv.finalTotal.toLocaleString('vi-VN') }}đ</strong></td>
-                <td><small class="text-muted">{{ new Date(inv.createdAt).toLocaleString('vi-VN') }}</small></td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="row g-3">
+          <div v-for="pm in paymentBreakdown" :key="pm._id" class="col-md-3 col-sm-6">
+            <div class="p-3 rounded-4 border bg-light">
+              <span class="badge bg-danger rounded-pill px-2.5 py-1 mb-1 fs-8 fw-bold">{{ pm._id }}</span>
+              <strong class="d-block text-dark fs-6 mt-1">{{ pm.total.toLocaleString('vi-VN') }}đ</strong>
+              <small class="text-muted fs-8">{{ pm.count }} {{ langStore.isEnglish ? 'invoices' : 'hóa đơn' }}</small>
+            </div>
+          </div>
         </div>
-        <p v-else class="text-muted small py-4 text-center mb-0">Chưa có hóa đơn thanh toán nào</p>
       </div>
     </template>
   </div>
@@ -165,31 +205,81 @@
 import { ref, onMounted } from "vue";
 import api from "../../services/api";
 import { useLangStore } from "../../stores/langStore";
+import { toast } from "../../composables/useToast";
 
 const langStore = useLangStore();
 const loading = ref(false);
 const kpis = ref({});
 const topDishes = ref([]);
 const lowStockIngredients = ref([]);
-const recentInvoices = ref([]);
+const paymentBreakdown = ref([]);
+
+const activePreset = ref("today");
+const startDate = ref("");
+const endDate = ref("");
+
+const formatDateString = (d) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+const setPreset = (preset) => {
+  activePreset.value = preset;
+  const now = new Date();
+
+  if (preset === "today") {
+    startDate.value = formatDateString(now);
+    endDate.value = formatDateString(now);
+  } else if (preset === "7days") {
+    const past7 = new Date();
+    past7.setDate(now.getDate() - 6);
+    startDate.value = formatDateString(past7);
+    endDate.value = formatDateString(now);
+  } else if (preset === "thisMonth") {
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
+    startDate.value = formatDateString(firstDay);
+    endDate.value = formatDateString(now);
+  }
+  fetchData();
+};
 
 const fetchData = async () => {
   loading.value = true;
   try {
-    const res = await api.get("/dashboard/overview");
+    const params = {};
+    if (startDate.value) params.startDate = startDate.value;
+    if (endDate.value) params.endDate = endDate.value;
+
+    const res = await api.get("/dashboard/overview", { params });
     const data = res.data.data;
-    kpis.value = data.kpis || {};
+    kpis.value = {
+      totalRevenue: data.totalRevenue || 0,
+      occupancyRate: data.tablesOverview?.occupancyRate || '0%',
+      reservationsCount: data.reservationsCount || 0,
+      occupiedTables: data.tablesOverview?.occupiedTables || 0,
+    };
     topDishes.value = data.topDishes || [];
-    lowStockIngredients.value = data.lowStockIngredients || [];
-    recentInvoices.value = data.recentInvoices || [];
+    lowStockIngredients.value = data.lowStockAlerts?.ingredients || [];
+    paymentBreakdown.value = data.paymentMethodBreakdown || [];
   } catch (err) {
     console.error("Lỗi lấy dữ liệu Dashboard:", err);
+    toast.error("Không thể tải dữ liệu báo cáo");
   } finally {
     loading.value = false;
   }
 };
 
+const exportCsv = () => {
+  const params = new URLSearchParams();
+  if (startDate.value) params.append("startDate", startDate.value);
+  if (endDate.value) params.append("endDate", endDate.value);
+  const downloadUrl = `http://localhost:3000/api/dashboard/export-csv?${params.toString()}`;
+  window.open(downloadUrl, "_blank");
+};
+
 onMounted(() => {
-  fetchData();
+  setPreset("today");
 });
 </script>
