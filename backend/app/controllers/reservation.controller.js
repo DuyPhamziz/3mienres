@@ -13,6 +13,11 @@ const generateVietQRUrl = (bankId, accountNo, accountName, amount, addInfo) => {
   return `https://img.vietqr.io/image/${bankId}-${accountNo}-compact.png?amount=${amount}&addInfo=${cleanAddInfo}&accountName=${cleanAccountName}`;
 };
 
+// Helper: Sinh Mã QR Check-in nhanh khi tới nhà hàng
+const generateCheckInQRUrl = (reservationCode) => {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(reservationCode)}`;
+};
+
 // 1. Tạo đơn đặt bàn Online (Có tự động tính Tiền Cọc & Sinh Mã QR VietQR)
 exports.createReservation = async (req, res, next) => {
   try {
@@ -95,7 +100,7 @@ exports.createReservation = async (req, res, next) => {
       return next(new AppError("Rất tiếc, nhà hàng đã hết bàn đủ chỗ cho số lượng khách này trong khung giờ bạn chọn!", 409));
     }
 
-    // Xử lý món đặt trước & tính cọc
+    // Xử lý món đặt trước & tính cọc (Cọc 50% tiền món pre-order + cọc bàn)
     let formattedDishes = [];
     let preOrderTotal = 0;
     if (preOrderDishes && Array.isArray(preOrderDishes) && preOrderDishes.length > 0) {
@@ -115,10 +120,9 @@ exports.createReservation = async (req, res, next) => {
       }
     }
 
-    // Tính tiền cọc bắt buộc (Mặc định 100k cho đoàn >= 4 người, hoặc 30% tiền món pre-order)
     let depositAmount = 0;
     if (preOrderTotal > 0) {
-      depositAmount = Math.round(preOrderTotal * 0.3); // Cọc 30% nếu có đặt trước món
+      depositAmount = Math.round(preOrderTotal * 0.5) + defaultDeposit;
     } else if (guests >= 4) {
       depositAmount = defaultDeposit;
     }
@@ -132,7 +136,7 @@ exports.createReservation = async (req, res, next) => {
       if (!existing) isUnique = true;
     }
 
-    // Sinh Mã QR VietQR để khách quét đặt cọc
+    // Sinh Mã QR VietQR cọc & Mã QR Check-in tại quầy
     const qrCodeUrl = generateVietQRUrl(
       bankInfo.bankId,
       bankInfo.accountNo,
@@ -140,6 +144,8 @@ exports.createReservation = async (req, res, next) => {
       depositAmount,
       `COC ${reservationCode}`
     );
+
+    const checkInQrUrl = generateCheckInQRUrl(reservationCode);
 
     const newReservation = await Reservation.create({
       reservationCode,
@@ -168,6 +174,7 @@ exports.createReservation = async (req, res, next) => {
         ? `Đặt bàn thành công! Hệ thống đã tự động ghép cụm bàn cho đoàn ${guests} người của bạn.`
         : "Đặt bàn thành công! Nhà hàng đã giữ chỗ cho bạn.",
       isCombinedTable: isCombined,
+      checkInQrUrl,
       deposit: {
         amount: depositAmount,
         bankInfo,
@@ -182,7 +189,7 @@ exports.createReservation = async (req, res, next) => {
   }
 };
 
-// 2. Khách tra cứu đơn đặt bàn
+// 2. Khách tra cứu đơn đặt bàn (Bảo mật: Chỉ chính chủ hoặc Nhân viên/Manager mới xem được)
 exports.trackReservation = async (req, res, next) => {
   try {
     const { code } = req.params;
@@ -190,15 +197,24 @@ exports.trackReservation = async (req, res, next) => {
 
     if (!code) return next(new AppError("Vui lòng cung cấp mã đặt bàn", 400));
 
-    const filter = { reservationCode: code.trim().toUpperCase() };
-    if (phone) filter.customerPhone = phone.trim();
-
-    const reservation = await Reservation.findOne(filter)
+    const reservation = await Reservation.findOne({ reservationCode: code.trim().toUpperCase() })
+      .populate("user", "name email phone role")
       .populate("tables", "tableNumber capacity area")
       .populate("preOrderDishes.dish", "name price image");
 
     if (!reservation) {
       return next(new AppError("Không tìm thấy đơn đặt bàn với mã này", 404));
+    }
+
+    // Bảo mật phân quyền: Nếu là khách hàng (Customer), chỉ xem được nếu chính chủ user._id hoặc khớp SĐT!
+    if (req.user && req.user.role === "customer") {
+      const isOwnerUser = reservation.user && reservation.user._id.toString() === req.user._id.toString();
+      const isOwnerPhone = phone && reservation.customerPhone === phone.trim();
+      const isUserPhoneMatch = req.user.phone && reservation.customerPhone === req.user.phone;
+
+      if (!isOwnerUser && !isOwnerPhone && !isUserPhoneMatch) {
+        return next(new AppError("Bạn không có quyền truy cập thông tin đơn đặt bàn của người khác!", 403));
+      }
     }
 
     let bankInfo = { bankId: "MB", accountNo: "0988776655", accountName: "NHA HANG 3 MIEN CUA" };
@@ -213,8 +229,11 @@ exports.trackReservation = async (req, res, next) => {
       `COC ${reservation.reservationCode}`
     );
 
+    const checkInQrUrl = generateCheckInQRUrl(reservation.reservationCode);
+
     res.status(200).json({
       status: "success",
+      checkInQrUrl,
       deposit: {
         amount: reservation.depositAmount,
         bankInfo,
