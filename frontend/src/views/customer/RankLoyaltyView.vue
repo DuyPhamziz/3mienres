@@ -14,77 +14,7 @@
         </p>
       </div>
 
-      <!-- ── LỊCH SỬ ĐẶT BÀN GẦN NHẤT (hiện trên điểm tích lũy) ── -->
-      <div v-if="authStore.isAuthenticated" class="max-w-3xl mx-auto mb-5">
-        <div class="d-flex align-items-center justify-content-between mb-3">
-          <h5 class="fw-bold brand-font text-dark mb-0">
-            <i class="fa-solid fa-clock-rotate-left text-danger me-2"></i>
-            {{ langStore.isEnglish ? 'Recent Reservations' : 'Đặt Bàn Gần Đây' }}
-          </h5>
-          <router-link to="/tra-cuu" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-semibold fs-8">
-            {{ langStore.isEnglish ? 'View All' : 'Xem Tất Cả' }}
-            <i class="fa-solid fa-arrow-right ms-1"></i>
-          </router-link>
-        </div>
 
-        <!-- Loading -->
-        <div v-if="loadingReservations" class="text-center py-4">
-          <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
-        </div>
-
-        <!-- No reservations yet -->
-        <div v-else-if="recentReservations.length === 0"
-             class="glass-card bg-white rounded-4 p-4 text-center border shadow-sm">
-          <i class="fa-solid fa-calendar-xmark fs-2 text-secondary mb-2 d-block opacity-50"></i>
-          <p class="text-muted small mb-3">{{ langStore.isEnglish ? 'No bookings yet.' : 'Bạn chưa có đặt bàn nào.' }}</p>
-          <router-link to="/dat-ban" class="btn btn-primary-crab btn-sm rounded-pill px-4 fw-bold">
-            <i class="fa-solid fa-calendar-check me-1"></i>
-            {{ langStore.isEnglish ? 'Book a Table' : 'Đặt Bàn Ngay' }}
-          </router-link>
-        </div>
-
-        <!-- Reservation cards -->
-        <div v-else class="d-flex flex-column gap-3">
-          <div v-for="r in recentReservations" :key="r._id"
-               class="glass-card bg-white rounded-4 p-3 border shadow-sm d-flex align-items-center gap-3 flex-wrap">
-
-            <!-- Status icon bubble -->
-            <div :class="['rounded-circle d-flex align-items-center justify-content-center flex-shrink-0', statusBubble(r.status)]"
-                 style="width: 44px; height: 44px;">
-              <i :class="statusIcon(r.status)" class="fs-6"></i>
-            </div>
-
-            <!-- Info -->
-            <div class="flex-grow-1 min-w-0">
-              <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
-                <strong class="text-dark brand-font fs-7">{{ r.reservationCode }}</strong>
-                <span :class="['badge rounded-pill fs-8 fw-bold', statusClass(r.status)]">
-                  {{ statusLabel(r.status) }}
-                </span>
-              </div>
-              <div class="d-flex flex-wrap gap-3">
-                <small class="text-muted">
-                  <i class="fa-solid fa-clock me-1 text-danger"></i>
-                  {{ new Date(r.startAt).toLocaleString(langStore.isEnglish ? 'en-US' : 'vi-VN', { dateStyle: 'short', timeStyle: 'short' }) }}
-                </small>
-                <small class="text-muted">
-                  <i class="fa-solid fa-users me-1 text-danger"></i>
-                  {{ r.guestsCount }} {{ langStore.isEnglish ? 'guests' : 'khách' }}
-                </small>
-                <small v-if="r.preOrderDishes && r.preOrderDishes.length" class="text-muted">
-                  <i class="fa-solid fa-utensils me-1 text-warning"></i>
-                  {{ r.preOrderDishes.length }} {{ langStore.isEnglish ? 'pre-order dishes' : 'món đặt trước' }}
-                </small>
-              </div>
-            </div>
-
-            <!-- View detail -->
-            <router-link to="/tra-cuu" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-semibold fs-8 flex-shrink-0">
-              <i class="fa-solid fa-eye me-1"></i>{{ langStore.isEnglish ? 'Detail' : 'Chi tiết' }}
-            </router-link>
-          </div>
-        </div>
-      </div>
 
       <!-- Current User Rank Progress -->
       <div v-if="authStore.isAuthenticated" class="glass-card p-4 p-md-5 rounded-5 mb-5 border border-warning bg-white max-w-3xl mx-auto shadow-sm">
