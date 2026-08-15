@@ -53,6 +53,34 @@ export const useTableStore = defineStore("table", {
         this.loading = false;
       }
     },
+    async createTable(tableData) {
+      try {
+        const res = await api.post("/tables", tableData);
+        await this.fetchTables();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Không thể tạo bàn mới!");
+      }
+    },
+    async updateTable(tableId, tableData) {
+      try {
+        const res = await api.patch(`/tables/${tableId}`, tableData);
+        await this.fetchTables();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Không thể cập nhật bàn ăn!");
+      }
+    },
+    async deleteTable(tableId) {
+      try {
+        const res = await api.delete(`/tables/${tableId}`);
+        await this.fetchTables();
+        await this.fetchConnections();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Không thể xóa bàn ăn!");
+      }
+    },
     async createConnection(tableA, tableB, note) {
       try {
         const res = await api.post("/table-connections", { tableA, tableB, note });

@@ -1,209 +1,236 @@
 <template>
   <div>
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <!-- ═══ 1. HEADER ═══ -->
+    <div class="d-flex justify-content-between align-items-start mb-3 flex-wrap gap-2">
       <div>
-        <h2 class="fw-bold brand-font mb-1">Sơ Đồ Bàn Ăn & Ghép Bàn Kéo Thả</h2>
-        <p class="text-muted small mb-0">Kéo thả một bàn lên bàn khác cùng khu vực để tạo liên kết ghép bàn tự động</p>
-      </div>
-      <div class="d-flex gap-2">
-        <button @click="showConnectModal = true" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold">
-          <i class="fa-solid fa-puzzle-piece me-1"></i> Liên Kết Thủ Công
-        </button>
-        <button @click="openAreaModal" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
-          <i class="fa-solid fa-map-pin me-1"></i> Khu Vực
-        </button>
-        <button @click="refreshAll" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-          <i class="fa-solid fa-rotate me-1"></i> Làm mới
-        </button>
-      </div>
-    </div>
-
-    <!-- Hướng dẫn kéo thả -->
-    <div class="glass-card p-3 mb-3 rounded-4 d-flex align-items-center gap-3">
-      <i class="fa-solid fa-hand-pointer text-danger fs-4"></i>
-      <span class="small text-muted">
-        Giữ chuột kéo 1 bàn rồi <strong>thả lên bàn khác cùng khu vực</strong> để liên kết ghép bàn.
-        Hai bàn đã liên kết sẽ được hệ thống ưu tiên ghép khi có đoàn đông khách.
-      </span>
-    </div>
-
-    <!-- Status Legend Badges -->
-    <div class="glass-card p-3 mb-4 rounded-4 d-flex flex-wrap gap-4 align-items-center">
-      <span class="fw-bold small text-muted">Chú thích trạng thái:</span>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-success rounded-circle p-2"></span>
-        <span class="small">Bàn Trống (AVAILABLE)</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-warning rounded-circle p-2"></span>
-        <span class="small">Đã Có Lịch Giữ Chỗ (RESERVED)</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-danger rounded-circle p-2"></span>
-        <span class="small">Khách Đang Ăn (OCCUPIED)</span>
-      </div>
-      <div class="d-flex align-items-center gap-2">
-        <span class="badge bg-secondary rounded-circle p-2"></span>
-        <span class="small">Bảo Trì (MAINTENANCE)</span>
-      </div>
-    </div>
-
-    <!-- Loading -->
-    <div v-if="tableStore.loading" class="text-center py-5">
-      <div class="spinner-border text-danger" role="status"></div>
-    </div>
-
-    <!-- Floor plan grouped by area -->
-    <div v-else>
-      <div v-for="(areaTables, areaName) in tablesByArea" :key="areaName" class="mb-4">
-        <h5 class="fw-bold text-dark mb-2">
-          <i class="fa-solid fa-map-pin text-danger me-1"></i>{{ areaName }}
+        <h5 class="fw-bold brand-font mb-0" style="font-size: 1.1rem">
+          <i class="fa-solid fa-grip text-danger me-2"></i>Sơ Đồ Bàn & Ghép Bàn
         </h5>
-        <div class="row g-3">
-          <div v-for="table in areaTables" :key="table._id" class="col-md-3 col-sm-6">
-            <div
-              :class="[
-                'table-card glass-card p-3 rounded-4 text-center position-relative border-2',
-                statusClass(table.status),
-                { 'drag-source': dragTableId === table._id, 'drop-target': dropTargetId === table._id },
-              ]"
-              draggable="true"
-              @dragstart="onDragStart(table)"
-              @dragend="onDragEnd"
-              @dragover.prevent="onDragOver(table)"
-              @dragleave="onDragLeave(table)"
-              @drop.prevent="onDrop(table)"
-            >
-              <span
-                :class="[
-                  'position-absolute top-0 end-0 m-2 badge rounded-pill fs-8',
-                  statusBadgeClass(table.status),
-                ]"
-              >
-                {{ table.status }}
-              </span>
+        <p class="text-muted mb-0" style="font-size: 0.72rem">
+          Kéo thả bàn lên bàn khác để tạo liên kết ghép bàn tự động, hoặc quản lý bàn & khu vực
+        </p>
+      </div>
+      <div class="d-flex gap-1 flex-wrap">
+        <button @click="openCreateTableModal" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.72rem">
+          <i class="fa-solid fa-plus me-1"></i>Thêm Bàn Mới
+        </button>
+        <button @click="openAreaModal" class="btn btn-outline-primary btn-sm rounded-pill px-2 fw-bold" style="font-size: 0.7rem">
+          <i class="fa-solid fa-map-pin me-1"></i>Khu Vực
+        </button>
+        <button @click="showConnectModal = true" class="btn btn-outline-warning btn-sm rounded-pill px-2 fw-bold text-dark" style="font-size: 0.7rem">
+          <i class="fa-solid fa-puzzle-piece me-1"></i>Liên Kết Thủ Công
+        </button>
+        <button @click="refreshAll" class="btn btn-outline-secondary btn-sm rounded-pill px-2" style="font-size: 0.7rem">
+          <i class="fa-solid fa-rotate me-1"></i>Làm mới
+        </button>
+      </div>
+    </div>
 
-              <div class="my-3">
-                <i class="fa-solid fa-chair display-4 text-danger d-block"></i>
-              </div>
-              <h4 class="fw-bold brand-font mb-1">Bàn {{ table.tableNumber }}</h4>
-              <p class="text-muted small mb-2">Sức chứa: {{ table.capacity }} người</p>
-              <small class="badge bg-light text-dark border">{{ table.area?.name || 'Chưa xếp khu vực' }}</small>
+    <!-- ═══ 2. STATUS LEGEND ═══ -->
+    <div class="d-flex gap-3 align-items-center mb-2 px-1 flex-wrap" style="font-size: 0.68rem">
+      <span class="text-muted fw-bold">Trạng thái:</span>
+      <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#22c55e"></span>Trống</span>
+      <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#f59e0b"></span>Đã đặt</span>
+      <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#ef4444"></span>Đang dùng</span>
+      <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#6b7280"></span>Bảo trì</span>
+      <span class="text-muted ms-auto fst-italic">💡 Kéo bàn này thả vào bàn khác để ghép bàn nhanh</span>
+    </div>
 
-              <!-- Các bàn có thể ghép kề -->
-              <div v-if="connectedNumbers(table._id).length" class="mt-2 small">
-                <span class="badge bg-warning bg-opacity-10 text-warning border fs-8">
-                  <i class="fa-solid fa-link me-1"></i>{{ connectedNumbers(table._id).join(', ') }}
-                </span>
-              </div>
+    <!-- ═══ 3. LOADING ═══ -->
+    <div v-if="tableStore.loading" class="text-center py-4">
+      <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
+    </div>
 
-              <div class="mt-2 text-secondary opacity-50 small">
-                <i class="fa-solid fa-grip-vertical me-1"></i>Kéo để ghép bàn
-              </div>
-            </div>
+    <!-- ═══ 4. FLOOR PLAN (Compact Grid) ═══ -->
+    <div v-else>
+      <div v-for="(areaTables, areaName) in tablesByArea" :key="areaName" class="mb-3">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h6 class="fw-bold text-dark mb-0" style="font-size: 0.8rem">
+            <i class="fa-solid fa-map-pin text-danger me-1" style="font-size: 0.7rem"></i>{{ areaName }}
+            <span class="text-muted fw-normal ms-1" style="font-size: 0.65rem">({{ areaTables.length }} bàn)</span>
+          </h6>
+        </div>
+        <div class="row g-2">
+          <div v-for="table in areaTables" :key="table._id" class="col-xxl-2 col-xl-2 col-lg-3 col-md-4 col-sm-6">
+            <TableCard
+              :table="table"
+              :connectedNumbers="connectedNumbers(table._id)"
+              :isDragSource="dragTableId === table._id"
+              :isDropTarget="dropTargetId === table._id"
+              :dragSourceNumber="dragSourceTable?.tableNumber || ''"
+              @drag-start="onDragStart"
+              @drag-end="onDragEnd"
+              @drag-over="onDragOver"
+              @drag-leave="onDragLeave"
+              @drop="onDrop"
+              @edit="openEditTableModal"
+              @delete="handleDeleteTable"
+            />
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Table Connections List -->
-    <div class="mt-5 glass-card p-4 rounded-4">
-      <h4 class="fw-bold brand-font mb-3">
-        <i class="fa-solid fa-link text-danger me-2"></i>Danh Sách Các Cặp Bàn Kề Nhau Có Thể Ghép
-      </h4>
+    <!-- ═══ 5. NETWORK GRAPH (SVG) ═══ -->
+    <div v-if="tableStore.connections.length > 0" class="glass-card rounded-3 p-3 mb-3">
+      <h6 class="fw-bold mb-2" style="font-size: 0.8rem">
+        <i class="fa-solid fa-diagram-project text-danger me-1"></i>Sơ Đồ Mạng Liên Kết Ghép Bàn
+        <span class="text-muted fw-normal ms-1" style="font-size: 0.62rem">(hover để xem liên kết)</span>
+      </h6>
+      <TableNetworkGraph :tables="tableStore.tables" :connections="tableStore.connections" />
+    </div>
+
+    <!-- ═══ 6. CONNECTIONS TABLE ═══ -->
+    <div class="glass-card rounded-3 p-3 mb-3">
+      <h6 class="fw-bold mb-2" style="font-size: 0.8rem">
+        <i class="fa-solid fa-link text-danger me-1"></i>Danh Sách Cặp Bàn Ghép
+        <span v-if="tableStore.connections.length" class="badge bg-danger bg-opacity-10 text-danger rounded-pill ms-1" style="font-size: 0.6rem">
+          {{ tableStore.connections.length }}
+        </span>
+      </h6>
       <div v-if="tableStore.connections.length > 0" class="table-responsive">
-        <table class="table table-hover align-middle">
+        <table class="table table-sm table-hover align-middle mb-0" style="font-size: 0.7rem">
           <thead>
-            <tr class="text-muted small">
-              <th>Bàn thứ nhất</th>
-              <th></th>
-              <th>Bàn thứ hai (Kề nhau)</th>
-              <th>Ghi chú vị trí</th>
-              <th class="text-end">Thao Tác</th>
+            <tr class="text-muted" style="font-size: 0.65rem">
+              <th>Bàn A</th>
+              <th class="text-center" style="width: 28px"></th>
+              <th>Bàn B</th>
+              <th>Ghi chú</th>
+              <th class="text-end" style="width: 50px"></th>
             </tr>
           </thead>
           <tbody>
             <tr v-for="conn in tableStore.connections" :key="conn._id">
-              <td><span class="badge bg-danger px-3 py-2 fs-7">Bàn {{ conn.tableA?.tableNumber }} ({{ conn.tableA?.capacity }} chỗ)</span></td>
-              <td class="text-center text-muted fs-5"><i class="fa-solid fa-link"></i></td>
-              <td><span class="badge bg-danger px-3 py-2 fs-7">Bàn {{ conn.tableB?.tableNumber }} ({{ conn.tableB?.capacity }} chỗ)</span></td>
-              <td class="small text-muted">{{ conn.note || 'Kề sát nhau' }}</td>
+              <td><span class="conn-badge">{{ conn.tableA?.tableNumber }} ({{ conn.tableA?.capacity }} chỗ)</span></td>
+              <td class="text-center text-muted"><i class="fa-solid fa-link" style="font-size: 0.55rem"></i></td>
+              <td><span class="conn-badge">{{ conn.tableB?.tableNumber }} ({{ conn.tableB?.capacity }} chỗ)</span></td>
+              <td class="text-muted" style="font-size: 0.65rem">{{ conn.note || 'Kề sát nhau' }}</td>
               <td class="text-end">
-                <button @click="handleDeleteConnection(conn)" class="btn btn-outline-danger btn-sm rounded-pill">
-                  <i class="fa-solid fa-trash-can me-1"></i> Gỡ
+                <button @click="handleDeleteConnection(conn)" class="btn btn-outline-danger rounded-pill px-2 py-0" style="font-size: 0.6rem" title="Gỡ liên kết">
+                  <i class="fa-solid fa-trash-can"></i>
                 </button>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p v-else class="text-muted small mb-0">Chưa có liên kết ghép bàn nào. Hãy kéo thả hoặc tạo liên kết thủ công.</p>
+      <p v-else class="text-muted mb-0" style="font-size: 0.7rem">
+        Chưa có liên kết nào. Hãy kéo thả các ô bàn lên nhau để ghép bàn nhanh.
+      </p>
     </div>
 
-    <!-- Connect Tables Modal (fallback thủ công) -->
-    <div v-if="showConnectModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-5 p-3">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold brand-font text-danger">Tạo Liên Kết Bàn Kề Nhau</h5>
-            <button @click="showConnectModal = false" type="button" class="btn-close"></button>
+    <!-- ═══ 7. CREATE / EDIT TABLE MODAL ═══ -->
+    <div v-if="showTableModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 p-2 shadow">
+          <div class="modal-header border-0 pb-1">
+            <h6 class="modal-title fw-bold brand-font text-danger" style="font-size: 0.9rem">
+              <i :class="isEditingTable ? 'fa-pen-to-square' : 'fa-plus'" class="fa-solid me-1"></i>
+              {{ isEditingTable ? 'Cập Nhật Bàn Ăn' : 'Thêm Bàn Ăn Mới' }}
+            </h6>
+            <button @click="showTableModal = false" type="button" class="btn-close btn-close-sm"></button>
           </div>
-          <div class="modal-body">
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Bàn thứ nhất (Nhập số bàn như B01, B02)</label>
-              <input v-model="connForm.tableA" type="text" class="form-control text-uppercase" placeholder="Ví dụ: B01" required />
+          <div class="modal-body py-1" style="font-size: 0.78rem">
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Số bàn / Mã bàn <span class="text-danger">*</span></label>
+              <input v-model="tableForm.tableNumber" type="text" class="form-control form-control-sm text-uppercase" placeholder="VD: B09, VIP04" required style="font-size: 0.75rem" />
             </div>
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Bàn thứ hai (Kề sát bàn 1)</label>
-              <input v-model="connForm.tableB" type="text" class="form-control text-uppercase" placeholder="Ví dụ: B02" required />
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Sức chứa (số khách) <span class="text-danger">*</span></label>
+              <input v-model.number="tableForm.capacity" type="number" min="1" max="20" class="form-control form-control-sm" placeholder="VD: 4" required style="font-size: 0.75rem" />
+              <div class="text-muted" style="font-size: 0.62rem">Quy định từ 1 đến 20 chỗ</div>
             </div>
-            <div class="mb-3">
-              <label class="form-label fw-semibold">Ghi chú vị trí</label>
-              <input v-model="connForm.note" type="text" class="form-control" placeholder="Ví dụ: 2 bàn sát nhau dãy cửa sổ" />
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Khu vực <span class="text-danger">*</span></label>
+              <select v-model="tableForm.area" class="form-select form-select-sm" style="font-size: 0.75rem" required>
+                <option value="" disabled>-- Chọn khu vực --</option>
+                <option v-for="area in areas" :key="area._id" :value="area._id">
+                  {{ area.name }}
+                </option>
+              </select>
             </div>
-            <div v-if="modalError" class="alert alert-danger small rounded-3">{{ modalError }}</div>
+            <div v-if="isEditingTable" class="mb-2">
+              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Trạng thái bàn</label>
+              <select v-model="tableForm.status" class="form-select form-select-sm" style="font-size: 0.75rem">
+                <option value="AVAILABLE">Trống (Sẵn sàng)</option>
+                <option value="RESERVED">Đã đặt trước</option>
+                <option value="OCCUPIED">Đang dùng bữa</option>
+                <option value="MAINTENANCE">Bảo trì / Tạm ngưng</option>
+              </select>
+            </div>
+            <div v-if="tableModalError" class="alert alert-danger small rounded-3 py-1 px-2 mb-0" style="font-size: 0.7rem">
+              {{ tableModalError }}
+            </div>
           </div>
-          <div class="modal-footer border-0">
-            <button @click="showConnectModal = false" class="btn btn-light rounded-pill px-4">Hủy</button>
-            <button @click="handleCreateConnection" class="btn btn-warning rounded-pill px-4 fw-bold">Tạo Liên Kết</button>
+          <div class="modal-footer border-0 pt-1">
+            <button @click="showTableModal = false" class="btn btn-light btn-sm rounded-pill px-3" style="font-size: 0.72rem">Hủy</button>
+            <button @click="handleSubmitTable" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.72rem">
+              <i class="fa-solid fa-check me-1"></i>{{ isEditingTable ? 'Lưu Thay Đổi' : 'Tạo Bàn' }}
+            </button>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Modal Quản Lý Khu Vực -->
-    <div v-if="showAreaModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-5 p-3">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold brand-font text-danger">Quản Lý Khu Vực Bàn Ăn</h5>
-            <button @click="showAreaModal = false" type="button" class="btn-close"></button>
+    <!-- ═══ 8. CONNECT MODAL (Manual) ═══ -->
+    <div v-if="showConnectModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 p-2 shadow">
+          <div class="modal-header border-0 pb-1">
+            <h6 class="modal-title fw-bold brand-font text-danger" style="font-size: 0.9rem">Tạo Liên Kết Bàn</h6>
+            <button @click="showConnectModal = false" type="button" class="btn-close btn-close-sm"></button>
           </div>
-          <div class="modal-body">
-            <div class="row g-2 mb-3">
+          <div class="modal-body py-1" style="font-size: 0.78rem">
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Bàn thứ nhất</label>
+              <input v-model="connForm.tableA" type="text" class="form-control form-control-sm text-uppercase" placeholder="VD: B01" style="font-size: 0.75rem" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Bàn thứ hai (kề bàn 1)</label>
+              <input v-model="connForm.tableB" type="text" class="form-control form-control-sm text-uppercase" placeholder="VD: B02" style="font-size: 0.75rem" />
+            </div>
+            <div class="mb-2">
+              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Ghi chú vị trí</label>
+              <input v-model="connForm.note" type="text" class="form-control form-control-sm" placeholder="VD: 2 bàn sát nhau dãy cửa sổ" style="font-size: 0.75rem" />
+            </div>
+            <div v-if="connModalError" class="alert alert-danger small rounded-3 py-1 px-2 mb-0" style="font-size: 0.7rem">{{ connModalError }}</div>
+          </div>
+          <div class="modal-footer border-0 pt-1">
+            <button @click="showConnectModal = false" class="btn btn-light btn-sm rounded-pill px-3" style="font-size: 0.72rem">Hủy</button>
+            <button @click="handleCreateConnection" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.72rem">
+              <i class="fa-solid fa-link me-1"></i>Tạo Liên Kết
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ 9. AREA MODAL ═══ -->
+    <div v-if="showAreaModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
+      <div class="modal-dialog modal-dialog-centered modal-sm">
+        <div class="modal-content rounded-4 p-2 shadow">
+          <div class="modal-header border-0 pb-1">
+            <h6 class="modal-title fw-bold brand-font text-danger" style="font-size: 0.9rem">Quản Lý Khu Vực</h6>
+            <button @click="showAreaModal = false" type="button" class="btn-close btn-close-sm"></button>
+          </div>
+          <div class="modal-body py-1" style="font-size: 0.78rem">
+            <div class="row g-2 mb-2">
               <div class="col-8">
-                <input v-model="newArea.name" type="text" class="form-control" placeholder="Tên khu vực mới..." />
+                <input v-model="newArea.name" type="text" class="form-control form-control-sm" placeholder="Tên khu vực mới..." style="font-size: 0.75rem" />
               </div>
               <div class="col-4">
-                <button @click="submitArea" class="btn btn-danger rounded-pill w-100 fw-bold">Thêm</button>
+                <button @click="submitArea" class="btn btn-danger btn-sm rounded-pill w-100 fw-bold" style="font-size: 0.72rem">Thêm</button>
               </div>
             </div>
-
-            <div v-if="areas.length > 0" class="table-responsive">
-              <table class="table table-sm align-middle">
-                <tbody>
-                  <tr v-for="area in areas" :key="area._id">
-                    <td><strong class="text-dark">{{ area.name }}</strong></td>
-                    <td class="text-end">
-                      <button @click="deleteArea(area)" class="btn btn-outline-danger btn-sm rounded-pill">
-                        <i class="fa-solid fa-trash-can"></i>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+            <div v-if="areas.length > 0">
+              <div v-for="area in areas" :key="area._id" class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size: 0.75rem">
+                <strong class="text-dark">{{ area.name }}</strong>
+                <button @click="deleteArea(area)" class="btn btn-outline-danger rounded-pill px-2 py-0" style="font-size: 0.6rem" title="Xóa khu vực">
+                  <i class="fa-solid fa-trash-can"></i>
+                </button>
+              </div>
             </div>
-            <p v-else class="text-muted small text-center py-2 mb-0">Chưa có khu vực nào</p>
+            <p v-else class="text-muted small text-center py-2 mb-0" style="font-size: 0.7rem">Chưa có khu vực nào</p>
           </div>
         </div>
       </div>
@@ -216,136 +243,206 @@ import { ref, reactive, computed, onMounted } from "vue";
 import { useTableStore } from "../../stores/tableStore";
 import api from "../../services/api";
 import { toast } from "../../composables/useToast";
+import TableCard from "../../components/admin/TableCard.vue";
+import TableNetworkGraph from "../../components/admin/TableNetworkGraph.vue";
 
 const tableStore = useTableStore();
+
+// Modals State
 const showConnectModal = ref(false);
 const showAreaModal = ref(false);
-const modalError = ref("");
+const showTableModal = ref(false);
+const isEditingTable = ref(false);
+const editingTableId = ref(null);
+
+const connModalError = ref("");
+const tableModalError = ref("");
+
+// Drag & Drop State
 const dragTableId = ref(null);
 const dropTargetId = ref(null);
-const merging = ref(false);
 
+// Forms
 const newArea = reactive({ name: "" });
+const connForm = reactive({ tableA: "", tableB: "", note: "" });
+const tableForm = reactive({
+  tableNumber: "",
+  capacity: 4,
+  area: "",
+  status: "AVAILABLE",
+});
+
+// Computed Properties
 const areas = computed(() => tableStore.areas);
 
-// Map bàn -> danh sách số bàn có thể ghép kề nhau
-const connectionMap = computed(() => {
-  const map = new Map();
-  tableStore.connections.forEach((conn) => {
-    const a = conn.tableA?._id || conn.tableA;
-    const b = conn.tableB?._id || conn.tableB;
-    if (!map.has(a)) map.set(a, []);
-    if (!map.has(b)) map.set(b, []);
-    map.get(a).push(conn.tableB?.tableNumber || b);
-    map.get(b).push(conn.tableA?.tableNumber || a);
-  });
-  return map;
-});
-
-const connectedNumbers = (tableId) => connectionMap.value.get(tableId) || [];
-
-const connForm = reactive({
-  tableA: "",
-  tableB: "",
-  note: "",
-});
+const dragSourceTable = computed(() =>
+  tableStore.tables.find((t) => t._id === dragTableId.value)
+);
 
 const tablesByArea = computed(() => {
   const grouped = {};
   for (const t of tableStore.tables) {
-    const areaName = t.area?.name || "Chưa xếp khu vực";
-    if (!grouped[areaName]) grouped[areaName] = [];
-    grouped[areaName].push(t);
+    const name = t.area?.name || "Chưa xếp khu vực";
+    (grouped[name] ||= []).push(t);
   }
   return grouped;
 });
 
-const statusClass = (status) => ({
-  "border-success": status === "AVAILABLE",
-  "border-warning": status === "RESERVED",
-  "border-danger": status === "OCCUPIED",
-  "border-secondary": status === "MAINTENANCE",
+const connectionMap = computed(() => {
+  const map = new Map();
+  tableStore.connections.forEach((c) => {
+    const a = c.tableA?._id || c.tableA;
+    const b = c.tableB?._id || c.tableB;
+    (map.has(a) ? map.get(a) : map.set(a, []).get(a)).push(c.tableB?.tableNumber || b);
+    (map.has(b) ? map.get(b) : map.set(b, []).get(b)).push(c.tableA?.tableNumber || a);
+  });
+  return map;
 });
+const connectedNumbers = (id) => connectionMap.value.get(id) || [];
 
-const statusBadgeClass = (status) => ({
-  "bg-success": status === "AVAILABLE",
-  "bg-warning text-dark": status === "RESERVED",
-  "bg-danger": status === "OCCUPIED",
-  "bg-secondary": status === "MAINTENANCE",
-});
-
+// ── Drag & Drop Handlers ──
 const onDragStart = (table) => {
   dragTableId.value = table._id;
 };
+
 const onDragEnd = () => {
   dragTableId.value = null;
   dropTargetId.value = null;
 };
+
 const onDragOver = (table) => {
   if (dragTableId.value && dragTableId.value !== table._id) {
     dropTargetId.value = table._id;
   }
 };
+
 const onDragLeave = (table) => {
-  if (dropTargetId.value === table._id) dropTargetId.value = null;
+  if (dropTargetId.value === table._id) {
+    dropTargetId.value = null;
+  }
 };
+
 const onDrop = async (target) => {
   const source = tableStore.tables.find((t) => t._id === dragTableId.value);
   dragTableId.value = null;
   dropTargetId.value = null;
+
   if (!source || source._id === target._id) return;
 
-  merging.value = true;
   try {
     await tableStore.createConnection(source.tableNumber, target.tableNumber, "Kéo thả ghép bàn");
-    toast.success(`Đã liên kết ghép bàn ${source.tableNumber} + ${target.tableNumber}`);
+    toast.success(`Đã ghép bàn ${source.tableNumber} + ${target.tableNumber}`);
   } catch (err) {
     toast.error(err.message);
-  } finally {
-    merging.value = false;
   }
 };
 
+// ── Table CRUD Handlers ──
+const openCreateTableModal = () => {
+  isEditingTable.value = false;
+  editingTableId.value = null;
+  tableModalError.value = "";
+  Object.assign(tableForm, {
+    tableNumber: "",
+    capacity: 4,
+    area: areas.value.length > 0 ? areas.value[0]._id : "",
+    status: "AVAILABLE",
+  });
+  showTableModal.value = true;
+};
+
+const openEditTableModal = (table) => {
+  isEditingTable.value = true;
+  editingTableId.value = table._id;
+  tableModalError.value = "";
+  Object.assign(tableForm, {
+    tableNumber: table.tableNumber,
+    capacity: table.capacity,
+    area: table.area?._id || table.area || (areas.value.length > 0 ? areas.value[0]._id : ""),
+    status: table.status || "AVAILABLE",
+  });
+  showTableModal.value = true;
+};
+
+const handleSubmitTable = async () => {
+  tableModalError.value = "";
+  if (!tableForm.tableNumber.trim()) {
+    tableModalError.value = "Vui lòng nhập số bàn / mã bàn";
+    return;
+  }
+  if (!tableForm.capacity || tableForm.capacity < 1 || tableForm.capacity > 20) {
+    tableModalError.value = "Sức chứa phải từ 1 đến 20 khách";
+    return;
+  }
+  if (!tableForm.area) {
+    tableModalError.value = "Vui lòng chọn khu vực";
+    return;
+  }
+
+  try {
+    if (isEditingTable.value) {
+      await tableStore.updateTable(editingTableId.value, {
+        tableNumber: tableForm.tableNumber.trim().toUpperCase(),
+        capacity: Number(tableForm.capacity),
+        area: tableForm.area,
+        status: tableForm.status,
+      });
+      toast.success("Cập nhật bàn ăn thành công");
+    } else {
+      await tableStore.createTable({
+        tableNumber: tableForm.tableNumber.trim().toUpperCase(),
+        capacity: Number(tableForm.capacity),
+        area: tableForm.area,
+      });
+      toast.success("Tạo bàn ăn mới thành công");
+    }
+    showTableModal.value = false;
+  } catch (err) {
+    tableModalError.value = err.message;
+  }
+};
+
+const handleDeleteTable = async (table) => {
+  if (!confirm(`Bạn có chắc muốn xóa bàn ${table.tableNumber} (${table.capacity} chỗ)?`)) return;
+  try {
+    await tableStore.deleteTable(table._id);
+    toast.success(`Đã xóa bàn ${table.tableNumber}`);
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
+
+// ── Connection Handlers ──
 const handleCreateConnection = async () => {
-  modalError.value = "";
+  connModalError.value = "";
   try {
     await tableStore.createConnection(connForm.tableA, connForm.tableB, connForm.note);
-    toast.success("Tạo liên kết ghép bàn thành công");
+    toast.success("Tạo liên kết thành công");
     showConnectModal.value = false;
-    connForm.tableA = "";
-    connForm.tableB = "";
-    connForm.note = "";
+    Object.assign(connForm, { tableA: "", tableB: "", note: "" });
   } catch (err) {
-    modalError.value = err.message;
+    connModalError.value = err.message;
   }
 };
 
 const handleDeleteConnection = async (conn) => {
-  if (!confirm(`Gỡ liên kết giữa Bàn ${conn.tableA?.tableNumber} và Bàn ${conn.tableB?.tableNumber}?`)) return;
+  if (!confirm(`Gỡ liên kết Bàn ${conn.tableA?.tableNumber} ↔ ${conn.tableB?.tableNumber}?`)) return;
   try {
     await tableStore.deleteConnection(conn._id);
-    toast.success("Đã gỡ liên kết ghép bàn");
+    toast.success("Đã gỡ liên kết");
   } catch (err) {
     toast.error(err.message);
   }
 };
 
-const refreshAll = () => {
-  tableStore.fetchTables();
-  tableStore.fetchConnections();
-  tableStore.fetchAreas();
-};
-
+// ── Area Handlers ──
 const openAreaModal = () => {
   showAreaModal.value = true;
   tableStore.fetchAreas();
 };
 
 const submitArea = async () => {
-  if (!newArea.name.trim()) {
-    toast.error("Vui lòng nhập tên khu vực");
-    return;
-  }
+  if (!newArea.name.trim()) { toast.error("Vui lòng nhập tên khu vực"); return; }
   try {
     await api.post("/areas", { name: newArea.name });
     toast.success("Thêm khu vực thành công!");
@@ -367,26 +464,30 @@ const deleteArea = async (area) => {
   }
 };
 
-onMounted(() => {
-  refreshAll();
-});
+// ── Lifecycle ──
+const refreshAll = () => {
+  tableStore.fetchTables();
+  tableStore.fetchConnections();
+  tableStore.fetchAreas();
+};
+
+onMounted(refreshAll);
 </script>
 
 <style scoped>
-.table-card {
-  cursor: grab;
-  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+.legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
 }
-.table-card:active {
-  cursor: grabbing;
-}
-.drag-source {
-  opacity: 0.55;
-  transform: scale(0.97);
-}
-.drop-target {
-  border-color: #ffb300 !important;
-  box-shadow: 0 0 0 4px rgba(255, 179, 0, 0.35);
-  transform: scale(1.03);
+.conn-badge {
+  display: inline-block;
+  background: #fee2e2;
+  color: #dc2626;
+  border-radius: 999px;
+  padding: 2px 8px;
+  font-size: 0.65rem;
+  font-weight: 600;
 }
 </style>
