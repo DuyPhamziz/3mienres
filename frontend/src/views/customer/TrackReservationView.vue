@@ -1,7 +1,6 @@
 <template>
   <div class="py-5 bg-light min-vh-100">
     <div class="container">
-
       <!-- Page Header -->
       <div class="text-center max-w-2xl mx-auto mb-5">
         <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8">
@@ -12,7 +11,7 @@
           {{ langStore.isEnglish ? 'Reservation History' : 'Lịch Sử Đặt Bàn & Món' }}
         </h1>
         <p class="text-muted small">
-          {{ langStore.isEnglish ? 'All your past and upcoming table bookings with pre-order dishes and QR check-in codes.' : 'Tất cả các lượt đặt bàn và món đặt trước. Bấm vào đơn để xem QR check-in và quản lý.' }}
+          {{ langStore.isEnglish ? 'All your past and upcoming table bookings with pre-order dishes, dining orders, and payment receipts.' : 'Tất cả các lượt đặt bàn, món đặt trước, món dùng tại bàn và hóa đơn thanh toán.' }}
         </p>
       </div>
 
@@ -29,7 +28,7 @@
 
       <template v-else>
         <!-- Loading State -->
-        <div v-if="reservationStore.loading" class="text-center py-5">
+        <div v-if="reservationStore.loading && reservationStore.myReservations.length === 0" class="text-center py-5">
           <div class="spinner-border text-danger" role="status"></div>
           <p class="text-muted small mt-3">{{ langStore.isEnglish ? 'Loading your bookings...' : 'Đang tải lịch sử đặt bàn...' }}</p>
         </div>
@@ -53,8 +52,7 @@
                :style="selectedId === r._id ? 'border: 2px solid #dc3545;' : 'border: 1px solid #e2e8f0;'">
 
             <!-- Reservation Header Row (always visible, clickable) -->
-            <div class="p-4 d-flex align-items-center justify-content-between gap-3 flex-wrap"
-                 style="cursor: pointer;"
+            <div class="p-4 d-flex align-items-center justify-content-between gap-3 flex-wrap cursor-pointer"
                  @click="toggleDetail(r)">
               <div class="d-flex align-items-center gap-3 flex-wrap flex-grow-1">
                 <!-- Status Badge -->
@@ -91,218 +89,46 @@
                     {{ r.preOrderDishes.length }} {{ langStore.isEnglish ? 'pre-order dish(es)' : 'món đặt trước' }}
                   </small>
                 </div>
+
+                <!-- Invoice Paid indicator -->
+                <div v-if="r.status === 'COMPLETED' || r.invoice" class="d-none d-lg-block">
+                  <span class="badge bg-success bg-opacity-10 text-success rounded-pill px-2.5 py-1 small fw-bold">
+                    <i class="fa-solid fa-receipt me-1"></i>
+                    {{ langStore.isEnglish ? 'Invoice Paid' : 'Đã thanh toán' }}
+                  </span>
+                </div>
               </div>
 
               <!-- Expand Toggle Arrow -->
-              <i :class="['fa-solid fa-chevron-down text-muted transition-all', selectedId === r._id ? 'fa-rotate-180' : '']"
+              <i :class="['fa-solid fa-chevron-down text-muted transition-all', selectedId === r._id ? 'fa-rotate-180 text-danger' : '']"
                  style="transition: transform 0.25s ease;"></i>
             </div>
 
             <!-- Expanded Detail Panel -->
             <transition name="slide-down">
-              <div v-if="selectedId === r._id" class="border-top" style="background: #f8fafc;">
-
-                <!-- Timeline trạng thái -->
-                <div class="px-4 pt-3 pb-2">
-                  <div v-if="r.status === 'CANCELLED'" class="text-center text-danger fw-bold small py-2 bg-danger bg-opacity-10 rounded-3">
-                    <i class="fa-solid fa-ban me-1"></i>
-                    {{ langStore.isEnglish ? 'This booking was cancelled' : 'Đơn đặt bàn này đã bị hủy' }}
-                  </div>
-                  <div v-else class="d-flex align-items-start">
-                    <div v-for="(step, idx) in FLOW" :key="step" class="d-flex flex-column align-items-center position-relative flex-grow-1">
-                      <div class="d-flex align-items-center w-100">
-                        <div :class="['rounded-circle d-flex align-items-center justify-content-center flex-shrink-0', idx <= currentFlowIndex(r.status) ? 'bg-danger text-white' : 'bg-light border text-muted']" style="width: 30px; height: 30px;">
-                          <i v-if="idx < currentFlowIndex(r.status)" class="fa-solid fa-check fs-8"></i>
-                          <i v-else-if="idx === currentFlowIndex(r.status)" class="fa-solid fa-location-dot fs-8"></i>
-                          <span v-else class="fw-bold fs-8">{{ idx + 1 }}</span>
-                        </div>
-                        <div v-if="idx < FLOW.length - 1" :class="['flex-grow-1 mx-1', idx < currentFlowIndex(r.status) ? 'bg-danger' : 'bg-light']" style="height: 3px;"></div>
-                      </div>
-                      <small :class="idx <= currentFlowIndex(r.status) ? 'text-danger fw-semibold' : 'text-muted'" class="mt-1 fs-8 text-center">{{ flowStepLabel(step) }}</small>
-                    </div>
-                  </div>
-                </div>
-
-                <div class="row g-0">
-
-                  <!-- Left: Check-in QR + Deposit -->
-                  <div class="col-md-5 p-4 border-end">
-                    <h6 class="fw-bold text-dark mb-3">
-                      <i class="fa-solid fa-qrcode text-danger me-2"></i>
-                      {{ langStore.isEnglish ? 'Check-in QR Code' : 'Mã QR Check-in Tại Quầy' }}
-                    </h6>
-                    <div class="text-center bg-white rounded-4 p-3 border mb-3">
-                      <img
-                        :src="`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(r.reservationCode)}`"
-                        :alt="r.reservationCode"
-                        class="img-fluid rounded-3"
-                        style="max-width: 170px;"
-                      />
-                      <p class="small text-muted mt-2 mb-0">
-                        {{ langStore.isEnglish ? 'Show to cashier for instant check-in' : 'Đưa mã này cho Thu ngân để check-in nhanh' }}
-                      </p>
-                    </div>
-
-                    <!-- Deposit Info -->
-                    <div v-if="r.deposit" class="p-3 rounded-4 border"
-                         :class="r.deposit.status === 'PAID' ? 'bg-success bg-opacity-10 border-success' : 'bg-warning bg-opacity-10 border-warning'">
-                      <div class="d-flex align-items-center gap-2 mb-1">
-                        <i :class="r.deposit.status === 'PAID' ? 'fa-solid fa-circle-check text-success' : 'fa-solid fa-hourglass-half text-warning'"></i>
-                        <strong class="small text-dark">
-                          {{ langStore.isEnglish ? 'Deposit:' : 'Tiền cọc:' }}
-                          {{ (r.deposit.amount || 0).toLocaleString('vi-VN') }}đ
-                        </strong>
-                      </div>
-                      <small :class="r.deposit.status === 'PAID' ? 'text-success' : 'text-warning'" class="fw-semibold d-block mb-1">
-                        {{ r.deposit.status === 'PAID'
-                            ? (langStore.isEnglish ? 'Deposit Confirmed' : 'Đã xác nhận nộp cọc')
-                            : (langStore.isEnglish ? 'Pending deposit confirmation' : 'Chờ xác nhận cọc') }}
-                      </small>
-                      <button
-                        v-if="r.deposit.status === 'PENDING' && r.deposit.amount > 0"
-                        @click="handleDemoConfirmDeposit(r)"
-                        class="btn btn-warning btn-sm rounded-pill fw-bold w-100 mt-2 shadow-2xs text-dark"
-                      >
-                        <i class="fa-solid fa-bolt me-1"></i> [⚡ DEMO] Giả Lập Nộp Cọc
-                      </button>
-                    </div>
-
-                    <!-- Action Buttons -->
-                    <div v-if="r.status === 'CONFIRMED' || r.status === 'PENDING'" class="d-flex flex-column gap-2 mt-3">
-                      <button @click="openReschedule(r)" class="btn btn-outline-primary rounded-pill fw-semibold btn-sm">
-                        <i class="fa-solid fa-calendar-days me-1"></i>
-                        {{ langStore.isEnglish ? 'Reschedule' : 'Dời Lịch' }}
-                      </button>
-                      <button @click="handleCancel(r)" class="btn btn-outline-danger rounded-pill fw-semibold btn-sm">
-                        <i class="fa-solid fa-ban me-1"></i>
-                        {{ langStore.isEnglish ? 'Cancel Booking' : 'Hủy Đặt Bàn' }}
-                      </button>
-                    </div>
-                  </div>
-
-                  <!-- Right: Booking Details + Pre-order Dishes -->
-                  <div class="col-md-7 p-4">
-                    <!-- Key Details -->
-                    <h6 class="fw-bold text-dark mb-3">
-                      <i class="fa-solid fa-circle-info text-danger me-2"></i>
-                      {{ langStore.isEnglish ? 'Booking Details' : 'Thông Tin Đặt Bàn' }}
-                    </h6>
-                    <div class="row g-2 mb-4">
-                      <div class="col-6">
-                        <div class="p-2 bg-white rounded-3 border">
-                          <small class="text-muted d-block fs-8">{{ langStore.isEnglish ? 'Guest Name' : 'Tên khách' }}</small>
-                          <strong class="text-dark fs-7">{{ r.customerName }}</strong>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div class="p-2 bg-white rounded-3 border">
-                          <small class="text-muted d-block fs-8">{{ langStore.isEnglish ? 'Phone' : 'Điện thoại' }}</small>
-                          <strong class="text-dark fs-7">{{ r.customerPhone }}</strong>
-                        </div>
-                      </div>
-                      <div class="col-6">
-                        <div class="p-2 bg-white rounded-3 border">
-                          <small class="text-muted d-block fs-8">{{ langStore.isEnglish ? 'Guests' : 'Số khách' }}</small>
-                          <strong class="text-dark fs-7">{{ r.guestsCount }} {{ langStore.isEnglish ? 'pax' : 'người' }}</strong>
-                        </div>
-                      </div>
-                      <div class="col-6" v-if="r.tables && r.tables.length">
-                        <div class="p-2 bg-white rounded-3 border">
-                          <small class="text-muted d-block fs-8">{{ langStore.isEnglish ? 'Tables' : 'Bàn đặt trước' }}</small>
-                          <strong class="text-dark fs-7">{{ r.tables.map(t => (langStore.isEnglish ? 'T.' : 'Bàn ') + t.tableNumber).join(' + ') }}</strong>
-                        </div>
-                      </div>
-                      <div class="col-12" v-if="r.specialRequest">
-                        <div class="p-2 bg-white rounded-3 border">
-                          <small class="text-muted d-block fs-8">{{ langStore.isEnglish ? 'Special Request' : 'Ghi chú đặc biệt' }}</small>
-                          <small class="text-dark">{{ r.specialRequest }}</small>
-                        </div>
-                      </div>
-                    </div>
-
-                    <!-- Pre-order Dishes -->
-                    <h6 class="fw-bold text-dark mb-2">
-                      <i class="fa-solid fa-utensils text-warning me-2"></i>
-                      {{ langStore.isEnglish ? 'Pre-ordered Dishes' : 'Món Đặt Trước (Pre-order)' }}
-                    </h6>
-                    <div v-if="r.preOrderDishes && r.preOrderDishes.length > 0">
-                      <div v-for="(item, idx) in r.preOrderDishes" :key="idx"
-                           class="d-flex justify-content-between align-items-center py-2 border-bottom">
-                        <div class="d-flex align-items-center gap-2">
-                          <span class="badge bg-danger bg-opacity-10 text-danger rounded-pill fs-8 fw-bold px-2">x{{ item.quantity }}</span>
-                          <span class="text-dark fw-semibold fs-7">{{ item.dish?.name || (langStore.isEnglish ? 'Unknown dish' : 'Món không xác định') }}</span>
-                        </div>
-                        <small class="text-danger fw-bold">
-                          {{ ((item.dish?.price || 0) * item.quantity).toLocaleString('vi-VN') }}đ
-                        </small>
-                      </div>
-                      <!-- Total -->
-                      <div class="d-flex justify-content-between align-items-center pt-2 mt-1 fw-bold">
-                        <span class="text-muted small">{{ langStore.isEnglish ? 'Pre-order subtotal:' : 'Tổng tiền món đặt trước:' }}</span>
-                        <span class="text-danger">
-                          {{ r.preOrderDishes.reduce((sum, item) => sum + (item.dish?.price || 0) * item.quantity, 0).toLocaleString('vi-VN') }}đ
-                        </span>
-                      </div>
-                    </div>
-                    <div v-else class="text-muted small py-2">
-                      <i class="fa-solid fa-circle-info me-1"></i>
-                      {{ langStore.isEnglish ? 'No pre-order dishes for this booking.' : 'Không có món đặt trước cho lượt này.' }}
-                    </div>
-
-                    <!-- Trạng thái món đã gọi (đang dùng bữa) -->
-                    <div v-if="r.orders && r.orders.length > 0" class="mt-4">
-                      <h6 class="fw-bold text-dark mb-2">
-                        <i class="fa-solid fa-fire-burner text-danger me-2"></i>
-                        {{ langStore.isEnglish ? 'Your Order Status' : 'Trạng Thái Món Đã Gọi' }}
-                      </h6>
-                      <div v-for="order in r.orders" :key="order._id" class="p-3 bg-white rounded-3 border mb-2">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                          <span class="badge bg-light text-dark border fs-8">{{ order.orderCode }}</span>
-                          <span :class="['badge rounded-pill fs-8 px-2', orderStatusClass(order.status)]">
-                            <i class="fa-solid me-1" :class="order.status === 'SERVED' ? 'fa-circle-check' : order.status === 'PREPARING' ? 'fa-fire-burner' : 'fa-hourglass-half'"></i>
-                            {{ orderStatusLabel(order.status) }}
-                          </span>
-                        </div>
-                        <div class="small">
-                          <div v-for="(item, i) in order.items" :key="i" class="d-flex justify-content-between py-1 border-bottom border-light">
-                            <span class="text-dark">{{ item.dish?.name || (langStore.isEnglish ? 'Dish' : 'Món') }}</span>
-                            <span class="text-muted">x{{ item.quantity }}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <ReservationDetailPanel
+                v-if="selectedId === r._id"
+                :r="r"
+                :isEnglish="langStore.isEnglish"
+                @demo-deposit="handleDemoConfirmDeposit"
+                @reschedule="openReschedule"
+                @cancel="handleCancel"
+              />
             </transition>
           </div>
         </div>
       </template>
     </div>
 
-    <!-- Reschedule Modal -->
-    <div v-if="showRescheduleModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content rounded-5 p-3">
-          <div class="modal-header border-0">
-            <h5 class="modal-title fw-bold brand-font text-danger">
-              <i class="fa-solid fa-calendar-days me-2"></i>
-              {{ langStore.isEnglish ? 'Reschedule Booking' : 'Dời Lịch Đặt Bàn' }}
-            </h5>
-            <button @click="showRescheduleModal = false" type="button" class="btn-close"></button>
-          </div>
-          <div class="modal-body">
-            <label class="form-label fw-semibold text-dark">{{ langStore.isEnglish ? 'New dining time' : 'Thời gian dùng bữa mới' }}</label>
-            <input v-model="newStartAt" type="datetime-local" class="form-control" />
-            <div v-if="actionError" class="alert alert-danger small mt-3 mb-0 rounded-3">{{ actionError }}</div>
-          </div>
-          <div class="modal-footer border-0">
-            <button @click="showRescheduleModal = false" class="btn btn-light rounded-pill px-4">{{ langStore.isEnglish ? 'Cancel' : 'Hủy' }}</button>
-            <button @click="submitReschedule" class="btn btn-primary-crab rounded-pill px-4 fw-bold">{{ langStore.isEnglish ? 'Confirm' : 'Xác Nhận' }}</button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- Reschedule Modal Component -->
+    <RescheduleModal
+      v-if="showRescheduleModal"
+      v-model="newStartAt"
+      :error="actionError"
+      :isEnglish="langStore.isEnglish"
+      @close="showRescheduleModal = false"
+      @submit="submitReschedule"
+    />
   </div>
 </template>
 
@@ -312,12 +138,18 @@ import { useRoute } from "vue-router";
 import { useReservationStore } from "../../stores/reservationStore";
 import { useAuthStore } from "../../stores/authStore";
 import { useLangStore } from "../../stores/langStore";
+import { useRealtime } from "../../composables/useRealtime";
 import { toast } from "../../composables/useToast";
+import ReservationDetailPanel from "../../components/customer/ReservationDetailPanel.vue";
+import RescheduleModal from "../../components/customer/RescheduleModal.vue";
 
 const route = useRoute();
 const reservationStore = useReservationStore();
 const authStore = useAuthStore();
 const langStore = useLangStore();
+
+// Lắng nghe realtime từ Socket.io
+useRealtime();
 
 const selectedId = ref(null);
 const showRescheduleModal = ref(false);
@@ -334,7 +166,7 @@ const statusClass = (s) => ({
   PENDING: "bg-warning text-dark",
   ARRIVED: "bg-primary text-white",
   CANCELLED: "bg-danger text-white",
-  COMPLETED: "bg-secondary text-white",
+  COMPLETED: "bg-success text-white",
 })[s] || "bg-secondary text-white";
 
 const statusIcon = (s) => ({
@@ -342,45 +174,19 @@ const statusIcon = (s) => ({
   PENDING: "fa-solid fa-hourglass-half",
   ARRIVED: "fa-solid fa-door-open",
   CANCELLED: "fa-solid fa-ban",
-  COMPLETED: "fa-solid fa-flag-checkered",
+  COMPLETED: "fa-solid fa-circle-check",
 })[s] || "fa-solid fa-question";
 
 const statusLabel = (s) => {
   const labels = {
     CONFIRMED: langStore.isEnglish ? "Confirmed" : "Đã Xác Nhận",
     PENDING: langStore.isEnglish ? "Pending" : "Chờ Xác Nhận",
-    ARRIVED: langStore.isEnglish ? "Checked In" : "Đã Vào Bàn",
+    ARRIVED: langStore.isEnglish ? "Seated / Dining" : "Đã Vào Bàn",
     CANCELLED: langStore.isEnglish ? "Cancelled" : "Đã Hủy",
-    COMPLETED: langStore.isEnglish ? "Completed" : "Đã Hoàn Thành",
+    COMPLETED: langStore.isEnglish ? "Paid & Completed" : "Đã Thanh Toán",
   };
   return labels[s] || s;
 };
-
-// Luồng trạng thái đơn đặt bàn
-const FLOW = ["PENDING", "CONFIRMED", "ARRIVED", "COMPLETED"];
-
-const flowStepLabel = (key) => ({
-  PENDING: langStore.isEnglish ? "Pending" : "Chờ Xác Nhận",
-  CONFIRMED: langStore.isEnglish ? "Confirmed" : "Đã Xác Nhận",
-  ARRIVED: langStore.isEnglish ? "Checked In" : "Đã Vào Bàn",
-  COMPLETED: langStore.isEnglish ? "Paid" : "Đã Thanh Toán",
-})[key];
-
-const currentFlowIndex = (status) => FLOW.indexOf(status);
-
-const orderStatusClass = (s) => ({
-  PENDING: "bg-warning text-dark",
-  PREPARING: "bg-danger text-white",
-  SERVED: "bg-success text-white",
-  CANCELLED: "bg-secondary text-white",
-})[s] || "bg-secondary text-white";
-
-const orderStatusLabel = (s) => ({
-  PENDING: langStore.isEnglish ? "Pending" : "Chờ Chế Biến",
-  PREPARING: langStore.isEnglish ? "Preparing" : "Đang Chế Biến",
-  SERVED: langStore.isEnglish ? "Served" : "Đã Phục Vụ",
-  CANCELLED: langStore.isEnglish ? "Cancelled" : "Đã Hủy",
-})[s] || s;
 
 const handleDemoConfirmDeposit = async (r) => {
   try {
@@ -430,7 +236,16 @@ const submitReschedule = async () => {
 onMounted(async () => {
   if (authStore.isAuthenticated) {
     await reservationStore.fetchMyReservations();
+    if (route.query.code) {
+      const match = reservationStore.myReservations.find(
+        (r) => r.reservationCode === route.query.code.trim().toUpperCase()
+      );
+      if (match) selectedId.value = match._id;
+    } else if (reservationStore.myReservations.length > 0) {
+      selectedId.value = reservationStore.myReservations[0]._id;
+    }
   }
+
   if (route.query.paid === "1") toast.success(langStore.isEnglish ? "Deposit payment successful!" : "Thanh toán cọc thành công!");
   else if (route.query.paid === "0") toast.error(langStore.isEnglish ? "Deposit payment incomplete." : "Thanh toán cọc chưa hoàn tất.");
 });
@@ -449,7 +264,7 @@ onMounted(async () => {
 }
 .slide-down-enter-to,
 .slide-down-leave-from {
-  max-height: 1000px;
+  max-height: 2000px;
   opacity: 1;
 }
 </style>

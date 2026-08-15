@@ -119,122 +119,31 @@
       </p>
     </div>
 
-    <!-- ═══ 7. CREATE / EDIT TABLE MODAL ═══ -->
-    <div v-if="showTableModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content rounded-4 p-2 shadow">
-          <div class="modal-header border-0 pb-1">
-            <h6 class="modal-title fw-bold brand-font text-danger" style="font-size: 0.9rem">
-              <i :class="isEditingTable ? 'fa-pen-to-square' : 'fa-plus'" class="fa-solid me-1"></i>
-              {{ isEditingTable ? 'Cập Nhật Bàn Ăn' : 'Thêm Bàn Ăn Mới' }}
-            </h6>
-            <button @click="showTableModal = false" type="button" class="btn-close btn-close-sm"></button>
-          </div>
-          <div class="modal-body py-1" style="font-size: 0.78rem">
-            <div class="mb-2">
-              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Số bàn / Mã bàn <span class="text-danger">*</span></label>
-              <input v-model="tableForm.tableNumber" type="text" class="form-control form-control-sm text-uppercase" placeholder="VD: B09, VIP04" required style="font-size: 0.75rem" />
-            </div>
-            <div class="mb-2">
-              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Sức chứa (số khách) <span class="text-danger">*</span></label>
-              <input v-model.number="tableForm.capacity" type="number" min="1" max="20" class="form-control form-control-sm" placeholder="VD: 4" required style="font-size: 0.75rem" />
-              <div class="text-muted" style="font-size: 0.62rem">Quy định từ 1 đến 20 chỗ</div>
-            </div>
-            <div class="mb-2">
-              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Khu vực <span class="text-danger">*</span></label>
-              <select v-model="tableForm.area" class="form-select form-select-sm" style="font-size: 0.75rem" required>
-                <option value="" disabled>-- Chọn khu vực --</option>
-                <option v-for="area in areas" :key="area._id" :value="area._id">
-                  {{ area.name }}
-                </option>
-              </select>
-            </div>
-            <div v-if="isEditingTable" class="mb-2">
-              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Trạng thái bàn</label>
-              <select v-model="tableForm.status" class="form-select form-select-sm" style="font-size: 0.75rem">
-                <option value="AVAILABLE">Trống (Sẵn sàng)</option>
-                <option value="RESERVED">Đã đặt trước</option>
-                <option value="OCCUPIED">Đang dùng bữa</option>
-                <option value="MAINTENANCE">Bảo trì / Tạm ngưng</option>
-              </select>
-            </div>
-            <div v-if="tableModalError" class="alert alert-danger small rounded-3 py-1 px-2 mb-0" style="font-size: 0.7rem">
-              {{ tableModalError }}
-            </div>
-          </div>
-          <div class="modal-footer border-0 pt-1">
-            <button @click="showTableModal = false" class="btn btn-light btn-sm rounded-pill px-3" style="font-size: 0.72rem">Hủy</button>
-            <button @click="handleSubmitTable" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.72rem">
-              <i class="fa-solid fa-check me-1"></i>{{ isEditingTable ? 'Lưu Thay Đổi' : 'Tạo Bàn' }}
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <!-- ═══ 7. MODALS ═══ -->
+    <TableFormModal
+      v-if="showTableModal"
+      :initialData="tableFormData"
+      :areas="areas"
+      :isEditing="isEditingTable"
+      :error="tableModalError"
+      @close="showTableModal = false"
+      @submit="handleSubmitTable"
+    />
 
-    <!-- ═══ 8. CONNECT MODAL (Manual) ═══ -->
-    <div v-if="showConnectModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content rounded-4 p-2 shadow">
-          <div class="modal-header border-0 pb-1">
-            <h6 class="modal-title fw-bold brand-font text-danger" style="font-size: 0.9rem">Tạo Liên Kết Bàn</h6>
-            <button @click="showConnectModal = false" type="button" class="btn-close btn-close-sm"></button>
-          </div>
-          <div class="modal-body py-1" style="font-size: 0.78rem">
-            <div class="mb-2">
-              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Bàn thứ nhất</label>
-              <input v-model="connForm.tableA" type="text" class="form-control form-control-sm text-uppercase" placeholder="VD: B01" style="font-size: 0.75rem" />
-            </div>
-            <div class="mb-2">
-              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Bàn thứ hai (kề bàn 1)</label>
-              <input v-model="connForm.tableB" type="text" class="form-control form-control-sm text-uppercase" placeholder="VD: B02" style="font-size: 0.75rem" />
-            </div>
-            <div class="mb-2">
-              <label class="form-label fw-semibold mb-1" style="font-size: 0.72rem">Ghi chú vị trí</label>
-              <input v-model="connForm.note" type="text" class="form-control form-control-sm" placeholder="VD: 2 bàn sát nhau dãy cửa sổ" style="font-size: 0.75rem" />
-            </div>
-            <div v-if="connModalError" class="alert alert-danger small rounded-3 py-1 px-2 mb-0" style="font-size: 0.7rem">{{ connModalError }}</div>
-          </div>
-          <div class="modal-footer border-0 pt-1">
-            <button @click="showConnectModal = false" class="btn btn-light btn-sm rounded-pill px-3" style="font-size: 0.72rem">Hủy</button>
-            <button @click="handleCreateConnection" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.72rem">
-              <i class="fa-solid fa-link me-1"></i>Tạo Liên Kết
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
+    <AreaManageModal
+      v-if="showAreaModal"
+      :areas="areas"
+      @close="showAreaModal = false"
+      @add="submitArea"
+      @delete="deleteArea"
+    />
 
-    <!-- ═══ 9. AREA MODAL ═══ -->
-    <div v-if="showAreaModal" class="modal d-block bg-dark bg-opacity-50" tabindex="-1">
-      <div class="modal-dialog modal-dialog-centered modal-sm">
-        <div class="modal-content rounded-4 p-2 shadow">
-          <div class="modal-header border-0 pb-1">
-            <h6 class="modal-title fw-bold brand-font text-danger" style="font-size: 0.9rem">Quản Lý Khu Vực</h6>
-            <button @click="showAreaModal = false" type="button" class="btn-close btn-close-sm"></button>
-          </div>
-          <div class="modal-body py-1" style="font-size: 0.78rem">
-            <div class="row g-2 mb-2">
-              <div class="col-8">
-                <input v-model="newArea.name" type="text" class="form-control form-control-sm" placeholder="Tên khu vực mới..." style="font-size: 0.75rem" />
-              </div>
-              <div class="col-4">
-                <button @click="submitArea" class="btn btn-danger btn-sm rounded-pill w-100 fw-bold" style="font-size: 0.72rem">Thêm</button>
-              </div>
-            </div>
-            <div v-if="areas.length > 0">
-              <div v-for="area in areas" :key="area._id" class="d-flex justify-content-between align-items-center py-1 border-bottom" style="font-size: 0.75rem">
-                <strong class="text-dark">{{ area.name }}</strong>
-                <button @click="deleteArea(area)" class="btn btn-outline-danger rounded-pill px-2 py-0" style="font-size: 0.6rem" title="Xóa khu vực">
-                  <i class="fa-solid fa-trash-can"></i>
-                </button>
-              </div>
-            </div>
-            <p v-else class="text-muted small text-center py-2 mb-0" style="font-size: 0.7rem">Chưa có khu vực nào</p>
-          </div>
-        </div>
-      </div>
-    </div>
+    <ManualConnectModal
+      v-if="showConnectModal"
+      :error="connModalError"
+      @close="showConnectModal = false"
+      @submit="handleCreateConnection"
+    />
   </div>
 </template>
 
@@ -245,10 +154,12 @@ import api from "../../services/api";
 import { toast } from "../../composables/useToast";
 import TableCard from "../../components/admin/TableCard.vue";
 import TableNetworkGraph from "../../components/admin/TableNetworkGraph.vue";
+import TableFormModal from "../../components/admin/table/TableFormModal.vue";
+import AreaManageModal from "../../components/admin/table/AreaManageModal.vue";
+import ManualConnectModal from "../../components/admin/table/ManualConnectModal.vue";
 
 const tableStore = useTableStore();
 
-// Modals State
 const showConnectModal = ref(false);
 const showAreaModal = ref(false);
 const showTableModal = ref(false);
@@ -258,21 +169,16 @@ const editingTableId = ref(null);
 const connModalError = ref("");
 const tableModalError = ref("");
 
-// Drag & Drop State
 const dragTableId = ref(null);
 const dropTargetId = ref(null);
 
-// Forms
-const newArea = reactive({ name: "" });
-const connForm = reactive({ tableA: "", tableB: "", note: "" });
-const tableForm = reactive({
+const tableFormData = reactive({
   tableNumber: "",
   capacity: 4,
   area: "",
   status: "AVAILABLE",
 });
 
-// Computed Properties
 const areas = computed(() => tableStore.areas);
 
 const dragSourceTable = computed(() =>
@@ -300,35 +206,21 @@ const connectionMap = computed(() => {
 });
 const connectedNumbers = (id) => connectionMap.value.get(id) || [];
 
-// ── Drag & Drop Handlers ──
-const onDragStart = (table) => {
-  dragTableId.value = table._id;
-};
-
-const onDragEnd = () => {
-  dragTableId.value = null;
-  dropTargetId.value = null;
-};
-
+// Drag & Drop
+const onDragStart = (table) => { dragTableId.value = table._id; };
+const onDragEnd = () => { dragTableId.value = null; dropTargetId.value = null; };
 const onDragOver = (table) => {
-  if (dragTableId.value && dragTableId.value !== table._id) {
-    dropTargetId.value = table._id;
-  }
+  if (dragTableId.value && dragTableId.value !== table._id) dropTargetId.value = table._id;
 };
-
 const onDragLeave = (table) => {
-  if (dropTargetId.value === table._id) {
-    dropTargetId.value = null;
-  }
+  if (dropTargetId.value === table._id) dropTargetId.value = null;
 };
 
 const onDrop = async (target) => {
   const source = tableStore.tables.find((t) => t._id === dragTableId.value);
   dragTableId.value = null;
   dropTargetId.value = null;
-
   if (!source || source._id === target._id) return;
-
   try {
     await tableStore.createConnection(source.tableNumber, target.tableNumber, "Kéo thả ghép bàn");
     toast.success(`Đã ghép bàn ${source.tableNumber} + ${target.tableNumber}`);
@@ -337,12 +229,12 @@ const onDrop = async (target) => {
   }
 };
 
-// ── Table CRUD Handlers ──
+// Table Modal
 const openCreateTableModal = () => {
   isEditingTable.value = false;
   editingTableId.value = null;
   tableModalError.value = "";
-  Object.assign(tableForm, {
+  Object.assign(tableFormData, {
     tableNumber: "",
     capacity: 4,
     area: areas.value.length > 0 ? areas.value[0]._id : "",
@@ -355,7 +247,7 @@ const openEditTableModal = (table) => {
   isEditingTable.value = true;
   editingTableId.value = table._id;
   tableModalError.value = "";
-  Object.assign(tableForm, {
+  Object.assign(tableFormData, {
     tableNumber: table.tableNumber,
     capacity: table.capacity,
     area: table.area?._id || table.area || (areas.value.length > 0 ? areas.value[0]._id : ""),
@@ -364,35 +256,26 @@ const openEditTableModal = (table) => {
   showTableModal.value = true;
 };
 
-const handleSubmitTable = async () => {
+const handleSubmitTable = async (form) => {
   tableModalError.value = "";
-  if (!tableForm.tableNumber.trim()) {
-    tableModalError.value = "Vui lòng nhập số bàn / mã bàn";
-    return;
-  }
-  if (!tableForm.capacity || tableForm.capacity < 1 || tableForm.capacity > 20) {
-    tableModalError.value = "Sức chứa phải từ 1 đến 20 khách";
-    return;
-  }
-  if (!tableForm.area) {
-    tableModalError.value = "Vui lòng chọn khu vực";
-    return;
-  }
+  if (!form.tableNumber.trim()) { tableModalError.value = "Vui lòng nhập số bàn / mã bàn"; return; }
+  if (!form.capacity || form.capacity < 1 || form.capacity > 20) { tableModalError.value = "Sức chứa phải từ 1 đến 20 khách"; return; }
+  if (!form.area) { tableModalError.value = "Vui lòng chọn khu vực"; return; }
 
   try {
     if (isEditingTable.value) {
       await tableStore.updateTable(editingTableId.value, {
-        tableNumber: tableForm.tableNumber.trim().toUpperCase(),
-        capacity: Number(tableForm.capacity),
-        area: tableForm.area,
-        status: tableForm.status,
+        tableNumber: form.tableNumber.trim().toUpperCase(),
+        capacity: Number(form.capacity),
+        area: form.area,
+        status: form.status,
       });
       toast.success("Cập nhật bàn ăn thành công");
     } else {
       await tableStore.createTable({
-        tableNumber: tableForm.tableNumber.trim().toUpperCase(),
-        capacity: Number(tableForm.capacity),
-        area: tableForm.area,
+        tableNumber: form.tableNumber.trim().toUpperCase(),
+        capacity: Number(form.capacity),
+        area: form.area,
       });
       toast.success("Tạo bàn ăn mới thành công");
     }
@@ -412,14 +295,13 @@ const handleDeleteTable = async (table) => {
   }
 };
 
-// ── Connection Handlers ──
-const handleCreateConnection = async () => {
+// Connection
+const handleCreateConnection = async (form) => {
   connModalError.value = "";
   try {
-    await tableStore.createConnection(connForm.tableA, connForm.tableB, connForm.note);
+    await tableStore.createConnection(form.tableA, form.tableB, form.note);
     toast.success("Tạo liên kết thành công");
     showConnectModal.value = false;
-    Object.assign(connForm, { tableA: "", tableB: "", note: "" });
   } catch (err) {
     connModalError.value = err.message;
   }
@@ -435,18 +317,16 @@ const handleDeleteConnection = async (conn) => {
   }
 };
 
-// ── Area Handlers ──
+// Area
 const openAreaModal = () => {
   showAreaModal.value = true;
   tableStore.fetchAreas();
 };
 
-const submitArea = async () => {
-  if (!newArea.name.trim()) { toast.error("Vui lòng nhập tên khu vực"); return; }
+const submitArea = async (name) => {
   try {
-    await api.post("/areas", { name: newArea.name });
+    await api.post("/areas", { name });
     toast.success("Thêm khu vực thành công!");
-    newArea.name = "";
     await tableStore.fetchAreas();
   } catch (err) {
     toast.error(err.response?.data?.message || "Thêm khu vực thất bại!");
@@ -464,7 +344,6 @@ const deleteArea = async (area) => {
   }
 };
 
-// ── Lifecycle ──
 const refreshAll = () => {
   tableStore.fetchTables();
   tableStore.fetchConnections();

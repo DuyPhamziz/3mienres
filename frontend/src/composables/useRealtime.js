@@ -24,11 +24,23 @@ export function useRealtime() {
     socket = connectSocket();
     bind("tables:changed", () => tableStore.fetchTables());
     bind("connections:changed", () => tableStore.fetchConnections());
-    bind("sessions:changed", () => sessionStore.fetchActiveSessions());
-    bind("reservations:changed", () => reservationStore.fetchAllReservations());
-    // Đơn món / hóa đơn thay đổi cũng ảnh hưởng tới trạng thái phiên ăn.
-    bind("orders:changed", () => sessionStore.fetchActiveSessions());
-    bind("invoices:changed", () => sessionStore.fetchActiveSessions());
+    bind("sessions:changed", () => {
+      sessionStore.fetchActiveSessions();
+      reservationStore.fetchMyReservations();
+    });
+    bind("reservations:changed", () => {
+      reservationStore.fetchAllReservations();
+      reservationStore.fetchMyReservations();
+    });
+    // Đơn món / hóa đơn thay đổi cũng ảnh hưởng tới trạng thái phiên ăn & đơn đặt bàn.
+    bind("orders:changed", () => {
+      sessionStore.fetchActiveSessions();
+      reservationStore.fetchMyReservations();
+    });
+    bind("invoices:changed", () => {
+      sessionStore.fetchActiveSessions();
+      reservationStore.fetchMyReservations();
+    });
   });
 
   onBeforeUnmount(() => {

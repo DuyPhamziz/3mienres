@@ -1,5 +1,6 @@
 const Invoice = require("../models/invoice.model");
 const DiningSession = require("../models/dining-session.model");
+const Reservation = require("../models/reservation.model");
 const Order = require("../models/order.model");
 const Table = require("../models/table.model");
 const User = require("../models/user.model");
@@ -35,7 +36,7 @@ const updateCustomerRank = async (userId, paidAmount) => {
   await user.save();
 };
 
-// Hoàn tất hóa đơn: đóng phiên ăn, giải phóng bàn, tích lũy hạng thành viên
+// Hoàn tất hóa đơn: đóng phiên ăn, giải phóng bàn, hoàn tất đơn đặt bàn, tích lũy hạng thành viên
 const finalizeInvoiceSession = async (session, finalAmount) => {
   const now = new Date();
   session.status = "COMPLETED";
@@ -44,11 +45,18 @@ const finalizeInvoiceSession = async (session, finalAmount) => {
 
   await Table.updateMany({ _id: { $in: session.tables } }, { status: "AVAILABLE" });
 
-  const loyaltyUserId = session.reservation ? session.reservation.user : session.customer;
+  const reservationId = session.reservation ? (session.reservation._id || session.reservation) : null;
+  if (reservationId) {
+    await Reservation.findByIdAndUpdate(reservationId, { status: "COMPLETED" });
+    emitEvent("reservations:changed");
+  }
+
+  const loyaltyUserId = session.reservation ? (session.reservation.user || session.customer) : session.customer;
   if (loyaltyUserId) await updateCustomerRank(loyaltyUserId, finalAmount);
 
   emitEvent("sessions:changed");
   emitEvent("tables:changed");
+  emitEvent("invoices:changed");
 };
 
 const momo = require("../utils/momo");

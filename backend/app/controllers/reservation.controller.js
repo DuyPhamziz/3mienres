@@ -3,6 +3,7 @@ const Table = require("../models/table.model");
 const Dish = require("../models/dish.model");
 const DiningSession = require("../models/dining-session.model");
 const Order = require("../models/order.model");
+const Invoice = require("../models/invoice.model");
 const RestaurantSetting = require("../models/setting.model");
 const AppError = require("../app-error");
 const tableEngine = require("../utils/table-engine");
@@ -12,43 +13,12 @@ const { roundMoney } = require("../utils/money");
 const { emitEvent } = require("../socket");
 const notifier = require("../utils/notifier");
 const { logAction } = require("../utils/audit");
-const { getPagination, buildPaginationMeta, buildSearchFilter } = require("../utils/pagination");
+const { getRestaurantPaymentSettings, calculateRefundAmount } = require("../utils/reservation-policy");
+const adminController = require("./reservation-admin.controller");
 
 const STAFF_ROLES = ["staff", "manager", "admin"];
 
-const getRestaurantPaymentSettings = async () => {
-  let durationMinutes = 120;
-  let defaultDeposit = 100000;
-  let bankInfo = {
-    bankId: "MB",
-    accountNo: "0988776655",
-    accountName: "NHA HANG 3 MIEN CUA",
-  };
-
-  const settings = await RestaurantSetting.findOne();
-  if (settings?.reservation) {
-    durationMinutes = settings.reservation.defaultDurationMinutes || durationMinutes;
-    if (settings.reservation.defaultDepositAmount !== undefined) {
-      defaultDeposit = settings.reservation.defaultDepositAmount;
-    }
-  }
-  if (settings?.bankAccount) bankInfo = settings.bankAccount;
-
-  return { durationMinutes, defaultDeposit, bankInfo };
-};
-
-// Tính số tiền cọc sẽ hoàn lại theo chính sách hoàn cọc khi khách hủy
-const calculateRefundAmount = (reservation, refundPolicy) => {
-  if (reservation.depositStatus !== "PAID" || reservation.depositAmount <= 0) return 0;
-  const hoursBefore = (new Date(reservation.startAt).getTime() - Date.now()) / 3600000;
-  const { fullRefundHours = 24, partialRefundHours = 2, partialRefundPercent = 50 } = refundPolicy || {};
-  if (hoursBefore >= fullRefundHours) return reservation.depositAmount;
-  if (hoursBefore >= partialRefundHours) {
-    return roundMoney((reservation.depositAmount * partialRefundPercent) / 100);
-  }
-  return 0;
-};
-
+// 1. Tạo đơn đặt bàn online mới
 exports.createReservation = async (req, res, next) => {
   try {
     const {
@@ -101,20 +71,16 @@ exports.createReservation = async (req, res, next) => {
     let isCombined = false;
 
     if (Array.isArray(tableIds) && tableIds.length > 0) {
-      // Khách chủ động chọn bàn cụ thể
       let totalCapacity = 0;
       for (const tid of tableIds) {
         const table = availableTables.find((t) => t._id.toString() === tid.toString());
-        if (!table) {
-          return next(new AppError("Một số bàn đã chọn không khả dụng trong khung giờ này", 409));
-        }
+        if (!table) return next(new AppError("Một số bàn đã chọn không khả dụng trong khung giờ này", 409));
         totalCapacity += table.capacity;
         assignedTables.push(table._id);
       }
       if (totalCapacity < guests) {
         return next(new AppError(`Tổng sức chứa các bàn đã chọn (${totalCapacity}) không đủ cho ${guests} khách`, 400));
       }
-      // Kiểm tra các bàn chọn có nằm cạnh nhau để ghép được hay không
       if (assignedTables.length > 1) {
         const mergeCheck = await tableEngine.validateMergeableTables(assignedTables);
         if (!mergeCheck.isValid) {
@@ -223,6 +189,7 @@ exports.createReservation = async (req, res, next) => {
   }
 };
 
+// 2. Tra cứu trạng thái đơn đặt bàn công khai qua mã code & SĐT
 exports.trackReservation = async (req, res, next) => {
   try {
     const { code } = req.params;
@@ -236,7 +203,7 @@ exports.trackReservation = async (req, res, next) => {
     const reservation = await Reservation.findOne({ reservationCode: code.trim().toUpperCase() })
       .populate("user", "name email phone role")
       .populate("tables", "tableNumber capacity area")
-      .populate("preOrderDishes.dish", "name price image");
+      .populate("preOrderDishes.dish", "name price image description category");
 
     if (!reservation || reservation.customerPhone !== phone.trim()) {
       return next(new AppError("Mã đặt bàn hoặc số điện thoại không đúng", 404));
@@ -251,16 +218,20 @@ exports.trackReservation = async (req, res, next) => {
       `COC ${reservation.reservationCode}`,
     );
 
-    // Lấy lượt dùng bữa + đơn món (nếu khách đã check-in) để khách theo dõi trạng thái món
-    let session = null;
+    const session = await DiningSession.findOne({ reservation: reservation._id })
+      .populate("tables", "tableNumber capacity area");
     let orders = [];
-    if (reservation.status === "ARRIVED") {
-      session = await DiningSession.findOne({ reservation: reservation._id, status: "ACTIVE" })
-        .populate("tables", "tableNumber capacity");
-      if (session) {
-        orders = await Order.find({ diningSession: session._id })
-          .populate("items.dish", "name image")
-          .sort({ createdAt: 1 });
+    let invoice = null;
+
+    if (session) {
+      orders = await Order.find({ diningSession: session._id })
+        .populate("items.dish", "name price image category")
+        .sort({ createdAt: 1 });
+      invoice = await Invoice.findOne({ diningSession: session._id }).populate("cashier", "name");
+
+      if ((session.status === "COMPLETED" || invoice) && reservation.status === "ARRIVED") {
+        reservation.status = "COMPLETED";
+        await Reservation.findByIdAndUpdate(reservation._id, { status: "COMPLETED" });
       }
     }
 
@@ -275,6 +246,7 @@ exports.trackReservation = async (req, res, next) => {
       },
       session,
       orders,
+      invoice,
       data: { reservation },
     });
   } catch (error) {
@@ -282,6 +254,7 @@ exports.trackReservation = async (req, res, next) => {
   }
 };
 
+// 3. Hủy đơn đặt bàn
 exports.cancelReservation = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -304,7 +277,6 @@ exports.cancelReservation = async (req, res, next) => {
     reservation.cancellationReason = reason ? reason.trim() : "Khách hàng yêu cầu hủy";
     reservation.tables = [];
 
-    // Tính số tiền cọc được hoàn lại theo chính sách
     const settings = await RestaurantSetting.findOne();
     reservation.refundAmount = calculateRefundAmount(reservation, settings?.refund);
     reservation.refundStatus = reservation.refundAmount > 0 ? "PENDING" : "NONE";
@@ -329,6 +301,7 @@ exports.cancelReservation = async (req, res, next) => {
   }
 };
 
+// 4. Lấy lịch sử đặt bàn của khách hàng đang đăng nhập
 exports.getMyReservations = async (req, res, next) => {
   try {
     const userPhone = req.user.phone ? req.user.phone.trim() : null;
@@ -341,19 +314,22 @@ exports.getMyReservations = async (req, res, next) => {
 
     const reservations = await Reservation.find(query)
       .populate("tables", "tableNumber capacity area")
-      .populate("preOrderDishes.dish", "name price image")
+      .populate("preOrderDishes.dish", "name price image description category")
       .sort({ startAt: -1 });
 
-    // Kèm lượt dùng bữa + đơn món cho các đơn đã check-in (ARRIVED) để khách theo dõi trạng thái món
-    const arrivedIds = reservations.filter((r) => r.status === "ARRIVED").map((r) => r._id);
-    const sessions = await DiningSession.find({ reservation: { $in: arrivedIds }, status: "ACTIVE" })
-      .populate("tables", "tableNumber capacity");
+    const resIds = reservations.map((r) => r._id);
+    const sessions = await DiningSession.find({ reservation: { $in: resIds } })
+      .populate("tables", "tableNumber capacity area");
 
     const sessionMap = new Map(sessions.map((s) => [s.reservation.toString(), s]));
+    const sessionIds = sessions.map((s) => s._id);
 
-    const orders = await Order.find({ diningSession: { $in: sessions.map((s) => s._id) } })
-      .populate("items.dish", "name image")
+    const orders = await Order.find({ diningSession: { $in: sessionIds } })
+      .populate("items.dish", "name price image category")
       .sort({ createdAt: 1 });
+
+    const invoices = await Invoice.find({ diningSession: { $in: sessionIds } })
+      .populate("cashier", "name");
 
     const ordersBySession = new Map();
     orders.forEach((o) => {
@@ -362,15 +338,27 @@ exports.getMyReservations = async (req, res, next) => {
       ordersBySession.get(key).push(o);
     });
 
-    const result = reservations.map((r) => {
+    const invoiceBySession = new Map();
+    invoices.forEach((inv) => {
+      invoiceBySession.set(inv.diningSession.toString(), inv);
+    });
+
+    const result = [];
+    for (const r of reservations) {
       const obj = r.toObject();
       const session = sessionMap.get(r._id.toString());
       if (session) {
         obj.session = session;
         obj.orders = ordersBySession.get(session._id.toString()) || [];
+        obj.invoice = invoiceBySession.get(session._id.toString()) || null;
+
+        if ((session.status === "COMPLETED" || obj.invoice) && r.status === "ARRIVED") {
+          obj.status = "COMPLETED";
+          await Reservation.findByIdAndUpdate(r._id, { status: "COMPLETED" });
+        }
       }
-      return obj;
-    });
+      result.push(obj);
+    }
 
     res.status(200).json({
       status: "success",
@@ -382,152 +370,7 @@ exports.getMyReservations = async (req, res, next) => {
   }
 };
 
-exports.getAllReservations = async (req, res, next) => {
-  try {
-    const { status, date, search } = req.query;
-    const filter = {};
-
-    if (status) filter.status = status;
-    if (date) {
-      const startOfDay = new Date(date);
-      startOfDay.setHours(0, 0, 0, 0);
-      const endOfDay = new Date(date);
-      endOfDay.setHours(23, 59, 59, 999);
-      filter.startAt = { $gte: startOfDay, $lte: endOfDay };
-    }
-
-    const searchFilter = buildSearchFilter(search, ["reservationCode", "customerName", "customerPhone"]);
-    if (searchFilter) Object.assign(filter, searchFilter);
-
-    const { page, limit, skip } = getPagination(req.query);
-    const total = await Reservation.countDocuments(filter);
-
-    const reservations = await Reservation.find(filter)
-      .populate("user", "name email phone")
-      .populate("tables", "tableNumber capacity area")
-      .populate("preOrderDishes.dish", "name price")
-      .sort({ startAt: -1 })
-      .skip(skip)
-      .limit(limit);
-
-    res.status(200).json({
-      status: "success",
-      results: reservations.length,
-      ...buildPaginationMeta(total, page, limit),
-      data: { reservations },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.assignTables = async (req, res, next) => {
-  try {
-    const { tableIds } = req.body;
-    const reservation = await Reservation.findById(req.params.id);
-
-    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
-    if (!Array.isArray(tableIds) || tableIds.length === 0) {
-      return next(new AppError("Vui lòng cung cấp danh sách bàn hợp lệ", 400));
-    }
-
-    for (const tableId of tableIds) {
-      const table = await Table.findById(tableId);
-      if (!table) return next(new AppError(`Bàn với ID '${tableId}' không tồn tại`, 404));
-    }
-
-    // Kiểm tra các bàn gán phải nằm cạnh nhau mới ghép được
-    if (tableIds.length > 1) {
-      const mergeCheck = await tableEngine.validateMergeableTables(tableIds);
-      if (!mergeCheck.isValid) {
-        return next(new AppError("Các bàn được gán không nằm cạnh nhau nên không thể ghép. Vui lòng chọn bàn kề nhau.", 400));
-      }
-    }
-
-    reservation.tables = tableIds;
-    reservation.status = "CONFIRMED";
-    await reservation.save();
-
-    emitEvent("reservations:changed");
-
-    res.status(200).json({
-      status: "success",
-      message: "Gán bàn dự kiến thành công",
-      data: { reservation },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-exports.confirmDeposit = async (req, res, next) => {
-  try {
-    const reservation = await Reservation.findById(req.params.id);
-    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
-
-    if (reservation.depositAmount <= 0) {
-      return next(new AppError("Đơn đặt bàn này không yêu cầu tiền cọc", 400));
-    }
-    if (["CANCELLED", "COMPLETED"].includes(reservation.status)) {
-      return next(new AppError(`Đơn đặt bàn đang ở trạng thái '${reservation.status}', không thể xác nhận cọc`, 409));
-    }
-    if (reservation.depositStatus === "PAID") {
-      return next(new AppError("Đơn đặt bàn này đã được xác nhận cọc", 409));
-    }
-
-    reservation.depositStatus = "PAID";
-    reservation.depositConfirmedAt = new Date();
-    reservation.depositConfirmedBy = req.user ? req.user._id : null;
-    await reservation.save();
-
-    emitEvent("reservations:changed");
-    notifier.notifyDepositConfirmed(reservation);
-    logAction(req, "CONFIRM_DEPOSIT", "Reservation", reservation._id, {
-      reservationCode: reservation.reservationCode,
-      amount: reservation.depositAmount,
-    });
-
-    res.status(200).json({
-      status: "success",
-      message: `Đã xác nhận nhận tiền cọc ${roundMoney(reservation.depositAmount).toLocaleString("vi-VN")}đ thành công`,
-      data: { reservation },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// 7.b Giả lập nộp cọc thành công cho Demo Đồ Án / Giảng viên theo dõi
-exports.demoConfirmDeposit = async (req, res, next) => {
-  try {
-    const reservation = await Reservation.findById(req.params.id);
-    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
-
-    if (["CANCELLED", "COMPLETED"].includes(reservation.status)) {
-      return next(new AppError(`Đơn đặt bàn đang ở trạng thái '${reservation.status}', không thể nộp cọc`, 409));
-    }
-
-    reservation.depositStatus = "PAID";
-    reservation.depositConfirmedAt = new Date();
-    if (reservation.status === "PENDING") {
-      reservation.status = "CONFIRMED";
-    }
-    await reservation.save();
-
-    emitEvent("reservations:changed");
-    notifier.notifyDepositConfirmed(reservation);
-
-    res.status(200).json({
-      status: "success",
-      message: `[DEMO TEST] Đã giả lập thanh toán nộp cọc ${roundMoney(reservation.depositAmount).toLocaleString("vi-VN")}đ thành công!`,
-      data: { reservation },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-// 8. Dời lịch đặt bàn (chính chủ hoặc nhân viên)
+// 5. Dời lịch đặt bàn
 exports.rescheduleReservation = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -551,7 +394,6 @@ exports.rescheduleReservation = async (req, res, next) => {
       return next(new AppError("Thời gian mới phải là thời điểm hợp lệ trong tương lai", 400));
     }
 
-    // Đọc thời lượng và gán lại bàn trống theo khung giờ mới
     const settings = await getRestaurantPaymentSettings();
     const endTime = new Date(startTime.getTime() + settings.durationMinutes * 60000);
     const occupiedTableIds = await tableEngine.getOccupiedTableIds(startTime, endTime);
