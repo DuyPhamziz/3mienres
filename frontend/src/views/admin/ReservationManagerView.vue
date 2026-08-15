@@ -1,137 +1,67 @@
 <template>
-  <div>
-    <div class="d-flex justify-content-between align-items-center mb-4">
+  <div class="reservation-manager">
+    <!-- Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
       <div>
-        <h2 class="fw-bold brand-font mb-1">Quản Lý Đơn Đặt Bàn & Quét Mã QR Check-in</h2>
-        <p class="text-muted small mb-0">Quét mã QR của khách khi tới quầy để xác nhận vào bàn tức thì trong 3 giây</p>
+        <h2 class="fw-bold brand-font mb-1 text-dark">
+          <i class="fa-solid fa-qrcode text-danger me-2"></i>Quản Lý Đặt Bàn & Check-in Bằng Ảnh QR
+        </h2>
+        <p class="text-muted small mb-0">
+          Tải ảnh thẻ/mã QR do khách hàng xuất trình để hệ thống tự động giải mã và mở bàn tức thì
+        </p>
       </div>
+
+      <!-- Quick Search & Refresh -->
       <div class="d-flex gap-2 align-items-center">
         <div class="input-group input-group-sm" style="width: 240px;">
           <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-          <input v-model="search" @keyup.enter="onSearch" type="text" class="form-control" placeholder="Tìm mã / tên / SĐT..." />
+          <input
+            v-model="search"
+            @keyup.enter="onSearch"
+            type="text"
+            class="form-control"
+            placeholder="Tìm mã / tên / SĐT..."
+          />
         </div>
-        <button @click="fetchReservations" class="btn btn-outline-danger btn-sm rounded-pill px-3">
+        <button @click="fetchReservations" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-2xs">
           <i class="fa-solid fa-rotate me-1"></i> Làm mới
         </button>
       </div>
     </div>
 
-    <!-- QUICK QR CHECK-IN SCANNER BOX FOR STAFF -->
-    <div class="glass-card p-4 rounded-4 mb-4 border-danger border-opacity-50 bg-white">
-      <h5 class="fw-bold brand-font text-danger mb-2">
-        <i class="fa-solid fa-qrcode me-2"></i>Quét / Nhập Mã QR Check-in Tốc Độ
-      </h5>
-      <p class="small text-muted mb-3">Sử dụng máy quét mã vạch hoặc gõ Mã đặt bàn trên vé của khách (VD: RES-393861) để tìm đơn tức thì:</p>
-      <div class="input-group" style="max-width: 480px;">
-        <span class="input-group-text bg-danger text-white"><i class="fa-solid fa-barcode"></i></span>
-        <input
-          v-model="qrSearchCode"
-          @input="handleQRScanInput"
-          type="text"
-          class="form-control text-uppercase fw-bold border-danger py-2"
-          placeholder="Quét hoặc nhập RES-XXXXXX..."
-        />
-        <button v-if="qrSearchCode" @click="qrSearchCode = ''" class="btn btn-outline-secondary" type="button">Xóa</button>
-      </div>
-    </div>
+    <!-- 1. Hub Tiếp Nhận & Check-in Bằng Ảnh QR -->
+    <QRCheckInHub
+      :matched-reservation="matchedReservation"
+      :latest-confirmed-reservation="latestConfirmedReservation"
+      :check-in-loading="checkInLoading"
+      @code-scanned="handleCodeScanned"
+      @check-in="handleCheckIn"
+      @confirm-deposit="handleConfirmDeposit"
+      @clear="activeCode = ''"
+    />
 
+    <!-- 2. Bảng Danh Sách Đơn Đặt Bàn -->
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-danger" role="status"></div>
+      <p class="text-muted small mt-2">Đang tải danh sách đặt bàn...</p>
     </div>
 
-    <div v-else class="glass-card p-4 rounded-4 bg-white">
-      <div v-if="filteredReservations.length > 0" class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead>
-            <tr class="text-muted small">
-              <th>Mã Đơn</th>
-              <th>Khách Hàng</th>
-              <th>Số Khách</th>
-              <th>Giờ Đặt Bàn</th>
-              <th>Bàn Dự Kiến</th>
-              <th>Trạng Thái</th>
-              <th>Tiền Cọc</th>
-              <th class="text-end">Thao Tác</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr
-              v-for="res in filteredReservations"
-              :key="res._id"
-              :class="{ 'table-warning': qrSearchCode && res.reservationCode.includes(qrSearchCode.toUpperCase()) }"
-            >
-              <td><strong class="text-danger fs-6">{{ res.reservationCode }}</strong></td>
-              <td>
-                <strong class="d-block text-dark">{{ res.customerName }}</strong>
-                <small class="text-muted">{{ res.customerPhone }}</small>
-              </td>
-              <td><span class="badge bg-secondary rounded-pill px-3 py-1">{{ res.guestsCount }} người</span></td>
-              <td><small class="fw-semibold text-danger">{{ new Date(res.startAt).toLocaleString('vi-VN') }}</small></td>
-              <td>
-                <div v-if="res.tables && res.tables.length > 0" class="d-flex gap-1 flex-wrap">
-                  <span v-for="t in res.tables" :key="t._id" class="badge bg-danger rounded-pill">
-                    Bàn {{ t.tableNumber }}
-                  </span>
-                </div>
-                <span v-else class="text-muted fs-8">Chưa gán bàn</span>
-              </td>
-              <td>
-                <span
-                  :class="[
-                    'badge px-3 py-2 rounded-pill fs-8',
-                    res.status === 'CONFIRMED' ? 'bg-success' : res.status === 'ARRIVED' ? 'bg-primary' : 'bg-secondary'
-                  ]"
-                >
-                  {{ res.status === 'CONFIRMED' ? 'Đã duyệt giữ chỗ' : res.status === 'ARRIVED' ? 'Khách Đã Đến' : res.status }}
-                </span>
-              </td>
-              <td>
-                <template v-if="res.depositAmount > 0">
-                  <strong class="d-block text-danger small">{{ res.depositAmount.toLocaleString('vi-VN') }}đ</strong>
-                  <span :class="['badge rounded-pill fs-8', res.depositStatus === 'PAID' ? 'bg-success' : 'bg-warning text-dark']">
-                    {{ res.depositStatus === 'PAID' ? 'Đã nhận cọc' : 'Chưa nhận cọc' }}
-                  </span>
-                </template>
-                <span v-else class="text-muted fs-8">Không cọc</span>
-              </td>
-              <td class="text-end">
-                <div class="d-flex gap-2 justify-content-end flex-wrap">
-                  <button
-                    v-if="res.depositAmount > 0 && res.depositStatus !== 'PAID' && (res.status === 'CONFIRMED' || res.status === 'PENDING')"
-                    @click="handleConfirmDeposit(res)"
-                    class="btn btn-warning btn-sm rounded-pill px-3 fw-bold"
-                  >
-                    <i class="fa-solid fa-money-bill-transfer me-1"></i> Nhận Cọc
-                  </button>
-                  <button
-                    v-if="res.status === 'CONFIRMED' || res.status === 'PENDING'"
-                    @click="handleCheckIn(res)"
-                    class="btn btn-success btn-sm rounded-pill px-3 fw-bold"
-                  >
-                    <i class="fa-solid fa-right-to-bracket me-1"></i> Check-in
-                  </button>
-                  <span v-if="res.status === 'ARRIVED' || res.status === 'COMPLETED'" class="text-muted small fs-8">Hoàn tất</span>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <p v-else class="text-muted small py-4 text-center mb-0">Không tìm thấy đơn đặt bàn khớp với từ khóa tìm kiếm</p>
+    <ReservationTable
+      v-else
+      :reservations="filteredReservations"
+      :meta="meta"
+      :active-reservation-id="matchedReservation?._id"
+      @page-change="goPage"
+      @open-qr="selectedResQR = $event"
+      @check-in="handleCheckIn"
+      @confirm-deposit="handleConfirmDeposit"
+    />
 
-      <!-- Phân trang -->
-      <div v-if="meta.totalPages > 1" class="d-flex justify-content-between align-items-center pt-3 border-top mt-3">
-        <small class="text-muted">Trang {{ meta.page }}/{{ meta.totalPages }} · {{ meta.total }} đơn</small>
-        <div class="d-flex gap-2">
-          <button @click="goPage(meta.page - 1)" :disabled="meta.page <= 1" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            <i class="fa-solid fa-chevron-left me-1"></i> Trước
-          </button>
-          <button @click="goPage(meta.page + 1)" :disabled="meta.page >= meta.totalPages" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            Sau <i class="fa-solid fa-chevron-right ms-1"></i>
-          </button>
-        </div>
-      </div>
-    </div>
+    <!-- 3. Modal Xem / Tải QR của đơn -->
+    <ReservationQRModal
+      :reservation="selectedResQR"
+      @close="selectedResQR = null"
+    />
   </div>
 </template>
 
@@ -140,21 +70,43 @@ import { ref, computed, onMounted } from "vue";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useReservationStore } from "../../stores/reservationStore";
 import { toast } from "../../composables/useToast";
+import QRCheckInHub from "../../components/admin/reservation/QRCheckInHub.vue";
+import ReservationTable from "../../components/admin/reservation/ReservationTable.vue";
+import ReservationQRModal from "../../components/admin/reservation/ReservationQRModal.vue";
 
 const sessionStore = useSessionStore();
 const reservationStore = useReservationStore();
+
 const loading = ref(false);
-const qrSearchCode = ref("");
+const checkInLoading = ref(false);
+const activeCode = ref("");
 const search = ref("");
 const page = ref(1);
+const selectedResQR = ref(null);
 
 const reservations = computed(() => reservationStore.allReservations);
 const meta = computed(() => reservationStore.reservationMeta);
 
+const latestConfirmedReservation = computed(() => {
+  return reservations.value.find((r) => r.status === "CONFIRMED") || reservations.value[0] || null;
+});
+
+const matchedReservation = computed(() => {
+  const code = activeCode.value.trim().toUpperCase();
+  if (!code) return null;
+  return reservations.value.find((r) => r.reservationCode.toUpperCase() === code || r.customerPhone === code);
+});
+
+const filteredReservations = computed(() => {
+  if (!activeCode.value) return reservations.value;
+  const keyword = activeCode.value.trim().toUpperCase();
+  return reservations.value.filter((r) => r.reservationCode.includes(keyword) || r.customerPhone.includes(keyword));
+});
+
 const fetchReservations = async () => {
   loading.value = true;
   try {
-    await reservationStore.fetchAllReservations({ search: search.value, page: page.value, limit: 10 });
+    await reservationStore.fetchAllReservations({ search: search.value, page: page.value, limit: 15 });
   } catch (err) {
     toast.error("Lỗi lấy danh sách đặt bàn: " + err.message);
   } finally {
@@ -173,37 +125,33 @@ const onSearch = () => {
   fetchReservations();
 };
 
-const filteredReservations = computed(() => {
-  if (!qrSearchCode.value) return reservations.value;
-  const keyword = qrSearchCode.value.trim().toUpperCase();
-  return reservations.value.filter((r) => r.reservationCode.includes(keyword) || r.customerPhone.includes(keyword));
-});
-
-const handleQRScanInput = () => {
-  // Tự động trigger check-in nếu khớp chính xác 1 đơn
-  const exact = filteredReservations.value.find((r) => r.reservationCode === qrSearchCode.value.trim().toUpperCase());
-  if (exact && exact.status === "CONFIRMED") {
-    handleCheckIn(exact);
-  }
+const handleCodeScanned = (code) => {
+  activeCode.value = code;
 };
 
 const handleConfirmDeposit = async (reservation) => {
   try {
     await reservationStore.confirmDeposit(reservation._id);
-    toast.success(`Đã xác nhận nhận cọc ${reservation.depositAmount.toLocaleString('vi-VN')}đ cho ${reservation.reservationCode}`);
+    toast.success(`Đã xác nhận cọc ${reservation.depositAmount.toLocaleString('vi-VN')}đ cho ${reservation.reservationCode}`);
+    await fetchReservations();
   } catch (err) {
     toast.error(err.message);
   }
 };
 
 const handleCheckIn = async (reservation) => {
+  checkInLoading.value = true;
   try {
-    await sessionStore.checkInReservation(reservation._id, reservation.guestsCount, reservation.tables.map((t) => t._id));
-    toast.success(`Check-in mở bàn thành công cho ${reservation.customerName}`);
-    qrSearchCode.value = "";
+    const tableIds = reservation.tables && reservation.tables.length > 0
+      ? reservation.tables.map((t) => t._id || t)
+      : [];
+    await sessionStore.checkInReservation(reservation._id, reservation.guestsCount, tableIds);
+    toast.success(`Check-in mở bàn thành công cho khách hàng ${reservation.customerName}!`);
     await fetchReservations();
   } catch (err) {
     toast.error("Lỗi Check-in: " + err.message);
+  } finally {
+    checkInLoading.value = false;
   }
 };
 
@@ -211,3 +159,9 @@ onMounted(() => {
   fetchReservations();
 });
 </script>
+
+<style scoped>
+.shadow-2xs {
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+</style>

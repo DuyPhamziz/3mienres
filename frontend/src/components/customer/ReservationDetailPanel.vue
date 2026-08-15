@@ -35,22 +35,14 @@
     <div class="row g-0">
       <!-- ═══ CỘT TRÁI: QR CHECK-IN & TIỀN CỌC ═══ -->
       <div class="col-md-5 p-3 p-md-4 border-bottom border-md-bottom-0 border-md-end">
-        <h6 class="fw-bold text-dark mb-3">
-          <i class="fa-solid fa-qrcode text-danger me-2"></i>
-          {{ isEnglish ? 'Check-in QR Code' : 'Mã QR Check-in Tại Quầy' }}
-        </h6>
-        <div class="text-center bg-white rounded-4 p-3 border mb-3">
-          <img
-            :src="`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(r.reservationCode)}`"
-            :alt="r.reservationCode"
-            class="img-fluid rounded-3"
-            style="max-width: 160px;"
+        <!-- QR Check-in Pass Card Component -->
+        <div class="mb-3">
+          <CheckInQRCard
+            :reservation="r"
+            :isEnglish="isEnglish"
+            :qrSize="130"
+            :showDescription="false"
           />
-          <p class="small text-muted mt-2 mb-0" style="font-size: 0.72rem;">
-            {{ r.status === 'COMPLETED'
-                ? (isEnglish ? 'Booking completed. Thank you!' : 'Lượt dùng bữa đã hoàn tất. Cảm ơn quý khách!')
-                : (isEnglish ? 'Show to cashier for instant check-in' : 'Đưa mã này cho Thu ngân để check-in nhanh') }}
-          </p>
         </div>
 
         <!-- Deposit Info -->
@@ -248,6 +240,7 @@
 
 <script setup>
 import { getImageUrl } from "../../utils/imageHelper";
+import CheckInQRCard from "./reservation/CheckInQRCard.vue";
 import ReservationReceipt from "./ReservationReceipt.vue";
 
 const props = defineProps({

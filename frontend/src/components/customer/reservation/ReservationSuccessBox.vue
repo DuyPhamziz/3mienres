@@ -1,5 +1,6 @@
 <template>
   <div class="max-w-2xl mx-auto glass-card p-4 p-md-5 rounded-5 text-center mb-5 border-success shadow-lg bg-white">
+    <!-- Success Badge & Title -->
     <div class="badge bg-success px-3 py-2 rounded-pill fs-7 mb-3">
       <i class="fa-solid fa-circle-check me-1"></i> {{ isEnglish ? 'BOOKING SUCCESSFUL' : 'ĐẶT BÀN THÀNH CÔNG' }}
     </div>
@@ -24,10 +25,19 @@
       </div>
     </div>
 
+    <!-- Check-in QR Pass Component -->
+    <div class="mb-4">
+      <CheckInQRCard
+        :reservation="successData.data.reservation"
+        :isEnglish="isEnglish"
+        :qrSize="160"
+      />
+    </div>
+
     <!-- VietQR Deposit Payment Box -->
     <div v-if="successData.deposit && successData.deposit.amount > 0" class="p-4 bg-light rounded-4 border mb-4">
       <h5 class="fw-bold brand-font text-danger mb-2">
-        <i class="fa-solid fa-qrcode me-2"></i>{{ isEnglish ? 'Pay Table & Dish Deposit' : 'Thanh Toán Cọc Giữ Bàn & Món Ăn' }}
+        <i class="fa-solid fa-money-bill-transfer me-2"></i>{{ isEnglish ? 'Pay Table & Dish Deposit' : 'Thanh Toán Cọc Giữ Bàn & Món Ăn' }}
       </h5>
       <p class="small text-muted mb-3">
         {{ isEnglish ? `Please scan VietQR code below using Banking app to pay deposit of ${successData.deposit.amount.toLocaleString('vi-VN')}đ` : `Vui lòng quét Mã QR bên dưới bằng ứng dụng Ngân hàng để nộp tiền cọc ${successData.deposit.amount.toLocaleString('vi-VN')}đ` }}
@@ -57,6 +67,7 @@
       </button>
     </div>
 
+    <!-- Navigation Buttons -->
     <div class="d-flex justify-content-center gap-3 flex-wrap">
       <router-link to="/" class="btn btn-primary-crab rounded-pill px-4 fw-bold">
         <i class="fa-solid fa-house me-1"></i> {{ isEnglish ? 'Back to Home' : 'Về Trang Chủ' }}
@@ -72,6 +83,8 @@
 </template>
 
 <script setup>
+import CheckInQRCard from "./CheckInQRCard.vue";
+
 defineProps({
   successData: {
     type: Object,
