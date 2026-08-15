@@ -2,28 +2,28 @@
   <div class="wizard-panel">
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
-        <h4 class="fw-bold text-danger brand-font mb-0 d-flex align-items-center gap-2">
+        <h4 class="fw-bold text-danger brand-font mb-0 d-flex align-items-center gap-2 fs-5">
           <i class="fa-solid fa-utensils"></i>
-          {{ isEnglish ? 'Step 3: Pre-order Specialties' : 'Bước 3: Đặt Trước Món Ăn Đặc Sản 3 Miền' }}
+          {{ isEnglish ? 'Step 3: Pre-order Specialties' : 'Bước 3: Đặt Trước Món Ăn Đặc Sản' }}
         </h4>
-        <small class="text-muted">
-          {{ isEnglish ? 'Drag dishes into dining table or click (+) to add to pre-order bill.' : 'Kéo món ăn thả vào vùng bàn ăn bên phải hoặc bấm (+) để đặt trước' }}
+        <small class="text-muted fs-8">
+          {{ isEnglish ? 'Tap (+) or drag dishes into tray to pre-order.' : 'Chạm nút (+) hoặc kéo món vào vùng bàn ăn để đặt trước' }}
         </small>
       </div>
     </div>
 
     <!-- MAIN INTERACTIVE DRAG & DROP SPLIT LAYOUT -->
-    <div class="row g-4 mb-4">
+    <div class="row g-3 g-lg-4 mb-4">
       <!-- LEFT COLUMN: DISH MENU -->
       <div class="col-lg-6">
         <div class="glass-card p-3 p-md-4 rounded-4 border bg-white shadow-sm h-100 d-flex flex-column">
           <!-- Filter Tabs & Search -->
           <div class="mb-3">
-            <div class="d-flex align-items-center gap-1.5 overflow-x-auto pb-2 mb-2">
+            <div class="d-flex align-items-center gap-1.5 overflow-x-auto pb-2 mb-2 scrollbar-none">
               <button
                 type="button"
                 @click="selectedCategory = 'ALL'"
-                :class="['btn btn-sm rounded-pill px-2.5 fw-semibold fs-8 text-nowrap', selectedCategory === 'ALL' ? 'btn-danger' : 'btn-light']"
+                :class="['btn btn-sm rounded-pill px-3 py-1 fw-semibold fs-8 text-nowrap flex-shrink-0', selectedCategory === 'ALL' ? 'btn-danger' : 'btn-light']"
               >
                 {{ isEnglish ? 'All Dishes' : 'Tất Cả Món' }}
               </button>
@@ -32,7 +32,7 @@
                 :key="cat"
                 type="button"
                 @click="selectedCategory = cat"
-                :class="['btn btn-sm rounded-pill px-2.5 fw-semibold fs-8 text-nowrap', selectedCategory === cat ? 'btn-danger' : 'btn-light']"
+                :class="['btn btn-sm rounded-pill px-3 py-1 fw-semibold fs-8 text-nowrap flex-shrink-0', selectedCategory === cat ? 'btn-danger' : 'btn-light']"
               >
                 {{ cat }}
               </button>

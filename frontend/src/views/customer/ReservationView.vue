@@ -361,4 +361,19 @@ onMounted(async () => {
 .min-vh-card {
   min-height: 480px;
 }
+
+@media (max-width: 576px) {
+  .wizard-step-circle {
+    width: 30px;
+    height: 30px;
+    font-size: 0.72rem;
+  }
+  .wizard-step-label {
+    font-size: 0.62rem;
+    margin-top: 0.2rem;
+  }
+  .min-vh-card {
+    min-height: auto;
+  }
+}
 </style>

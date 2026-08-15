@@ -34,7 +34,7 @@
 
     <div class="row g-0">
       <!-- ═══ CỘT TRÁI: QR CHECK-IN & TIỀN CỌC ═══ -->
-      <div class="col-md-5 p-4 border-end">
+      <div class="col-md-5 p-3 p-md-4 border-bottom border-md-bottom-0 border-md-end">
         <h6 class="fw-bold text-dark mb-3">
           <i class="fa-solid fa-qrcode text-danger me-2"></i>
           {{ isEnglish ? 'Check-in QR Code' : 'Mã QR Check-in Tại Quầy' }}
@@ -94,7 +94,7 @@
       </div>
 
       <!-- ═══ CỘT PHẢI: THÔNG TIN, MÓN ĐẶT TRƯỚC, ORDER & HÓA ĐƠN ═══ -->
-      <div class="col-md-7 p-4">
+      <div class="col-md-7 p-3 p-md-4">
         <!-- 1. Thông Tin Đặt Bàn -->
         <h6 class="fw-bold text-dark mb-2.5">
           <i class="fa-solid fa-circle-info text-danger me-2"></i>

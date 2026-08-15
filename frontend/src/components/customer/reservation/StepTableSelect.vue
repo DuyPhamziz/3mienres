@@ -30,11 +30,11 @@
     </div>
 
     <!-- Area Filter Tabs -->
-    <div class="d-flex align-items-center gap-2 mb-3 overflow-x-auto pb-2">
+    <div class="d-flex align-items-center gap-2 mb-3 overflow-x-auto pb-2 scrollbar-none">
       <button
         type="button"
         @click="selectedAreaId = 'ALL'"
-        :class="['btn btn-sm rounded-pill px-3 fw-semibold', selectedAreaId === 'ALL' ? 'btn-danger' : 'btn-light']"
+        :class="['btn btn-sm rounded-pill px-3 fw-semibold text-nowrap flex-shrink-0', selectedAreaId === 'ALL' ? 'btn-danger' : 'btn-light']"
       >
         {{ isEnglish ? 'All Areas' : 'Tất Cả Khu Vực' }}
       </button>
@@ -43,7 +43,7 @@
         :key="area._id"
         type="button"
         @click="selectedAreaId = area._id"
-        :class="['btn btn-sm rounded-pill px-3 fw-semibold', selectedAreaId === area._id ? 'btn-danger' : 'btn-light']"
+        :class="['btn btn-sm rounded-pill px-3 fw-semibold text-nowrap flex-shrink-0', selectedAreaId === area._id ? 'btn-danger' : 'btn-light']"
       >
         {{ area.name }}
       </button>
