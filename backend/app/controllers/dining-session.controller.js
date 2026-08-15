@@ -141,7 +141,7 @@ exports.createWalkInSession = async (req, res, next) => {
 
     // Lớp 1: Kiểm tra thiếu dữ liệu (400 Bad Request)
     if (!customerName || !guestsCount || !tableIds || !Array.isArray(tableIds) || tableIds.length === 0) {
-      return next(new AppError("Vui lòng cung cấp đầy đủ: Tên khách, Số lượng khách và Danh sách bàn chọn (tableIds)", 400));
+      return next(new AppError("Vui lòng cung cấp đầy đủ: Tên khách, Số lượng khách và Chọn ít nhất 1 bàn ăn", 400));
     }
 
     const guests = parseInt(guestsCount, 10);
@@ -149,7 +149,8 @@ exports.createWalkInSession = async (req, res, next) => {
       return next(new AppError("Số lượng khách phải là số dương hợp lệ", 400));
     }
 
-    // Lớp 2: Kiểm tra các bàn chọn có trống hay không
+    // Lớp 2: Kiểm tra các bàn chọn có hợp lệ & còn trống hay không
+    let totalCapacity = 0;
     for (let tId of tableIds) {
       const table = await Table.findById(tId);
       if (!table) {
@@ -157,6 +158,18 @@ exports.createWalkInSession = async (req, res, next) => {
       }
       if (table.status === "OCCUPIED") {
         return next(new AppError(`Bàn '${table.tableNumber}' hiện đang có khách ngồi ăn!`, 409));
+      }
+      if (table.status === "MAINTENANCE") {
+        return next(new AppError(`Bàn '${table.tableNumber}' đang trong quá trình bảo trì!`, 409));
+      }
+      totalCapacity += table.capacity || 0;
+    }
+
+    // Kiểm tra ghép bàn nếu chọn nhiều hơn 1 bàn
+    if (tableIds.length > 1) {
+      const mergeCheck = await tableEngine.validateMergeableTables(tableIds);
+      if (!mergeCheck.isValid) {
+        return next(new AppError("Các bàn được chọn không nằm kề nhau trong sơ đồ. Vui lòng chọn các bàn liền kề để ghép.", 400));
       }
     }
 
@@ -170,15 +183,18 @@ exports.createWalkInSession = async (req, res, next) => {
     const now = new Date();
     const expectedEndTime = new Date(now.getTime() + durationMinutes * 60000);
 
-    // Kiểm tra & gắn tài khoản khách hàng (nếu có) để tích lũy hạng thành viên
+    // Tự động tìm & gắn tài khoản thành viên qua SĐT (nếu có) để tích lũy chi tiêu
     let customer = null;
     if (customerId) {
       const customerUser = await User.findById(customerId);
-      if (!customerUser) return next(new AppError("Không tìm thấy tài khoản khách hàng được chọn", 404));
-      if (customerUser.role !== "customer") {
-        return next(new AppError("Tài khoản được chọn phải là khách hàng (customer)", 400));
+      if (customerUser && customerUser.role === "customer") {
+        customer = customerUser._id;
       }
-      customer = customerUser._id;
+    } else if (customerPhone && customerPhone.trim()) {
+      const matchedUser = await User.findOne({ phone: customerPhone.trim(), role: "customer" });
+      if (matchedUser) {
+        customer = matchedUser._id;
+      }
     }
 
     // Sinh mã session duy nhất
@@ -198,7 +214,7 @@ exports.createWalkInSession = async (req, res, next) => {
       expectedEndTime,
       status: "ACTIVE",
       servedBy: req.user ? req.user._id : null,
-      notes,
+      notes: notes ? notes.trim() : "",
     });
 
     // Chuyển các bàn chọn sang OCCUPIED
@@ -211,11 +227,13 @@ exports.createWalkInSession = async (req, res, next) => {
     logAction(req, "WALK_IN", "DiningSession", newSession._id, {
       sessionCode: newSession.sessionCode,
       customerName: newSession.customerName,
+      guests: guests,
+      tablesCount: tableIds.length,
     });
 
     res.status(201).json({
       status: "success",
-      message: "Tiếp nhận khách Walk-in thành công!",
+      message: `Đã tiếp nhận khách Walk-in thành công và mở bàn (${totalCapacity} chỗ)!`,
       data: { diningSession: populatedSession },
     });
   } catch (error) {

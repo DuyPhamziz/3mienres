@@ -34,15 +34,21 @@ export const useSessionStore = defineStore("session", {
         throw new Error(err.response?.data?.message || "Check-in thất bại!");
       }
     },
-    async createWalkInSession(customerName, customerPhone, guestsCount, tableIds, notes) {
+    async createWalkInSession(dataOrName, customerPhone, guestsCount, tableIds, notes) {
       try {
-        const res = await api.post("/dining-sessions/walk-in", {
-          customerName,
-          customerPhone,
-          guestsCount,
-          tableIds,
-          notes,
-        });
+        let payload;
+        if (typeof dataOrName === "object" && dataOrName !== null) {
+          payload = dataOrName;
+        } else {
+          payload = {
+            customerName: dataOrName,
+            customerPhone,
+            guestsCount,
+            tableIds,
+            notes,
+          };
+        }
+        const res = await api.post("/dining-sessions/walk-in", payload);
         await this.fetchActiveSessions();
         return res.data;
       } catch (err) {

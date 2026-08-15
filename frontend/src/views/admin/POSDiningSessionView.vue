@@ -7,7 +7,7 @@
         <p class="text-muted small mb-0">Tiếp nhận khách Walk-in, Gọi món đợt 1 đợt 2, Cảnh báo quá giờ và Thanh toán xuất hóa đơn</p>
       </div>
       <div class="d-flex gap-2">
-        <button @click="showWalkInModal = true" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
+        <button @click="openWalkInModal" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
           <i class="fa-solid fa-person-walking-luggage me-1"></i> Tiếp Nhận Khách Walk-in
         </button>
         <button @click="sessionStore.fetchActiveSessions()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
@@ -93,6 +93,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from "vue";
+import { useRouter } from "vue-router";
 import { useSessionStore } from "../../stores/sessionStore";
 import { useTableStore } from "../../stores/tableStore";
 import { useMenuStore } from "../../stores/menuStore";
@@ -106,6 +107,7 @@ import OrderDishModal from "../../components/admin/pos/OrderDishModal.vue";
 import CheckoutModal from "../../components/admin/pos/CheckoutModal.vue";
 import DishStatusModal from "../../components/admin/pos/DishStatusModal.vue";
 
+const router = useRouter();
 const sessionStore = useSessionStore();
 const tableStore = useTableStore();
 const menuStore = useMenuStore();
@@ -136,6 +138,12 @@ const selfOrderQrUrl = computed(() => {
   if (!selfOrderUrl.value) return "";
   return `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(selfOrderUrl.value)}`;
 });
+
+const openWalkInModal = () => {
+  modalError.value = "";
+  tableStore.fetchTables();
+  showWalkInModal.value = true;
+};
 
 const openQrModal = (session) => {
   qrSession.value = session;
@@ -239,10 +247,11 @@ const submitCheckout = async (form) => {
       window.location.href = res.data.paymentUrl;
       return;
     }
-    toast.success("Thanh toán thành công! Bàn đã được giải phóng.");
+    const sessionId = selectedSession.value._id;
     showCheckoutModal.value = false;
     sessionStore.fetchActiveSessions();
     tableStore.fetchTables();
+    router.push(`/admin/invoice/${sessionId}`);
   } catch (err) {
     modalError.value = err.response?.data?.message || "Thanh toán thất bại!";
   }
