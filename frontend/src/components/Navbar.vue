@@ -51,6 +51,12 @@
               {{ langStore.isEnglish ? 'Loyalty Rank' : 'Hạng Thành Viên' }}
             </router-link>
           </li>
+          <li v-if="authStore.isAuthenticated" class="nav-item d-xl-none">
+            <router-link to="/ho-so" class="nav-link px-2.5 text-nowrap" active-class="active text-danger fw-bold">
+              <i class="fa-solid fa-user-gear me-1 text-danger"></i>
+              {{ langStore.isEnglish ? 'My Profile' : 'Hồ Sơ Của Tôi' }}
+            </router-link>
+          </li>
         </ul>
 
         <!-- Right Side Action Buttons -->
@@ -79,6 +85,11 @@
               <li v-if="authStore.isStaff">
                 <router-link to="/admin" class="dropdown-item rounded-3 py-2 fw-medium text-danger">
                   <i class="fa-solid fa-chart-line me-2"></i> {{ langStore.isEnglish ? 'POS Dashboard' : 'Trang Quản Lý POS' }}
+                </router-link>
+              </li>
+              <li>
+                <router-link to="/ho-so" class="dropdown-item rounded-3 py-2 fw-medium">
+                  <i class="fa-solid fa-user-gear me-2 text-danger"></i> {{ langStore.isEnglish ? 'My Profile' : 'Hồ Sơ & Thông Tin' }}
                 </router-link>
               </li>
               <li>
