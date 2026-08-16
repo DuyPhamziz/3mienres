@@ -340,7 +340,15 @@
                   </div>
                 </div>
 
-                <div class="d-flex align-items-center gap-2">
+                <div class="d-flex align-items-center gap-2 flex-wrap">
+                  <router-link
+                    v-if="r.status === 'ARRIVED'"
+                    :to="`/goi-mon?session=${r.session?.sessionCode || r.sessionCode || r.reservationCode}`"
+                    class="btn btn-danger btn-sm rounded-pill px-3 fs-8 fw-bold shadow-2xs"
+                  >
+                    <i class="fa-solid fa-utensils me-1"></i>
+                    {{ langStore.isEnglish ? 'Order Dishes' : 'Gọi Món Tại Bàn' }}
+                  </router-link>
                   <router-link :to="`/tra-cuu?code=${r.reservationCode}`" class="btn btn-outline-danger btn-sm rounded-pill px-3 fs-8 fw-semibold">
                     <i class="fa-solid fa-receipt me-1"></i>
                     {{ langStore.isEnglish ? 'View Receipt' : 'Chi Tiết & Hóa Đơn' }}

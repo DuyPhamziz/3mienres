@@ -175,8 +175,15 @@ exports.createGuestOrder = async (req, res, next) => {
       return next(new AppError("Vui lòng cung cấp mã bàn (sessionCode) và danh sách món gọi", 400));
     }
 
-    const session = await DiningSession.findOne({ sessionCode: sessionCode.trim().toUpperCase() });
-    if (!session) return next(new AppError("Không tìm thấy lượt dùng bữa với mã bàn này", 404));
+    let session = await DiningSession.findOne({ sessionCode: sessionCode.trim().toUpperCase() });
+    if (!session) {
+      const resv = await Reservation.findOne({ reservationCode: sessionCode.trim().toUpperCase() });
+      if (resv) {
+        session = await DiningSession.findOne({ reservation: resv._id, status: "ACTIVE" });
+      }
+    }
+
+    if (!session) return next(new AppError("Không tìm thấy lượt dùng bữa với mã này hoặc bàn đã đóng", 404));
     if (session.status !== "ACTIVE") {
       return next(new AppError("Lượt dùng bữa này đã kết thúc, không thể gọi thêm món!", 409));
     }

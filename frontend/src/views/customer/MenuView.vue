@@ -66,7 +66,7 @@
         <!-- Row 2: Categories Filter (Đổ động từ DB Collection Categories) -->
         <div class="pt-3 border-top d-flex align-items-center gap-2 overflow-x-auto pb-1 scrollbar-none">
           <span class="fw-bold fs-7 text-muted me-1 text-nowrap">
-            <i class="fa-solid fa-layer-group text-warning me-1"></i>{{ langStore.isEnglish ? 'Categories:' : 'Danh mục DB:' }}
+            <i class="fa-solid fa-layer-group text-warning me-1"></i>{{ langStore.isEnglish ? 'Categories:' : 'Danh mục:' }}
           </span>
           <button
             @click="setCategory('')"

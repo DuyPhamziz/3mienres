@@ -1,20 +1,29 @@
 <template>
   <div class="py-5 bg-light min-vh-100">
     <div class="container">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <router-link to="/tra-cuu" class="btn btn-outline-secondary btn-sm rounded-pill px-3 fw-semibold">
+          <i class="fa-solid fa-arrow-left me-1"></i> {{ langStore.isEnglish ? 'Back to My Bookings' : 'Xem Lịch Sử Đặt Bàn' }}
+        </router-link>
+      </div>
+
       <div class="text-center max-w-2xl mx-auto mb-4">
         <span class="badge bg-danger bg-opacity-10 text-danger px-3 py-2 rounded-pill fw-bold mb-2 fs-8">
-          <i class="fa-solid fa-qrcode me-1"></i> {{ langStore.t('guestOrder.badge') }}
+          <i class="fa-solid fa-utensils me-1"></i> {{ langStore.isEnglish ? 'Dine-in Self Order' : 'Gọi Món Dùng Bữa Tại Bàn' }}
         </span>
         <h1 class="display-5 fw-bold brand-font text-dark">{{ langStore.t('guestOrder.title') }}</h1>
         <p class="text-muted small">
-          Bàn: <strong class="text-danger">{{ sessionCode || '—' }}</strong>
+          Mã bàn / Phiên ăn: <strong class="text-danger">{{ sessionCode || '—' }}</strong>
         </p>
       </div>
 
-      <div v-if="!sessionCode" class="max-w-xl mx-auto glass-card p-5 rounded-5 text-center">
+      <div v-if="!sessionCode" class="max-w-xl mx-auto glass-card p-5 rounded-5 text-center shadow-sm bg-white">
         <i class="fa-solid fa-triangle-exclamation display-4 text-warning mb-3 d-block"></i>
         <h4 class="fw-bold">{{ langStore.t('guestOrder.missingTable') }}</h4>
-        <p class="text-muted small">{{ langStore.t('guestOrder.missingTableHint') }}</p>
+        <p class="text-muted small mb-4">{{ langStore.t('guestOrder.missingTableHint') }}</p>
+        <router-link to="/tra-cuu" class="btn btn-primary-crab px-4 py-2 fw-bold">
+          <i class="fa-solid fa-clock-rotate-left me-2"></i> {{ langStore.isEnglish ? 'Go to My Bookings' : 'Đến Trang Tra Cứu Đơn' }}
+        </router-link>
       </div>
 
       <div v-else class="row g-4">
@@ -122,7 +131,7 @@ const route = useRoute();
 const menuStore = useMenuStore();
 const langStore = useLangStore();
 
-const sessionCode = ref(route.query.session || "");
+const sessionCode = ref(route.query.session || route.query.reservation || route.query.code || "");
 const dishList = ref([]);
 const guestBasket = ref([]);
 const submitting = ref(false);

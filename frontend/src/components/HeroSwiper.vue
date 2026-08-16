@@ -11,7 +11,7 @@
     >
       <!-- Slide 1: Cua Cà Mau -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(153, 27, 27, 0.75) 0%, rgba(127, 29, 29, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-cua-ca-mau.jpg') center/cover no-repeat;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(153, 27, 27, 0.72) 0%, rgba(127, 29, 29, 0.90) 100%), url('/uploads/banners/banner-cua-ca-mau.jpg') center/cover no-repeat;">
           <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-water-lower fs-1 text-warning"></i>
           </div>
@@ -29,7 +29,7 @@
 
       <!-- Slide 2: Lẩu Cua Đồng -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(30, 58, 138, 0.75) 0%, rgba(30, 64, 175, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-lau-cua-dong.jpg') center/cover no-repeat;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(30, 58, 138, 0.72) 0%, rgba(30, 64, 175, 0.90) 100%), url('/uploads/banners/banner-lau-cua-dong.jpg') center/cover no-repeat;">
           <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-bowl-food fs-1 text-warning"></i>
           </div>
@@ -47,7 +47,7 @@
 
       <!-- Slide 3: Cua Sốt Tiêu Xanh -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(194, 65, 12, 0.75) 0%, rgba(154, 52, 18, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-cua-tieu-xanh.jpg') center/cover no-repeat;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(194, 65, 12, 0.72) 0%, rgba(154, 52, 18, 0.90) 100%), url('/uploads/banners/banner-cua-tieu-xanh.jpg') center/cover no-repeat;">
           <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-pepper-hot fs-1 text-warning"></i>
           </div>
@@ -65,7 +65,7 @@
 
       <!-- Slide 4: Ưu Đãi Thành Viên -->
       <swiper-slide>
-        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(21, 128, 61, 0.75) 0%, rgba(22, 101, 52, 0.92) 100%), url('http://localhost:3000/uploads/banners/banner-loyalty-rewards.jpg') center/cover no-repeat;">
+        <div class="p-4 rounded-4 text-center text-white shadow-sm position-relative overflow-hidden" style="min-height: 290px; background: linear-gradient(180deg, rgba(21, 128, 61, 0.72) 0%, rgba(22, 101, 52, 0.90) 100%), url('/uploads/banners/banner-loyalty-rewards.jpg') center/cover no-repeat;">
           <div class="p-3 bg-white bg-opacity-20 backdrop-blur rounded-circle d-inline-block mb-3" style="width: 70px; height: 70px; display: inline-flex; align-items: center; justify-content: center;">
             <i class="fa-solid fa-crown fs-1 text-warning"></i>
           </div>

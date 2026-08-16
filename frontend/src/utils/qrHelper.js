@@ -185,68 +185,136 @@ export async function downloadCheckInCard(reservation, filename) {
 }
 
 /**
- * Đọc và giải mã mã QR từ file ảnh (File/Blob) hoặc Image element
+ * Trích xuất mã đặt bàn chuẩn từ chuỗi quét được (URL, JSON, hoặc mã thô)
+ */
+export function sanitizeReservationCode(raw) {
+  if (!raw || typeof raw !== "string") return "";
+  const trimmed = raw.trim();
+
+  // 1. Trích xuất RES-XXXXXX
+  const resMatch = trimmed.match(/RES-[A-Za-z0-9]+/i);
+  if (resMatch) return resMatch[0].toUpperCase();
+
+  // 2. Trích xuất RSV001
+  const rsvMatch = trimmed.match(/RSV[0-9]+/i);
+  if (rsvMatch) return rsvMatch[0].toUpperCase();
+
+  // 3. Trích xuất SES-XXXXXX
+  const sesMatch = trimmed.match(/SES-[A-Za-z0-9]+/i);
+  if (sesMatch) return sesMatch[0].toUpperCase();
+
+  // 4. Nếu là số điện thoại
+  const phoneMatch = trimmed.match(/(0[3|5|7|8|9])[0-9]{8}/);
+  if (phoneMatch) return phoneMatch[0];
+
+  return trimmed.toUpperCase();
+}
+
+/**
+ * Đọc và giải mã mã QR từ file ảnh với đa thuật toán (BarcodeDetector + Multi-scale jsQR)
  */
 export async function decodeQRFromImageFile(imageFile) {
-  return new Promise((resolve, reject) => {
+  return new Promise(async (resolve, reject) => {
     if (!imageFile) {
       return reject(new Error("Vui lòng chọn một file ảnh"));
     }
 
+    const previewUrl = URL.createObjectURL(imageFile);
+
+    // 1. Thử nghiệm phần cứng Native BarcodeDetector (Chrome, Edge, Safari)
+    if (typeof window !== "undefined" && "BarcodeDetector" in window) {
+      try {
+        const detector = new window.BarcodeDetector({ formats: ["qr_code"] });
+        const bitmap = await createImageBitmap(imageFile);
+        const barcodes = await detector.detect(bitmap);
+        if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+          const raw = barcodes[0].rawValue;
+          const clean = sanitizeReservationCode(raw);
+          return resolve({
+            success: true,
+            data: clean,
+            rawData: raw,
+            previewUrl,
+          });
+        }
+      } catch (err) {
+        console.warn("BarcodeDetector fallback to multi-scale canvas:", err);
+      }
+    }
+
+    // 2. Fallback: Multi-scale Canvas scan with jsQR
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
         try {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
-          canvas.width = img.width;
-          canvas.height = img.height;
-          ctx.drawImage(img, 0, 0, img.width, img.height);
+          const tryScan = (targetWidth, targetHeight) => {
+            const canvas = document.createElement("canvas");
+            const ctx = canvas.getContext("2d");
+            canvas.width = targetWidth;
+            canvas.height = targetHeight;
+            ctx.drawImage(img, 0, 0, targetWidth, targetHeight);
+            const imageData = ctx.getImageData(0, 0, targetWidth, targetHeight);
 
-          const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-          const code = jsQR(imageData.data, imageData.width, imageData.height, {
-            inversionAttempts: "dontInvert",
-          });
+            // Quét cả thường và invert màu
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: "attemptBoth",
+            });
+            if (code && code.data) return code.data;
 
-          if (code && code.data) {
-            resolve({
+            return null;
+          };
+
+          // Scale 1: Kích thước gốc
+          let scannedRaw = tryScan(img.width, img.height);
+
+          // Scale 2: Tối ưu 800px cho ảnh chụp từ điện thoại
+          if (!scannedRaw && (img.width > 800 || img.height > 800)) {
+            const maxDim = 800;
+            const ratio = Math.min(maxDim / img.width, maxDim / img.height);
+            scannedRaw = tryScan(Math.round(img.width * ratio), Math.round(img.height * ratio));
+          }
+
+          // Scale 3: Tối ưu 500px cho ảnh chụp xa
+          if (!scannedRaw) {
+            const maxDim = 500;
+            const ratio = Math.min(maxDim / img.width, maxDim / img.height);
+            scannedRaw = tryScan(Math.round(img.width * ratio), Math.round(img.height * ratio));
+          }
+
+          // Scale 4: Tối ưu 1200px cho QR chi tiết
+          if (!scannedRaw && (img.width > 1200 || img.height > 1200)) {
+            const maxDim = 1200;
+            const ratio = Math.min(maxDim / img.width, maxDim / img.height);
+            scannedRaw = tryScan(Math.round(img.width * ratio), Math.round(img.height * ratio));
+          }
+
+          if (scannedRaw) {
+            const clean = sanitizeReservationCode(scannedRaw);
+            return resolve({
               success: true,
-              data: code.data.trim(),
-              location: code.location,
+              data: clean,
+              rawData: scannedRaw,
               previewUrl: e.target.result,
             });
-          } else {
-            // Thử invert màu nếu ảnh chụp ngược sáng
-            const codeInvert = jsQR(imageData.data, imageData.width, imageData.height, {
-              inversionAttempts: "onlyInvert",
-            });
-            if (codeInvert && codeInvert.data) {
-              resolve({
-                success: true,
-                data: codeInvert.data.trim(),
-                location: codeInvert.location,
-                previewUrl: e.target.result,
-              });
-            } else {
-              // Thử trích xuất mã RES-XXXXXX từ tên file nếu người dùng dùng ảnh mẫu
-              const matchName = imageFile.name ? imageFile.name.match(/RES-[A-Za-z0-9]+/i) : null;
-              if (matchName) {
-                resolve({
-                  success: true,
-                  data: matchName[0].toUpperCase(),
-                  previewUrl: e.target.result,
-                  fallbackFromName: true,
-                });
-              } else {
-                resolve({
-                  success: false,
-                  message: "Không tìm thấy hoặc không thể đọc được mã QR trong ảnh này.",
-                  previewUrl: e.target.result,
-                });
-              }
-            }
           }
+
+          // Fallback: Tìm mã từ tên file (VD: "The_CheckIn_RES-849201.png")
+          const nameClean = sanitizeReservationCode(imageFile.name || "");
+          if (nameClean && nameClean.startsWith("RES-")) {
+            return resolve({
+              success: true,
+              data: nameClean,
+              previewUrl: e.target.result,
+              fallbackFromName: true,
+            });
+          }
+
+          return resolve({
+            success: false,
+            message: "Không tìm thấy mã QR trong ảnh. Bạn có thể gõ trực tiếp mã đơn bên dưới.",
+            previewUrl: e.target.result,
+          });
         } catch (error) {
           reject(error);
         }

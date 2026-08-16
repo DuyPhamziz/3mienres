@@ -97,6 +97,19 @@
                     {{ langStore.isEnglish ? 'Invoice Paid' : 'Đã thanh toán' }}
                   </span>
                 </div>
+
+                <!-- Arrived: Quick Order button right on header -->
+                <div v-if="r.status === 'ARRIVED'" class="ms-auto me-2">
+                  <router-link
+                    :to="`/goi-mon?session=${r.session?.sessionCode || r.sessionCode || r.reservationCode}`"
+                    @click.stop
+                    class="btn btn-danger btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1.5"
+                    style="font-size: 0.82rem;"
+                  >
+                    <i class="fa-solid fa-utensils"></i>
+                    {{ langStore.isEnglish ? 'Order Dishes' : 'Gọi Thêm Món Tại Bàn' }}
+                  </router-link>
+                </div>
               </div>
 
               <!-- Expand Toggle Arrow -->

@@ -83,6 +83,7 @@ const activeCode = ref("");
 const search = ref("");
 const page = ref(1);
 const selectedResQR = ref(null);
+const directMatchedReservation = ref(null);
 
 const reservations = computed(() => reservationStore.allReservations);
 const meta = computed(() => reservationStore.reservationMeta);
@@ -92,15 +93,16 @@ const latestConfirmedReservation = computed(() => {
 });
 
 const matchedReservation = computed(() => {
+  if (directMatchedReservation.value) return directMatchedReservation.value;
   const code = activeCode.value.trim().toUpperCase();
   if (!code) return null;
-  return reservations.value.find((r) => r.reservationCode.toUpperCase() === code || r.customerPhone === code);
+  return reservations.value.find((r) => r.reservationCode?.toUpperCase() === code || r.customerPhone === code);
 });
 
 const filteredReservations = computed(() => {
   if (!activeCode.value) return reservations.value;
   const keyword = activeCode.value.trim().toUpperCase();
-  return reservations.value.filter((r) => r.reservationCode.includes(keyword) || r.customerPhone.includes(keyword));
+  return reservations.value.filter((r) => r.reservationCode?.includes(keyword) || r.customerPhone?.includes(keyword));
 });
 
 const fetchReservations = async () => {
@@ -125,8 +127,29 @@ const onSearch = () => {
   fetchReservations();
 };
 
-const handleCodeScanned = (code) => {
+const handleCodeScanned = async (code) => {
   activeCode.value = code;
+  directMatchedReservation.value = null;
+
+  if (!code) return;
+
+  const cleanCode = code.trim().toUpperCase();
+  const localFound = reservations.value.find(
+    (r) => r.reservationCode?.toUpperCase() === cleanCode || r.customerPhone === cleanCode
+  );
+  if (localFound) {
+    directMatchedReservation.value = localFound;
+    return;
+  }
+
+  try {
+    const res = await api.get(`/reservations/track/${encodeURIComponent(cleanCode)}`);
+    if (res.data?.data?.reservation) {
+      directMatchedReservation.value = res.data.data.reservation;
+    }
+  } catch (err) {
+    console.warn("Không tìm thấy đơn đặt bàn:", err);
+  }
 };
 
 const handleConfirmDeposit = async (reservation) => {

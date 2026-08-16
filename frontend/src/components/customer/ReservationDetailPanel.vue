@@ -32,6 +32,30 @@
       </div>
     </div>
 
+    <!-- ═══ 1.1 BANNER GỌI THÊM MÓN KHI ĐÃ VÀO BÀN (ARRIVED) ═══ -->
+    <div v-if="r.status === 'ARRIVED'" class="mx-3 mx-md-4 my-3 p-3.5 bg-danger bg-opacity-10 border border-danger border-opacity-50 rounded-4 d-flex align-items-center justify-content-between flex-wrap gap-3 shadow-2xs">
+      <div class="d-flex align-items-center gap-3">
+        <div class="p-2.5 bg-danger text-white rounded-circle d-flex align-items-center justify-content-center flex-shrink-0" style="width: 44px; height: 44px;">
+          <i class="fa-solid fa-bell-concierge fs-5"></i>
+        </div>
+        <div>
+          <div class="fw-bold text-danger fs-6 mb-0.5">
+            {{ isEnglish ? '🎉 Currently Dining at Table!' : '🎉 Quý khách đã nhận bàn & Đang dùng bữa!' }}
+          </div>
+          <small class="text-dark opacity-75">
+            {{ isEnglish ? 'Need more food or drinks? Add dishes directly to the kitchen queue without calling staff.' : 'Muốn gọi thêm món ăn hoặc nước uống? Bấm nút bên cạnh để gửi yêu cầu trực tiếp vào nhà bếp.' }}
+          </small>
+        </div>
+      </div>
+      <router-link
+        :to="`/goi-mon?session=${r.session?.sessionCode || r.sessionCode || r.reservationCode}`"
+        class="btn btn-danger rounded-pill px-4 py-2 fw-bold shadow-sm d-flex align-items-center gap-2 flex-shrink-0"
+      >
+        <i class="fa-solid fa-utensils"></i>
+        {{ isEnglish ? 'Order More Dishes Now' : 'Gọi Thêm Món Ngay' }}
+      </router-link>
+    </div>
+
     <div class="row g-0">
       <!-- ═══ CỘT TRÁI: QR CHECK-IN & TIỀN CỌC ═══ -->
       <div class="col-md-5 p-3 p-md-4 border-bottom border-md-bottom-0 border-md-end">
