@@ -104,7 +104,7 @@
             :error="stepError"
             :isEnglish="langStore.isEnglish"
             @time-change="fetchOccupiedTables"
-            @toggle-table="toggleTableSelection"
+            @select-table="handleTableSelect"
             @back="currentStep = 1"
             @next="validateAndNext(2)"
           />
@@ -207,10 +207,8 @@ const fetchOccupiedTables = async () => {
   }
 };
 
-const toggleTableSelection = (table) => {
-  const idx = form.tableIds.indexOf(table._id);
-  if (idx > -1) form.tableIds.splice(idx, 1);
-  else form.tableIds.push(table._id);
+const handleTableSelect = (table) => {
+  form.tableIds = [table._id];
 };
 
 const updatePreOrderQuantity = (dishId, delta) => {
@@ -229,11 +227,12 @@ const validateAndNext = (step) => {
   if (step === 1) {
     if (!form.customerName.trim()) { stepError.value = "Vui lòng nhập họ và tên"; return; }
     if (!form.customerPhone.trim()) { stepError.value = "Vui lòng nhập số điện thoại"; return; }
+    if (!form.guestsCount || form.guestsCount < 1) { stepError.value = "Vui lòng nhập số lượng khách hợp lệ (tối thiểu 1 người)"; return; }
     currentStep.value = 2;
     fetchOccupiedTables();
   } else if (step === 2) {
     if (!form.startAt) { stepError.value = "Vui lòng chọn thời gian bắt đầu"; return; }
-    if (form.tableIds.length === 0) { stepError.value = "Vui lòng chọn ít nhất 1 bàn"; return; }
+    if (!form.tableIds || form.tableIds.length === 0) { stepError.value = "Vui lòng chọn 1 bàn mong muốn"; return; }
     currentStep.value = 3;
   }
 };

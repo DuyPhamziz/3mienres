@@ -38,7 +38,41 @@
         </div>
       </div>
 
-      <div class="col-md-12">
+      <div class="col-md-6">
+        <label class="form-label fw-semibold fs-7 text-dark">
+          {{ isEnglish ? 'Number of Guests' : 'Số lượng khách (Số người)' }} <span class="text-danger">*</span>
+        </label>
+        <div class="input-group">
+          <button
+            type="button"
+            class="btn btn-outline-secondary px-3 py-2.5"
+            @click="form.guestsCount > 1 ? form.guestsCount-- : null"
+          >
+            <i class="fa-solid fa-minus"></i>
+          </button>
+          <input
+            v-model.number="form.guestsCount"
+            type="number"
+            min="1"
+            max="100"
+            class="form-control text-center fw-bold fs-6 py-2.5"
+            placeholder="Số người"
+            required
+          />
+          <button
+            type="button"
+            class="btn btn-outline-secondary px-3 py-2.5"
+            @click="form.guestsCount++"
+          >
+            <i class="fa-solid fa-plus"></i>
+          </button>
+        </div>
+        <small class="text-muted fs-8 mt-1 d-block">
+          {{ isEnglish ? 'Specify how many guests will dine at the restaurant.' : 'Nhập chính xác số người để nhà hàng chuẩn bị không gian chu đáo.' }}
+        </small>
+      </div>
+
+      <div class="col-md-6">
         <label class="form-label fw-semibold fs-7 text-dark">
           {{ isEnglish ? 'Email (Optional)' : 'Địa chỉ Email (Nhận mã vé đặt bàn)' }}
         </label>
@@ -51,6 +85,9 @@
           />
           <i class="fa-solid fa-envelope"></i>
         </div>
+        <small class="text-muted fs-8 mt-1 d-block">
+          {{ isEnglish ? 'Used to receive booking confirmation card.' : 'Dùng để gửi thẻ vé check-in và hóa đơn điện tử.' }}
+        </small>
       </div>
     </div>
 
