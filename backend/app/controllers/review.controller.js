@@ -20,12 +20,19 @@ exports.createReview = async (req, res, next) => {
     const dishExists = await Dish.findById(dishId);
     if (!dishExists) return next(new AppError("Món ăn này không tồn tại", 404));
 
-    const newReview = await Review.create({
-      user: req.user ? req.user._id : null,
-      dish: dishId,
-      rating: numRating,
-      comment: comment ? comment.trim() : "",
-    });
+    let review = await Review.findOne({ user: req.user._id, dish: dishId });
+    if (review) {
+      review.rating = numRating;
+      review.comment = comment ? comment.trim() : "";
+      await review.save();
+    } else {
+      review = await Review.create({
+        user: req.user ? req.user._id : null,
+        dish: dishId,
+        rating: numRating,
+        comment: comment ? comment.trim() : "",
+      });
+    }
 
     // Cập nhật lại điểm rating trung bình của món ăn
     const reviews = await Review.find({ dish: dishId });
@@ -34,11 +41,11 @@ exports.createReview = async (req, res, next) => {
     dishExists.ratingCount = reviews.length;
     await dishExists.save();
 
-    const populated = await Review.findById(newReview._id).populate("user", "name").populate("dish", "name");
+    const populated = await Review.findById(review._id).populate("user", "name").populate("dish", "name");
 
     res.status(201).json({
       status: "success",
-      message: "Cảm ơn bạn đã gửi đánh giá!",
+      message: "Cảm ơn bạn đã gửi đánh giá cho món ăn!",
       data: { review: populated },
     });
   } catch (error) {
