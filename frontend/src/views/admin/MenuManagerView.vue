@@ -1,48 +1,56 @@
 <template>
-  <div>
+  <div class="menu-manager-view">
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
       <div>
-        <h2 class="fw-bold brand-font mb-1">Quản Lý Thực Đơn 3 Miền Bắc – Trung – Nam</h2>
-        <p class="text-muted small mb-0">Quản lý món ăn đặc sản, cập nhật giá bán, tải ảnh thực tế và bật/tắt nhanh hết món</p>
+        <h4 class="fw-bold brand-font text-dark mb-1">
+          <i class="fa-solid fa-book-open text-danger me-2"></i>Quản Lý Thực Đơn & Phân Tích Giá Vốn (COGS)
+        </h4>
+        <p class="text-secondary small mb-0">Quản lý món ăn đặc sản, cập nhật giá bán, tính toán giá vốn theo công thức và biên lợi nhuận</p>
       </div>
+
       <div class="d-flex gap-2 align-items-center flex-wrap">
         <div class="input-group input-group-sm" style="width: 200px;">
           <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
           <input v-model="search" @keyup.enter="onSearch" type="text" class="form-control" placeholder="Tìm món ăn..." />
         </div>
-        <button @click="showAddModal = true" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
+        <button @click="exportMenuExcel" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold">
+          <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+        </button>
+        <button @click="showAddModal = true" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold shadow-sm">
           <i class="fa-solid fa-plus me-1"></i> Thêm Món
         </button>
-        <button @click="openCategoryModal" class="btn btn-outline-warning btn-sm rounded-pill px-3 fw-bold">
+        <button @click="showCategoryModal = true" class="btn btn-outline-warning text-dark btn-sm rounded-pill px-3 fw-bold">
           <i class="fa-solid fa-layer-group me-1"></i> Danh Mục
         </button>
-        <button @click="loadDishes" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-          <i class="fa-solid fa-rotate me-1"></i> Làm mới
+        <button @click="loadData" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+          <i class="fa-solid fa-rotate me-1" :class="{ 'fa-spin': loading }"></i> Làm mới
         </button>
       </div>
     </div>
 
     <!-- Dish Table Grid -->
-    <div v-if="menuStore.loading" class="text-center py-5">
+    <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-danger" role="status"></div>
     </div>
 
-    <div v-else class="glass-card p-4 rounded-4">
-      <div v-if="menuStore.dishes.length > 0" class="table-responsive">
-        <table class="table table-hover align-middle">
-          <thead>
-            <tr class="text-muted small">
-              <th>Hình Ảnh Món Ăn</th>
-              <th>Tên Món Ăn Đặc Sản</th>
-              <th>Vùng Miền</th>
-              <th>Giá Bán</th>
-              <th>Trạng Thái Hàng</th>
-              <th class="text-end">Thao Tác</th>
+    <div v-else class="card border-0 rounded-4 shadow-2xs bg-white overflow-hidden p-4">
+      <div v-if="dishList.length > 0" class="table-responsive">
+        <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
+          <thead class="bg-light text-secondary">
+            <tr>
+              <th style="width: 70px;">Hình Ảnh</th>
+              <th style="width: 220px;">Món Ăn Đặc Sản</th>
+              <th style="width: 100px;">Vùng Miền</th>
+              <th style="width: 120px;">Giá Bán</th>
+              <th style="width: 120px;">Giá Vốn (COGS)</th>
+              <th style="width: 140px;">Biên Lợi Nhuận</th>
+              <th style="width: 120px;" class="text-center">Trạng Thái</th>
+              <th style="width: 140px;" class="text-end">Thao Tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="dish in menuStore.dishes" :key="dish._id">
+            <tr v-for="dish in dishList" :key="dish._id">
               <td>
                 <div class="position-relative d-inline-block">
                   <img
@@ -50,98 +58,96 @@
                     :src="getImageUrl(dish.image)"
                     loading="lazy"
                     decoding="async"
-                    class="rounded-3 shadow-sm border"
-                    style="width: 55px; height: 55px; object-fit: cover;"
+                    class="rounded-3 shadow-2xs border"
+                    style="width: 48px; height: 48px; object-fit: cover;"
                     onerror="this.src='/images/dishes/default-dish.jpg'"
                   />
-                  <div v-else class="p-2 bg-light rounded-3 text-center border" style="width: 55px; height: 55px;">
-                    <i class="fa-solid fa-utensils fs-4 text-danger mt-1"></i>
+                  <div v-else class="p-2 bg-light rounded-3 text-center border" style="width: 48px; height: 48px;">
+                    <i class="fa-solid fa-utensils fs-5 text-danger mt-1"></i>
                   </div>
                 </div>
               </td>
               <td>
                 <strong class="d-block text-dark">{{ dish.name }}</strong>
-                <small class="text-muted">{{ dish.slug }}</small>
+                <small class="text-muted fs-9">{{ dish.category?.name || dish.category }}</small>
               </td>
               <td>
                 <span
                   :class="[
-                    'badge rounded-pill px-3 py-1 fs-8',
-                    dish.region === 'Bắc' ? 'badge-region-bac' : dish.region === 'Trung' ? 'badge-region-trung' : 'badge-region-nam'
+                    'badge rounded-pill px-2.5 py-1 fs-9 fw-semibold',
+                    dish.region === 'Bắc' ? 'bg-danger bg-opacity-15 text-danger' : dish.region === 'Trung' ? 'bg-primary bg-opacity-15 text-primary' : 'bg-success bg-opacity-15 text-success'
                   ]"
                 >
-                  Miền {{ dish.region }}
+                  Miền {{ dish.region || 'Nam' }}
                 </span>
               </td>
-              <td><strong class="text-danger">{{ dish.price.toLocaleString('vi-VN') }}đ</strong></td>
+              <td><strong class="text-dark fs-8">{{ (dish.price || 0).toLocaleString('vi-VN') }}đ</strong></td>
               <td>
-                <span :class="['badge px-3 py-1 rounded-pill fs-8', dish.availability ? 'bg-success' : 'bg-danger']">
-                  {{ dish.availability ? 'CÒN HÀNG' : 'HẾT HÀNG' }}
+                <span class="text-secondary fw-semibold">
+                  {{ (dish.foodCost || 0).toLocaleString('vi-VN') }}đ
+                </span>
+              </td>
+              <td>
+                <div>
+                  <strong :class="dish.profitMargin >= 60 ? 'text-success' : dish.profitMargin >= 40 ? 'text-primary' : 'text-danger'">
+                    {{ dish.profitMargin !== undefined ? dish.profitMargin : 0 }}%
+                  </strong>
+                  <span
+                    :class="[
+                      'badge rounded-pill px-2 py-0.5 fs-9 ms-1 fw-bold',
+                      dish.profitMargin >= 60 ? 'bg-success bg-opacity-15 text-success' : dish.profitMargin >= 40 ? 'bg-primary bg-opacity-15 text-primary' : 'bg-danger bg-opacity-15 text-danger'
+                    ]"
+                  >
+                    {{ dish.profitMargin >= 60 ? '🔥 Lãi Cao' : dish.profitMargin >= 40 ? 'Ổn Định' : 'Cần Tối Ưu' }}
+                  </span>
+                </div>
+              </td>
+              <td class="text-center">
+                <span :class="['badge px-2.5 py-1 rounded-pill fs-9 fw-bold', dish.availability !== false ? 'bg-success bg-opacity-15 text-success' : 'bg-danger text-white']">
+                  {{ dish.availability !== false ? '✅ CÒN HÀNG' : '❌ HẾT HÀNG' }}
                 </span>
               </td>
               <td class="text-end">
-                <button @click="openUploadModal(dish)" class="btn btn-outline-primary btn-sm rounded-pill me-2">
-                  <i class="fa-solid fa-cloud-arrow-up me-1"></i> Up Ảnh
-                </button>
-                <button @click="toggleAvailability(dish)" class="btn btn-outline-secondary btn-sm rounded-pill">
-                  {{ dish.availability ? 'Hết hàng' : 'Mở lại' }}
-                </button>
+                <div class="btn-group btn-group-sm">
+                  <button @click="openUploadModal(dish)" class="btn btn-outline-primary btn-sm rounded-circle me-1" title="Tải ảnh món">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                  </button>
+                  <button
+                    @click="toggleAvailability(dish)"
+                    :class="['btn btn-sm rounded-pill px-2.5 py-0.5 fw-semibold', dish.availability !== false ? 'btn-outline-danger' : 'btn-outline-success']"
+                  >
+                    {{ dish.availability !== false ? 'Tắt' : 'Bật' }}
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
         </table>
       </div>
-      <p v-else class="text-muted small py-4 text-center mb-0">Chưa có món ăn nào trong thực đơn</p>
-
-      <!-- Phân trang -->
-      <div v-if="meta.totalPages > 1" class="d-flex justify-content-between align-items-center pt-3 border-top mt-3">
-        <small class="text-muted">Trang {{ meta.page }}/{{ meta.totalPages }} · {{ meta.total }} món</small>
-        <div class="d-flex gap-2">
-          <button @click="goPage(meta.page - 1)" :disabled="meta.page <= 1" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            <i class="fa-solid fa-chevron-left me-1"></i> Trước
-          </button>
-          <button @click="goPage(meta.page + 1)" :disabled="meta.page >= meta.totalPages" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
-            Sau <i class="fa-solid fa-chevron-right ms-1"></i>
-          </button>
-        </div>
-      </div>
+      <p v-else class="text-muted small py-5 text-center mb-0">Chưa có món ăn nào trong thực đơn</p>
     </div>
 
     <!-- Modals -->
-    <UploadDishImageModal
-      v-if="showUploadModal && selectedDish"
-      :dish="selectedDish"
-      :uploading="uploading"
-      :error="uploadError"
-      @close="showUploadModal = false"
-      @submit="submitImageUpload"
-    />
-
     <AddDishModal
       v-if="showAddModal"
-      :categories="categories"
-      :error="addDishError"
+      :categories="menuStore.categories"
+      :error="modalError"
       @close="showAddModal = false"
-      @submit="submitAddDish"
+      @submit="handleAddDish"
+    />
+
+    <UploadDishImageModal
+      v-if="showUploadModal"
+      :dish="selectedDish"
+      @close="showUploadModal = false"
+      @uploaded="handleDishUploaded"
     />
 
     <CategoryModal
       v-if="showCategoryModal"
-      :categories="categories"
+      :categories="menuStore.categories"
       @close="showCategoryModal = false"
-      @add="submitCategory"
-      @delete="deleteCategory"
-    />
-
-    <ConfirmModal
-      :show="showCategoryConfirm"
-      title="Xác nhận xóa danh mục"
-      :message="`Bạn có chắc chắn muốn xóa danh mục '${targetCategory?.name}'?`"
-      confirm-text="Xóa danh mục"
-      cancel-text="Hủy"
-      confirm-variant="danger"
-      @cancel="showCategoryConfirm = false"
-      @confirm="executeDeleteCategory"
+      @refresh="menuStore.fetchCategories()"
     />
   </div>
 </template>
@@ -151,153 +157,106 @@ import { ref, onMounted } from "vue";
 import { useMenuStore } from "../../stores/menuStore";
 import api from "../../services/api";
 import { toast } from "../../composables/useToast";
-import { getImageUrl } from "../../utils/imageHelper";
-import UploadDishImageModal from "../../components/admin/menu/UploadDishImageModal.vue";
+import { exportToCSV } from "../../utils/excelExporter";
+
 import AddDishModal from "../../components/admin/menu/AddDishModal.vue";
+import UploadDishImageModal from "../../components/admin/menu/UploadDishImageModal.vue";
 import CategoryModal from "../../components/admin/menu/CategoryModal.vue";
-import ConfirmModal from "../../components/common/ConfirmModal.vue";
 
 const menuStore = useMenuStore();
-
+const dishList = ref([]);
+const loading = ref(false);
 const search = ref("");
-const categories = ref([]);
-const meta = ref({ page: 1, totalPages: 1, total: 0 });
-
-const showUploadModal = ref(false);
 const showAddModal = ref(false);
+const showUploadModal = ref(false);
 const showCategoryModal = ref(false);
 const selectedDish = ref(null);
-const uploading = ref(false);
-const uploadError = ref("");
-const addDishError = ref("");
+const modalError = ref("");
 
-const loadDishes = async (page = 1) => {
+const getImageUrl = (path) => {
+  if (!path) return "/images/dishes/default-dish.jpg";
+  if (path.startsWith("http")) return path;
+  return `http://localhost:5000${path.startsWith("/") ? "" : "/"}${path}`;
+};
+
+const loadData = async () => {
+  loading.value = true;
   try {
-    const params = { page, limit: 10 };
-    if (search.value.trim()) params.search = search.value.trim();
-    const res = await api.get("/dishes", { params });
-    menuStore.dishes = res.data.data.dishes;
-    meta.value = {
-      page: res.data.meta?.page || 1,
-      totalPages: res.data.meta?.totalPages || 1,
-      total: res.data.meta?.total || res.data.results || 0,
-    };
-  } catch {
-    toast.error("Không tải được danh sách món ăn");
+    const res = await api.get("/dishes/profit-analysis");
+    dishList.value = res.data.data.analysis || [];
+    await menuStore.fetchCategories();
+  } catch (err) {
+    await menuStore.fetchDishes();
+    dishList.value = menuStore.dishes;
+  } finally {
+    loading.value = false;
   }
 };
 
-const onSearch = () => loadDishes(1);
-const goPage = (p) => loadDishes(p);
+const onSearch = () => {
+  if (!search.value.trim()) {
+    loadData();
+    return;
+  }
+  const q = search.value.trim().toLowerCase();
+  dishList.value = dishList.value.filter((d) => d.name.toLowerCase().includes(q));
+};
+
+const exportMenuExcel = () => {
+  const columns = [
+    { header: "Tên Món Ăn", key: "name" },
+    { header: "Danh Mục", key: (d) => d.category?.name || d.category || "" },
+    { header: "Vùng Miền", key: "region" },
+    { header: "Giá Bán (đ)", key: "price" },
+    { header: "Giá Vốn COGS (đ)", key: (d) => d.foodCost || 0 },
+    { header: "Lợi Nhuận Gộp (đ)", key: (d) => d.grossProfit || 0 },
+    { header: "Biên Lợi Nhuận (%)", key: (d) => `${d.profitMargin || 0}%` },
+    { header: "Trạng Thái", key: (d) => (d.availability !== false ? "Còn hàng" : "Hết hàng") },
+  ];
+  exportToCSV(columns, dishList.value, `Thuc-Don-Gia-Von-${new Date().toISOString().split("T")[0]}.csv`);
+  toast.success("Đã xuất file thực đơn kèm giá vốn thành công!");
+};
 
 const openUploadModal = (dish) => {
   selectedDish.value = dish;
-  uploadError.value = "";
   showUploadModal.value = true;
-};
-
-const submitImageUpload = async (file) => {
-  if (!file) return;
-  uploading.value = true;
-  uploadError.value = "";
-  try {
-    const formData = new FormData();
-    formData.append("image", file);
-    await api.post(`/dishes/${selectedDish.value._id}/image`, formData, {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-    toast.success("Tải ảnh món ăn lên server thành công!");
-    showUploadModal.value = false;
-    loadDishes(meta.value.page);
-  } catch (err) {
-    uploadError.value = err.response?.data?.message || "Lỗi tải ảnh lên";
-  } finally {
-    uploading.value = false;
-  }
 };
 
 const toggleAvailability = async (dish) => {
   try {
-    const newStatus = !dish.availability;
-    await api.patch(`/dishes/${dish._id}/availability`, { availability: newStatus });
-    dish.availability = newStatus;
-    toast.success(`Đã chuyển trạng thái: ${newStatus ? "CÒN HÀNG" : "HẾT HÀNG"}`);
-  } catch {
-    toast.error("Lỗi cập nhật trạng thái món ăn");
+    await menuStore.toggleAvailability(dish._id);
+    dish.availability = !dish.availability;
+    toast.success(`Đã cập nhật trạng thái món ${dish.name}`);
+  } catch (err) {
+    toast.error("Lỗi cập nhật trạng thái: " + err.message);
   }
 };
 
-const submitAddDish = async (form) => {
-  addDishError.value = "";
+const handleAddDish = async (form) => {
+  modalError.value = "";
   try {
-    await api.post("/dishes", {
-      name: form.name.trim(),
-      region: form.region,
-      category: form.category,
-      price: Number(form.price),
-      description: form.description ? form.description.trim() : undefined,
-    });
-    toast.success("Tạo món ăn mới thành công!");
+    await menuStore.createDish(form);
+    toast.success("Thêm món ăn mới thành công!");
     showAddModal.value = false;
-    loadDishes(1);
+    await loadData();
   } catch (err) {
-    addDishError.value = err.response?.data?.message || "Lỗi tạo món ăn";
+    modalError.value = err.message;
   }
 };
 
-const openCategoryModal = async () => {
-  showCategoryModal.value = true;
-  await fetchCategories();
+const handleDishUploaded = async () => {
+  toast.success("Tải ảnh món ăn thành công!");
+  showUploadModal.value = false;
+  await loadData();
 };
 
-const fetchCategories = async () => {
-  try {
-    const res = await api.get("/categories");
-    categories.value = res.data.data.categories;
-  } catch {
-    // fallback
-  }
-};
-
-const submitCategory = async (name) => {
-  try {
-    await api.post("/categories", { name });
-    toast.success("Thêm danh mục thành công!");
-    await fetchCategories();
-  } catch (err) {
-    toast.error(err.response?.data?.message || "Lỗi thêm danh mục");
-  }
-};
-
-const showCategoryConfirm = ref(false);
-const targetCategory = ref(null);
-
-const deleteCategory = (cat) => {
-  targetCategory.value = cat;
-  showCategoryConfirm.value = true;
-};
-
-const executeDeleteCategory = async () => {
-  if (!targetCategory.value) return;
-  try {
-    await api.delete(`/categories/${targetCategory.value._id}`);
-    toast.success("Đã xóa danh mục");
-    showCategoryConfirm.value = false;
-    targetCategory.value = null;
-    await fetchCategories();
-  } catch (err) {
-    toast.error(err.response?.data?.message || "Lỗi xóa danh mục");
-  }
-};
-
-onMounted(async () => {
-  await loadDishes();
-  await fetchCategories();
+onMounted(() => {
+  loadData();
 });
 </script>
 
 <style scoped>
-.badge-region-bac { background: #dbeafe; color: #1e40af; }
-.badge-region-trung { background: #fef3c7; color: #92400e; }
-.badge-region-nam { background: #fee2e2; color: #991b1b; }
+.shadow-2xs {
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
 </style>

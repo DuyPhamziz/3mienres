@@ -380,3 +380,70 @@ exports.changeTables = async (req, res, next) => {
     next(error);
   }
 };
+
+// 5. Gộp 2 bàn / 2 lượt dùng bữa thành 1 hóa đơn duy nhất (Merge Sessions)
+exports.mergeSessions = async (req, res, next) => {
+  try {
+    const { id } = req.params; // Target Session ID (Bàn giữ lại làm bàn chính)
+    const { sourceSessionId } = req.body; // Source Session ID (Bàn phụ gộp vào)
+
+    if (!sourceSessionId) {
+      return next(new AppError("Vui lòng cung cấp mã bàn muốn gộp (sourceSessionId)", 400));
+    }
+
+    if (id.toString() === sourceSessionId.toString()) {
+      return next(new AppError("Không thể tự gộp bàn vào chính nó!", 400));
+    }
+
+    const targetSession = await DiningSession.findById(id);
+    const sourceSession = await DiningSession.findById(sourceSessionId);
+
+    if (!targetSession || !sourceSession) {
+      return next(new AppError("Không tìm thấy một trong hai lượt dùng bữa cần gộp", 404));
+    }
+
+    if (targetSession.status !== "ACTIVE" || sourceSession.status !== "ACTIVE") {
+      return next(new AppError("Cả 2 bàn phải đang ở trạng thái hoạt động (ACTIVE) mới có thể gộp bàn!", 409));
+    }
+
+    // 1. Chuyển tất cả đơn gọi món từ Bàn nguồn sang Bàn đích
+    const movedOrders = await Order.updateMany(
+      { diningSession: sourceSession._id },
+      { diningSession: targetSession._id }
+    );
+
+    // 2. Gộp bàn & số khách
+    const combinedTables = Array.from(
+      new Set([...targetSession.tables.map((t) => t.toString()), ...sourceSession.tables.map((t) => t.toString())])
+    );
+    targetSession.tables = combinedTables;
+    targetSession.actualGuestsCount = (targetSession.actualGuestsCount || 1) + (sourceSession.actualGuestsCount || 1);
+    targetSession.notes = (targetSession.notes ? targetSession.notes + " | " : "") + `Đã gộp từ bàn ${sourceSession.sessionCode}`;
+    await targetSession.save();
+
+    // 3. Đóng phiên Bàn nguồn
+    sourceSession.status = "COMPLETED";
+    sourceSession.notes = (sourceSession.notes ? sourceSession.notes + " | " : "") + `Đã gộp vào bàn ${targetSession.sessionCode}`;
+    await sourceSession.save();
+
+    logAction(req, "MERGE_SESSION", "DiningSession", targetSession._id, {
+      targetCode: targetSession.sessionCode,
+      sourceCode: sourceSession.sessionCode,
+      movedOrdersCount: movedOrders.modifiedCount,
+    });
+
+    emitEvent("sessions:changed");
+    emitEvent("tables:changed");
+    emitEvent("orders:changed");
+
+    const populatedTarget = await DiningSession.findById(targetSession._id).populate("tables", "tableNumber capacity area");
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã gộp thành công bàn ${sourceSession.sessionCode} vào bàn ${targetSession.sessionCode}!`,
+      data: { diningSession: populatedTarget },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

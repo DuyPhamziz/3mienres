@@ -19,4 +19,7 @@ router.get("/active", diningSessionController.getActiveSessions);
 // Đổi bàn / Ghép thêm bàn khi đang ăn
 router.patch("/:id/change-tables", diningSessionController.changeTables);
 
+// Gộp 2 bàn / 2 lượt dùng bữa thành 1 hóa đơn duy nhất
+router.post("/:id/merge", diningSessionController.mergeSessions);
+
 module.exports = router;

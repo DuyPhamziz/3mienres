@@ -35,6 +35,9 @@
       </div>
 
       <div class="d-flex gap-2 align-items-center">
+        <button @click="exportExcel" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold">
+          <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+        </button>
         <button @click="openAddModal" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold shadow-sm">
           <i class="fa-solid fa-plus me-1"></i> Thêm Nguyên Liệu
         </button>
@@ -319,6 +322,20 @@ import { ref, reactive, onMounted } from "vue";
 import api from "../../services/api";
 import { toast } from "../../composables/useToast";
 import ConfirmModal from "../common/ConfirmModal.vue";
+import { exportToCSV } from "../../utils/excelExporter";
+
+const exportExcel = () => {
+  const columns = [
+    { header: "Tên Nguyên Liệu", key: "name" },
+    { header: "Nhóm Danh Mục", key: (r) => categoryLabel(r.category) },
+    { header: "Đơn Vị Tính", key: "unit" },
+    { header: "Số Lượng Tồn", key: "stockQuantity" },
+    { header: "Ngưỡng Cảnh Báo", key: "minStockLevel" },
+    { header: "Trạng Thái", key: (r) => (r.stockQuantity <= r.minStockLevel ? "CẢNH BÁO SẮP HẾT" : "ĐỦ HÀNG") },
+  ];
+  exportToCSV(columns, ingredients.value, `Bao-Cao-Ton-Kho-${new Date().toISOString().split("T")[0]}.csv`);
+  toast.success("Đã xuất file báo cáo tồn kho thành công!");
+};
 
 const ingredients = ref([]);
 const loading = ref(false);

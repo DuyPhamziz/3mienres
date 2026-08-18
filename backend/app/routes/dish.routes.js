@@ -4,6 +4,9 @@ const { protect, restrictTo } = require("../utils/auth");
 
 const router = express.Router();
 
+// Route phân tích giá vốn món ăn (Manager / Admin)
+router.get("/profit-analysis", protect, restrictTo("manager", "admin"), dishController.getMenuProfitAnalysis);
+
 // Route công khai: Khách hàng xem thực đơn, chi tiết món ăn
 router.get("/", dishController.getAllDishes);
 router.get("/slug/:slug", dishController.getDishBySlug);

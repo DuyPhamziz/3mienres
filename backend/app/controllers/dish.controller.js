@@ -204,3 +204,72 @@ exports.deleteDish = async (req, res, next) => {
     next(error);
   }
 };
+
+// 8. Phân tích giá vốn (Food Cost / COGS) & Tỷ lệ lợi nhuận gộp theo từng món
+exports.getMenuProfitAnalysis = async (req, res, next) => {
+  try {
+    const Recipe = require("../models/recipe.model");
+    const ImportReceipt = require("../models/import-receipt.model");
+
+    const dishes = await Dish.find().populate("category", "name").sort({ name: 1 });
+    const recipes = await Recipe.find().populate("ingredients.ingredient", "name unit category stockQuantity");
+    const receipts = await ImportReceipt.find().sort({ createdAt: -1 });
+
+    // Tính giá nhập trung bình/gần nhất cho từng nguyên liệu
+    const priceMap = {};
+    for (const rec of receipts) {
+      for (const it of rec.items) {
+        if (it.ingredient && !priceMap[it.ingredient.toString()]) {
+          priceMap[it.ingredient.toString()] = it.importPrice;
+        }
+      }
+    }
+
+    const recipeMap = {};
+    for (const r of recipes) {
+      if (r.dish) recipeMap[r.dish.toString()] = r.ingredients;
+    }
+
+    const analysis = dishes.map((dish) => {
+      const ingLines = recipeMap[dish._id.toString()] || [];
+      let foodCost = 0;
+
+      for (const line of ingLines) {
+        if (line.ingredient) {
+          const ingId = line.ingredient._id ? line.ingredient._id.toString() : line.ingredient.toString();
+          const unitPrice = priceMap[ingId] || 50000; // Giá ước lượng mặc định nếu chưa có phiếu nhập
+          foodCost += line.quantityRequired * unitPrice;
+        }
+      }
+
+      foodCost = Math.round(foodCost);
+      const grossProfit = Math.max(0, dish.price - foodCost);
+      const profitMargin = dish.price > 0 ? Number(((grossProfit / dish.price) * 100).toFixed(1)) : 0;
+
+      let classification = "MEDIUM_PROFIT";
+      if (profitMargin >= 60) classification = "HIGH_PROFIT";
+      else if (profitMargin < 40) classification = "LOW_PROFIT";
+
+      return {
+        _id: dish._id,
+        name: dish.name,
+        image: dish.image,
+        category: dish.category?.name || "Khác",
+        price: dish.price,
+        foodCost,
+        grossProfit,
+        profitMargin,
+        classification,
+        ingredientCount: ingLines.length,
+      };
+    });
+
+    res.status(200).json({
+      status: "success",
+      results: analysis.length,
+      data: { analysis },
+    });
+  } catch (error) {
+    next(error);
+  }
+};

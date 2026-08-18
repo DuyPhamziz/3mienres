@@ -7,11 +7,11 @@
         <p class="text-muted small mb-0">Tiếp nhận khách Walk-in, Gọi món đợt 1 đợt 2, Cảnh báo quá giờ và Thanh toán xuất hóa đơn</p>
       </div>
       <div class="d-flex gap-2">
-        <button @click="showTimelineModal = true" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
-          <i class="fa-solid fa-calendar-day me-1"></i> Lịch Đặt Bàn
+        <button @click="showTimelineModal = true" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold" title="Phím tắt: F1">
+          <i class="fa-solid fa-calendar-day me-1"></i> Lịch Đặt Bàn <span class="badge bg-primary text-white ms-1 fs-9">F1</span>
         </button>
-        <button @click="openWalkInModal" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
-          <i class="fa-solid fa-person-walking-luggage me-1"></i> Tiếp Nhận Khách Walk-in
+        <button @click="openWalkInModal" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold shadow-sm" title="Phím tắt: F2">
+          <i class="fa-solid fa-person-walking-luggage me-1"></i> Khách Walk-in <span class="badge bg-white text-danger ms-1 fs-9">F2</span>
         </button>
         <button @click="sessionStore.fetchActiveSessions()" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
           <i class="fa-solid fa-rotate me-1"></i> Làm mới
@@ -30,6 +30,7 @@
           :session="session"
           @open-qr="openQrModal"
           @change-table="openChangeTableModal"
+          @merge-table="openMergeModal"
           @dish-status="openDishStatusModal"
           @order="openOrderModal"
           @checkout="openCheckoutModal"
@@ -66,6 +67,16 @@
       :error="modalError"
       @close="showChangeTableModal = false"
       @submit="submitChangeTables"
+    />
+
+    <MergeSessionModal
+      v-if="showMergeModal && selectedSession"
+      :targetSession="selectedSession"
+      :activeSessions="sessionStore.activeSessions"
+      :error="modalError"
+      :loading="merging"
+      @close="showMergeModal = false"
+      @submit="submitMergeSession"
     />
 
     <OrderDishModal
@@ -111,6 +122,7 @@ import SessionCard from "../../components/admin/pos/SessionCard.vue";
 import WalkInModal from "../../components/admin/pos/WalkInModal.vue";
 import SelfOrderQrModal from "../../components/admin/pos/SelfOrderQrModal.vue";
 import ChangeTableModal from "../../components/admin/pos/ChangeTableModal.vue";
+import MergeSessionModal from "../../components/admin/pos/MergeSessionModal.vue";
 import OrderDishModal from "../../components/admin/pos/OrderDishModal.vue";
 import CheckoutModal from "../../components/admin/pos/CheckoutModal.vue";
 import DishStatusModal from "../../components/admin/pos/DishStatusModal.vue";
@@ -127,6 +139,7 @@ const showOrderModal = ref(false);
 const showCheckoutModal = ref(false);
 const showQrModal = ref(false);
 const showChangeTableModal = ref(false);
+const showMergeModal = ref(false);
 const showDishStatusModal = ref(false);
 
 const loadingOrders = ref(false);
@@ -165,6 +178,31 @@ const openChangeTableModal = (session) => {
   modalError.value = "";
   tableStore.fetchTables();
   showChangeTableModal.value = true;
+};
+
+const merging = ref(false);
+
+const openMergeModal = (session) => {
+  selectedSession.value = session;
+  modalError.value = "";
+  showMergeModal.value = true;
+};
+
+const submitMergeSession = async (sourceSessionId) => {
+  modalError.value = "";
+  merging.value = true;
+  try {
+    const res = await api.post(`/dining-sessions/${selectedSession.value._id}/merge`, {
+      sourceSessionId,
+    });
+    toast.success(res.data.message || "Gộp bàn & hóa đơn thành công!");
+    showMergeModal.value = false;
+    await Promise.all([sessionStore.fetchActiveSessions(), tableStore.fetchTables()]);
+  } catch (err) {
+    modalError.value = err.response?.data?.message || err.message || "Lỗi khi gộp bàn";
+  } finally {
+    merging.value = false;
+  }
 };
 
 const openOrderModal = (session) => {
@@ -267,9 +305,33 @@ const submitCheckout = async (form) => {
   }
 };
 
+const handleKeydown = (e) => {
+  if (e.key === "F1") {
+    e.preventDefault();
+    showTimelineModal.value = true;
+  } else if (e.key === "F2") {
+    e.preventDefault();
+    openWalkInModal();
+  } else if (e.key === "Escape") {
+    showWalkInModal.value = false;
+    showQrModal.value = false;
+    showChangeTableModal.value = false;
+    showMergeModal.value = false;
+    showDishStatusModal.value = false;
+    showOrderModal.value = false;
+    showCheckoutModal.value = false;
+    showTimelineModal.value = false;
+  }
+};
+
 onMounted(() => {
   sessionStore.fetchActiveSessions();
   tableStore.fetchTables();
   menuStore.fetchDishes();
+  window.addEventListener("keydown", handleKeydown);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", handleKeydown);
 });
 </script>

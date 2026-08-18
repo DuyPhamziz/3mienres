@@ -12,6 +12,9 @@
       </div>
 
       <div class="d-flex gap-2">
+        <button @click="exportCustomersExcel" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold">
+          <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
+        </button>
         <button @click="fetchCustomerList" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
           <i class="fa-solid fa-rotate me-1" :class="{ 'fa-spin': loading }"></i> Làm mới
         </button>
@@ -329,6 +332,21 @@ import { ref, reactive, onMounted } from "vue";
 import api from "../../services/api";
 import { toast } from "../../composables/useToast";
 import ConfirmModal from "../../components/common/ConfirmModal.vue";
+import { exportToCSV } from "../../utils/excelExporter";
+
+const exportCustomersExcel = () => {
+  const columns = [
+    { header: "Họ Và Tên", key: "name" },
+    { header: "Số Điện Thoại", key: "phone" },
+    { header: "Email", key: "email" },
+    { header: "Hạng Thành Viên", key: (c) => c.rank?.name || "Mới" },
+    { header: "Tổng Chi Tiêu (đ)", key: (c) => c.totalSpent || 0 },
+    { header: "Trạng Thái", key: (c) => (c.isActive !== false ? "Hoạt động" : "Đã khóa") },
+    { header: "Ngày Đăng Ký", key: (c) => new Date(c.createdAt).toLocaleDateString("vi-VN") },
+  ];
+  exportToCSV(columns, customers.value, `Danh-Sach-Khach-Hang-${new Date().toISOString().split("T")[0]}.csv`);
+  toast.success("Đã xuất danh sách khách hàng ra Excel thành công!");
+};
 
 const customers = ref([]);
 const loading = ref(false);

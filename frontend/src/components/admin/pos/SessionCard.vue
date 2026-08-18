@@ -33,14 +33,17 @@
       </div>
     </div>
 
-    <div class="d-flex gap-2 mt-auto pt-2 border-top">
-      <button @click="$emit('open-qr', session)" class="btn btn-outline-secondary btn-sm rounded-pill fw-bold" title="QR cho khách tự gọi món">
+    <div class="d-flex gap-1.5 mt-auto pt-2 border-top flex-wrap">
+      <button @click="$emit('open-qr', session)" class="btn btn-outline-secondary btn-sm rounded-circle p-2" title="QR cho khách tự gọi món">
         <i class="fa-solid fa-qrcode"></i>
       </button>
-      <button @click="$emit('change-table', session)" class="btn btn-outline-primary btn-sm rounded-pill fw-bold" title="Đổi bàn / ghép thêm bàn">
+      <button @click="$emit('change-table', session)" class="btn btn-outline-primary btn-sm rounded-circle p-2" title="Đổi bàn / ghép thêm bàn">
         <i class="fa-solid fa-right-left"></i>
       </button>
-      <button @click="$emit('dish-status', session)" class="btn btn-outline-warning btn-sm rounded-pill fw-bold" title="Xem danh sách món & trạng thái bếp">
+      <button @click="$emit('merge-table', session)" class="btn btn-outline-danger btn-sm rounded-circle p-2" title="Gộp bàn / Gộp hóa đơn từ bàn khác vào bàn này">
+        <i class="fa-solid fa-code-merge"></i>
+      </button>
+      <button @click="$emit('dish-status', session)" class="btn btn-outline-warning text-dark btn-sm rounded-circle p-2" title="Xem danh sách món & trạng thái bếp">
         <i class="fa-solid fa-list-check"></i>
       </button>
       <button @click="$emit('order', session)" class="btn btn-outline-danger btn-sm rounded-pill flex-fill fw-bold">
@@ -61,5 +64,5 @@ defineProps({
   },
 });
 
-defineEmits(["open-qr", "change-table", "dish-status", "order", "checkout"]);
+defineEmits(["open-qr", "change-table", "merge-table", "dish-status", "order", "checkout"]);
 </script>
