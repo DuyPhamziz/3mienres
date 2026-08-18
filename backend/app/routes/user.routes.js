@@ -10,8 +10,9 @@ router.use(protect);
 router.patch("/me", userController.updateMe);
 router.patch("/me/password", userController.changePassword);
 
-// Quản lý nhân sự & phân quyền (Admin)
+// Quản lý nhân sự & Phân quyền (Admin / Manager)
 router.get("/staff-stats", restrictTo("admin", "manager"), userController.getStaffStats);
+router.get("/customer-stats", restrictTo("admin", "manager"), userController.getCustomerStats);
 router.get("/", restrictTo("admin", "manager"), userController.getAllUsers);
 router.post("/", restrictTo("admin"), userController.createStaff);
 router.patch("/:id/reset-password", restrictTo("admin"), userController.resetPasswordByAdmin);

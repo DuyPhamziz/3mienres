@@ -70,15 +70,16 @@ exports.changePassword = async (req, res, next) => {
   }
 };
 
-// 3. Danh sách toàn bộ tài khoản / nhân viên (Admin / Manager)
+// 3. Danh sách toàn bộ tài khoản (Khách hàng / Nhân viên)
 exports.getAllUsers = async (req, res, next) => {
   try {
-    const { search, role, department, shift, isActive } = req.query;
+    const { search, role, department, shift, isActive, rank } = req.query;
     const filter = {};
 
     if (role) filter.role = role;
     if (department) filter.department = department;
     if (shift) filter.shift = shift;
+    if (rank) filter.rank = rank;
     if (isActive !== undefined && isActive !== "") filter.isActive = isActive === "true";
 
     if (search) {
@@ -95,6 +96,7 @@ exports.getAllUsers = async (req, res, next) => {
 
     const users = await User.find(filter)
       .select("-password")
+      .populate("rank", "name minSpent discountPercent badgeColor icon")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit);
@@ -160,11 +162,11 @@ exports.createStaff = async (req, res, next) => {
   }
 };
 
-// 5. Cập nhật thông tin nhân sự / phân quyền (Admin)
+// 5. Cập nhật thông tin tài khoản / Phân quyền / Khóa - Mở khóa (Admin)
 exports.updateUserByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, phone, role, isActive, employeeCode, department, shift, salary, hireDate, notes } = req.body;
+    const { name, phone, role, isActive, employeeCode, department, shift, salary, hireDate, notes, totalSpent, rank } = req.body;
 
     const user = await User.findById(id);
     if (!user) return next(new AppError("Không tìm thấy tài khoản", 404));
@@ -183,13 +185,15 @@ exports.updateUserByAdmin = async (req, res, next) => {
     if (salary !== undefined) user.salary = Number(salary) || 0;
     if (hireDate) user.hireDate = new Date(hireDate);
     if (notes !== undefined) user.notes = notes ? notes.trim() : "";
+    if (totalSpent !== undefined) user.totalSpent = Math.max(0, Number(totalSpent) || 0);
+    if (rank !== undefined) user.rank = rank || null;
 
     await user.save();
     user.password = undefined;
 
     res.status(200).json({
       status: "success",
-      message: "Cập nhật thông tin nhân sự thành công",
+      message: "Cập nhật thông tin tài khoản thành công",
       data: { user },
     });
   } catch (error) {
@@ -197,7 +201,7 @@ exports.updateUserByAdmin = async (req, res, next) => {
   }
 };
 
-// 6. Admin đặt lại mật khẩu cho nhân viên
+// 6. Admin đặt lại mật khẩu cho tài khoản
 exports.resetPasswordByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -222,7 +226,7 @@ exports.resetPasswordByAdmin = async (req, res, next) => {
   }
 };
 
-// 7. Admin xóa tài khoản nhân sự
+// 7. Admin xóa tài khoản
 exports.deleteUser = async (req, res, next) => {
   try {
     const { id } = req.params;
@@ -235,7 +239,7 @@ exports.deleteUser = async (req, res, next) => {
 
     res.status(200).json({
       status: "success",
-      message: "Đã xóa tài khoản nhân sự thành công",
+      message: "Đã xóa tài khoản thành công",
       data: null,
     });
   } catch (error) {
@@ -260,6 +264,33 @@ exports.getStaffStats = async (req, res, next) => {
         managers,
         kitchenStaff,
         serviceStaff,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 9. Thống kê KPI Khách hàng & Hội viên
+exports.getCustomerStats = async (req, res, next) => {
+  try {
+    const totalCustomers = await User.countDocuments({ role: "customer" });
+    const activeCustomers = await User.countDocuments({ role: "customer", isActive: true });
+    const lockedCustomers = await User.countDocuments({ role: "customer", isActive: false });
+
+    const customerSpentAgg = await User.aggregate([
+      { $match: { role: "customer" } },
+      { $group: { _id: null, totalSpent: { $sum: "$totalSpent" } } },
+    ]);
+    const totalCustomerSpent = customerSpentAgg.length > 0 ? customerSpentAgg[0].totalSpent : 0;
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        totalCustomers,
+        activeCustomers,
+        lockedCustomers,
+        totalCustomerSpent,
       },
     });
   } catch (error) {

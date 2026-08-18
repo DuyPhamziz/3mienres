@@ -33,6 +33,7 @@ import StaffManagerView from "../views/admin/StaffManagerView.vue";
 import AuditLogView from "../views/admin/AuditLogView.vue";
 import SettingsView from "../views/admin/SettingsView.vue";
 import ReviewManagerView from "../views/admin/ReviewManagerView.vue";
+import UserManagerView from "../views/admin/UserManagerView.vue";
 
 const routes = [
   {
@@ -67,6 +68,7 @@ const routes = [
       { path: "inventory", name: "admin-inventory", component: InventoryManagerView },
       { path: "suppliers", name: "admin-suppliers", component: SupplierManagerView },
       { path: "vouchers", name: "admin-vouchers", component: VoucherManagerView },
+      { path: "users", name: "admin-users", component: UserManagerView, meta: { roles: ["admin", "manager"] } },
       { path: "staff", name: "admin-staff", component: StaffManagerView, meta: { roles: ["admin"] } },
       { path: "audit-logs", name: "admin-audit", component: AuditLogView, meta: { roles: ["admin"] } },
       { path: "settings", name: "admin-settings", component: SettingsView, meta: { roles: ["admin"] } },
