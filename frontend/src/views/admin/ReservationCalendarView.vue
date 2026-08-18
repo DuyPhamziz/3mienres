@@ -438,6 +438,13 @@
               Đóng
             </button>
             <button
+              v-if="selectedReservation.depositAmount > 0 && selectedReservation.depositStatus !== 'PAID' && (selectedReservation.status === 'CONFIRMED' || selectedReservation.status === 'PENDING')"
+              @click="openDepositModal(selectedReservation)"
+              class="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark shadow-sm"
+            >
+              <i class="fa-solid fa-money-bill-transfer me-1"></i> Thu Cọc (Tiền Mặt/CK)
+            </button>
+            <button
               v-if="selectedReservation.status === 'CONFIRMED' || selectedReservation.status === 'PENDING'"
               @click="handleCheckInFromModal(selectedReservation)"
               class="btn btn-success btn-sm rounded-pill px-4 fw-bold shadow-sm"
@@ -448,6 +455,15 @@
         </div>
       </div>
     </div>
+
+    <!-- Modal Xác Nhận Thu Cọc -->
+    <DepositConfirmModal
+      v-if="depositModalReservation"
+      :reservation="depositModalReservation"
+      :loading="depositLoading"
+      @close="depositModalReservation = null"
+      @submit="handleDepositModalSubmit"
+    />
   </div>
 </template>
 
@@ -458,6 +474,7 @@ import { useTableStore } from "../../stores/tableStore";
 import { useSessionStore } from "../../stores/sessionStore";
 import { toast } from "../../composables/useToast";
 import api from "../../services/api";
+import DepositConfirmModal from "../../components/admin/reservation/DepositConfirmModal.vue";
 
 const reservationStore = useReservationStore();
 const tableStore = useTableStore();
@@ -668,6 +685,31 @@ const openDayDetail = (day) => {
 
 const openReservationDetail = (res) => {
   selectedReservation.value = res;
+};
+
+const depositModalReservation = ref(null);
+const depositLoading = ref(false);
+
+const openDepositModal = (res) => {
+  depositModalReservation.value = res;
+};
+
+const handleDepositModalSubmit = async ({ reservationId, paymentMethod }) => {
+  depositLoading.value = true;
+  try {
+    const res = await reservationStore.confirmDeposit(reservationId, paymentMethod);
+    toast.success(res.message || "Xác nhận thu cọc thành công!");
+    depositModalReservation.value = null;
+    if (selectedReservation.value && selectedReservation.value._id === reservationId) {
+      selectedReservation.value.depositStatus = "PAID";
+      selectedReservation.value.depositMethod = paymentMethod;
+    }
+    await fetchReservations();
+  } catch (err) {
+    toast.error(err.message);
+  } finally {
+    depositLoading.value = false;
+  }
 };
 
 const handleCheckInFromModal = async (reservation) => {

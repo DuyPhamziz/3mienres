@@ -99,6 +99,11 @@ const reservationSchema = new mongoose.Schema(
       enum: ["UNPAID", "PAID"],
       default: "UNPAID", // Trạng thái xác nhận khách đã nộp cọc hay chưa
     },
+    depositMethod: {
+      type: String,
+      enum: ["CASH", "TRANSFER", "BANK_TRANSFER"],
+      default: "TRANSFER", // Phương thức nộp cọc: Tiền mặt tại quầy hoặc Chuyển khoản VietQR
+    },
     depositConfirmedAt: {
       type: Date,
       default: null, // Thời điểm nhân viên xác nhận đã nhận cọc

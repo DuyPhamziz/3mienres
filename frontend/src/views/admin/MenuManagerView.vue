@@ -132,6 +132,17 @@
       @add="submitCategory"
       @delete="deleteCategory"
     />
+
+    <ConfirmModal
+      :show="showCategoryConfirm"
+      title="Xác nhận xóa danh mục"
+      :message="`Bạn có chắc chắn muốn xóa danh mục '${targetCategory?.name}'?`"
+      confirm-text="Xóa danh mục"
+      cancel-text="Hủy"
+      confirm-variant="danger"
+      @cancel="showCategoryConfirm = false"
+      @confirm="executeDeleteCategory"
+    />
   </div>
 </template>
 
@@ -144,6 +155,7 @@ import { getImageUrl } from "../../utils/imageHelper";
 import UploadDishImageModal from "../../components/admin/menu/UploadDishImageModal.vue";
 import AddDishModal from "../../components/admin/menu/AddDishModal.vue";
 import CategoryModal from "../../components/admin/menu/CategoryModal.vue";
+import ConfirmModal from "../../components/common/ConfirmModal.vue";
 
 const menuStore = useMenuStore();
 
@@ -257,11 +269,21 @@ const submitCategory = async (name) => {
   }
 };
 
-const deleteCategory = async (cat) => {
-  if (!confirm(`Bạn có chắc muốn xóa danh mục '${cat.name}'?`)) return;
+const showCategoryConfirm = ref(false);
+const targetCategory = ref(null);
+
+const deleteCategory = (cat) => {
+  targetCategory.value = cat;
+  showCategoryConfirm.value = true;
+};
+
+const executeDeleteCategory = async () => {
+  if (!targetCategory.value) return;
   try {
-    await api.delete(`/categories/${cat._id}`);
+    await api.delete(`/categories/${targetCategory.value._id}`);
     toast.success("Đã xóa danh mục");
+    showCategoryConfirm.value = false;
+    targetCategory.value = null;
     await fetchCategories();
   } catch (err) {
     toast.error(err.response?.data?.message || "Lỗi xóa danh mục");

@@ -89,6 +89,29 @@
       v-if="showTimelineModal"
       @close="showTimelineModal = false"
     />
+
+    <!-- 6. Modal Xác Nhận Thu Cọc (Tiền mặt / Chuyển khoản) -->
+    <DepositConfirmModal
+      v-if="depositModalReservation"
+      :reservation="depositModalReservation"
+      :loading="depositLoading"
+      @close="depositModalReservation = null"
+      @submit="handleDepositModalSubmit"
+    />
+
+    <!-- 7. Modal Xác Nhận Hành Động (Thay thế alert/confirm) -->
+    <ConfirmModal
+      :show="showNoShowConfirm"
+      title="Xác nhận đánh dấu No-Show"
+      :message="`Xác nhận đánh dấu No-Show (Khách vắng mặt) cho đơn ${noShowTargetReservation?.reservationCode}? Các bàn đã giữ sẽ được giải phóng ngay lập tức.`"
+      confirm-text="Xác nhận No-Show"
+      cancel-text="Hủy"
+      confirm-variant="dark"
+      icon="fa-solid fa-user-xmark"
+      :loading="noShowLoading"
+      @cancel="showNoShowConfirm = false"
+      @confirm="executeMarkNoShow"
+    />
   </div>
 </template>
 
@@ -102,6 +125,8 @@ import ReservationTable from "../../components/admin/reservation/ReservationTabl
 import ReservationQRModal from "../../components/admin/reservation/ReservationQRModal.vue";
 import CheckInCustomModal from "../../components/admin/reservation/CheckInCustomModal.vue";
 import TableTimelineModal from "../../components/admin/reservation/TableTimelineModal.vue";
+import DepositConfirmModal from "../../components/admin/reservation/DepositConfirmModal.vue";
+import ConfirmModal from "../../components/common/ConfirmModal.vue";
 
 const sessionStore = useSessionStore();
 const reservationStore = useReservationStore();
@@ -181,13 +206,24 @@ const handleCodeScanned = async (code) => {
   }
 };
 
-const handleConfirmDeposit = async (reservation) => {
+const depositModalReservation = ref(null);
+const depositLoading = ref(false);
+
+const handleConfirmDeposit = (reservation) => {
+  depositModalReservation.value = reservation;
+};
+
+const handleDepositModalSubmit = async ({ reservationId, paymentMethod }) => {
+  depositLoading.value = true;
   try {
-    await reservationStore.confirmDeposit(reservation._id);
-    toast.success(`Đã xác nhận cọc ${reservation.depositAmount.toLocaleString('vi-VN')}đ cho ${reservation.reservationCode}`);
+    const res = await reservationStore.confirmDeposit(reservationId, paymentMethod);
+    toast.success(res.message || "Xác nhận thu tiền cọc thành công!");
+    depositModalReservation.value = null;
     await fetchReservations();
   } catch (err) {
     toast.error(err.message);
+  } finally {
+    depositLoading.value = false;
   }
 };
 
@@ -207,14 +243,28 @@ const handleCheckIn = async (reservation) => {
   }
 };
 
-const handleMarkNoShow = async (reservation) => {
-  if (!confirm(`Xác nhận đánh dấu No-Show (Khách vắng mặt) cho đơn ${reservation.reservationCode}? Bàn sẽ được giải phóng.`)) return;
+const showNoShowConfirm = ref(false);
+const noShowTargetReservation = ref(null);
+const noShowLoading = ref(false);
+
+const handleMarkNoShow = (reservation) => {
+  noShowTargetReservation.value = reservation;
+  showNoShowConfirm.value = true;
+};
+
+const executeMarkNoShow = async () => {
+  if (!noShowTargetReservation.value) return;
+  noShowLoading.value = true;
   try {
-    await reservationStore.markNoShow(reservation._id, "Nhân viên xác nhận khách không đến");
-    toast.success(`Đã đánh dấu No-Show cho đơn ${reservation.reservationCode}`);
+    await reservationStore.markNoShow(noShowTargetReservation.value._id, "Nhân viên xác nhận khách không đến");
+    toast.success(`Đã đánh dấu No-Show cho đơn ${noShowTargetReservation.value.reservationCode}`);
+    showNoShowConfirm.value = false;
+    noShowTargetReservation.value = null;
     await fetchReservations();
   } catch (err) {
     toast.error(err.message);
+  } finally {
+    noShowLoading.value = false;
   }
 };
 

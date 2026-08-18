@@ -142,6 +142,20 @@
       @close="showRescheduleModal = false"
       @submit="submitReschedule"
     />
+
+    <!-- Confirm Cancel Modal -->
+    <ConfirmModal
+      :show="showCancelConfirm"
+      :title="langStore.isEnglish ? 'Cancel Reservation' : 'Hủy Đơn Đặt Bàn'"
+      :message="langStore.isEnglish ? 'Are you sure you want to cancel this reservation? The reserved tables will be released.' : 'Bạn có chắc chắn muốn hủy đơn đặt bàn này? Bàn đã giữ sẽ được giải phóng.'"
+      :confirm-text="langStore.isEnglish ? 'Confirm Cancel' : 'Xác Nhận Hủy'"
+      :cancel-text="langStore.isEnglish ? 'Keep Reservation' : 'Giữ Lại Đơn'"
+      confirm-variant="danger"
+      icon="fa-solid fa-calendar-xmark"
+      :loading="cancelLoading"
+      @cancel="showCancelConfirm = false"
+      @confirm="executeCancelReservation"
+    />
   </div>
 </template>
 
@@ -155,6 +169,7 @@ import { useRealtime } from "../../composables/useRealtime";
 import { toast } from "../../composables/useToast";
 import ReservationDetailPanel from "../../components/customer/ReservationDetailPanel.vue";
 import RescheduleModal from "../../components/customer/RescheduleModal.vue";
+import ConfirmModal from "../../components/common/ConfirmModal.vue";
 
 const route = useRoute();
 const reservationStore = useReservationStore();
@@ -211,15 +226,28 @@ const handleDemoConfirmDeposit = async (r) => {
   }
 };
 
-const handleCancel = async (r) => {
-  const msg = langStore.isEnglish ? "Are you sure you want to cancel this reservation?" : "Bạn có chắc muốn hủy đơn đặt bàn này?";
-  if (!confirm(msg)) return;
+const showCancelConfirm = ref(false);
+const cancelTarget = ref(null);
+const cancelLoading = ref(false);
+
+const handleCancel = (r) => {
+  cancelTarget.value = r;
+  showCancelConfirm.value = true;
+};
+
+const executeCancelReservation = async () => {
+  if (!cancelTarget.value) return;
+  cancelLoading.value = true;
   try {
-    await reservationStore.cancelReservation(r._id, "Khách tự hủy online");
+    await reservationStore.cancelReservation(cancelTarget.value._id, "Khách tự hủy online");
     toast.success(langStore.isEnglish ? "Reservation cancelled." : "Đã hủy đơn đặt bàn.");
+    showCancelConfirm.value = false;
+    cancelTarget.value = null;
     await reservationStore.fetchMyReservations();
   } catch (err) {
     toast.error(err.message);
+  } finally {
+    cancelLoading.value = false;
   }
 };
 

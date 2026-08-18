@@ -70,9 +70,9 @@ export const useReservationStore = defineStore("reservation", {
         return { data: { reservations: [] } };
       }
     },
-    async confirmDeposit(reservationId) {
+    async confirmDeposit(reservationId, paymentMethod = "CASH") {
       try {
-        const res = await api.patch(`/reservations/${reservationId}/confirm-deposit`);
+        const res = await api.patch(`/reservations/${reservationId}/confirm-deposit`, { paymentMethod });
         await this.fetchAllReservations();
         return res.data;
       } catch (err) {

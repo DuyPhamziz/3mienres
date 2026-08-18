@@ -104,7 +104,10 @@ exports.confirmDeposit = async (req, res, next) => {
       return next(new AppError("Đơn đặt bàn này đã được xác nhận cọc", 409));
     }
 
+    const { paymentMethod = "CASH" } = req.body;
+
     reservation.depositStatus = "PAID";
+    reservation.depositMethod = paymentMethod;
     reservation.depositConfirmedAt = new Date();
     reservation.depositConfirmedBy = req.user ? req.user._id : null;
     await reservation.save();
@@ -114,11 +117,13 @@ exports.confirmDeposit = async (req, res, next) => {
     logAction(req, "CONFIRM_DEPOSIT", "Reservation", reservation._id, {
       reservationCode: reservation.reservationCode,
       amount: reservation.depositAmount,
+      method: paymentMethod,
     });
 
+    const methodName = paymentMethod === "CASH" ? "Tiền mặt tại quầy" : "Chuyển khoản VietQR";
     res.status(200).json({
       status: "success",
-      message: `Đã xác nhận nhận tiền cọc ${roundMoney(reservation.depositAmount).toLocaleString("vi-VN")}đ thành công`,
+      message: `Đã xác nhận thu cọc ${roundMoney(reservation.depositAmount).toLocaleString("vi-VN")}đ (${methodName}) thành công!`,
       data: { reservation },
     });
   } catch (error) {

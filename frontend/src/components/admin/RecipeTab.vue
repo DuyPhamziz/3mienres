@@ -80,6 +80,17 @@
         </tbody>
       </table>
     </div>
+
+    <ConfirmModal
+      :show="showRecipeConfirm"
+      title="Xác nhận xóa công thức"
+      :message="`Bạn có chắc chắn muốn xóa công thức chế biến của món '${targetRecipe?.dish?.name}'?`"
+      confirm-text="Xóa công thức"
+      cancel-text="Hủy"
+      confirm-variant="danger"
+      @cancel="showRecipeConfirm = false"
+      @confirm="executeDeleteRecipe"
+    />
   </div>
 </template>
 
@@ -88,6 +99,7 @@ import { ref, reactive, onMounted } from "vue";
 import api from "../../services/api";
 import { useMenuStore } from "../../stores/menuStore";
 import { toast } from "../../composables/useToast";
+import ConfirmModal from "../common/ConfirmModal.vue";
 
 const menuStore = useMenuStore();
 
@@ -169,11 +181,21 @@ const saveRecipe = async () => {
   }
 };
 
-const deleteRecipe = async (recipe) => {
-  if (!confirm(`Xóa công thức của món '${recipe.dish?.name}'?`)) return;
+const showRecipeConfirm = ref(false);
+const targetRecipe = ref(null);
+
+const deleteRecipe = (recipe) => {
+  targetRecipe.value = recipe;
+  showRecipeConfirm.value = true;
+};
+
+const executeDeleteRecipe = async () => {
+  if (!targetRecipe.value) return;
   try {
-    await api.delete(`/recipes/${recipe._id}`);
+    await api.delete(`/recipes/${targetRecipe.value._id}`);
     toast.success("Đã xóa công thức");
+    showRecipeConfirm.value = false;
+    targetRecipe.value = null;
     await fetchRecipes();
   } catch (err) {
     toast.error(err.response?.data?.message || "Xóa công thức thất bại!");

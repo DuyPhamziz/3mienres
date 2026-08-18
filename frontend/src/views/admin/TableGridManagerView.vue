@@ -152,6 +152,17 @@
       v-if="showTimelineModal"
       @close="showTimelineModal = false"
     />
+
+    <ConfirmModal
+      :show="showConfirmDialog"
+      :title="confirmDialogTitle"
+      :message="confirmDialogMessage"
+      confirm-text="Xóa"
+      cancel-text="Hủy"
+      confirm-variant="danger"
+      @cancel="showConfirmDialog = false"
+      @confirm="executeConfirmedAction"
+    />
   </div>
 </template>
 
@@ -166,6 +177,7 @@ import TableFormModal from "../../components/admin/table/TableFormModal.vue";
 import AreaManageModal from "../../components/admin/table/AreaManageModal.vue";
 import ManualConnectModal from "../../components/admin/table/ManualConnectModal.vue";
 import TableTimelineModal from "../../components/admin/reservation/TableTimelineModal.vue";
+import ConfirmModal from "../../components/common/ConfirmModal.vue";
 
 const tableStore = useTableStore();
 
@@ -295,14 +307,23 @@ const handleSubmitTable = async (form) => {
   }
 };
 
-const handleDeleteTable = async (table) => {
-  if (!confirm(`Bạn có chắc muốn xóa bàn ${table.tableNumber} (${table.capacity} chỗ)?`)) return;
-  try {
-    await tableStore.deleteTable(table._id);
-    toast.success(`Đã xóa bàn ${table.tableNumber}`);
-  } catch (err) {
-    toast.error(err.message);
-  }
+const showConfirmDialog = ref(false);
+const confirmDialogTitle = ref("");
+const confirmDialogMessage = ref("");
+const pendingAction = ref(null);
+
+const handleDeleteTable = (table) => {
+  confirmDialogTitle.value = "Xác nhận xóa bàn";
+  confirmDialogMessage.value = `Bạn có chắc chắn muốn xóa bàn ${table.tableNumber} (${table.capacity} chỗ)?`;
+  pendingAction.value = async () => {
+    try {
+      await tableStore.deleteTable(table._id);
+      toast.success(`Đã xóa bàn ${table.tableNumber}`);
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+  showConfirmDialog.value = true;
 };
 
 // Connection
@@ -317,14 +338,26 @@ const handleCreateConnection = async (form) => {
   }
 };
 
-const handleDeleteConnection = async (conn) => {
-  if (!confirm(`Gỡ liên kết Bàn ${conn.tableA?.tableNumber} ↔ ${conn.tableB?.tableNumber}?`)) return;
-  try {
-    await tableStore.deleteConnection(conn._id);
-    toast.success("Đã gỡ liên kết");
-  } catch (err) {
-    toast.error(err.message);
+const handleDeleteConnection = (conn) => {
+  confirmDialogTitle.value = "Xác nhận gỡ liên kết";
+  confirmDialogMessage.value = `Gỡ liên kết ghép giữa Bàn ${conn.tableA?.tableNumber} ↔ ${conn.tableB?.tableNumber}?`;
+  pendingAction.value = async () => {
+    try {
+      await tableStore.deleteConnection(conn._id);
+      toast.success("Đã gỡ liên kết ghép bàn");
+    } catch (err) {
+      toast.error(err.message);
+    }
+  };
+  showConfirmDialog.value = true;
+};
+
+const executeConfirmedAction = async () => {
+  if (pendingAction.value) {
+    await pendingAction.value();
+    pendingAction.value = null;
   }
+  showConfirmDialog.value = false;
 };
 
 // Area
@@ -343,15 +376,19 @@ const submitArea = async (name) => {
   }
 };
 
-const deleteArea = async (area) => {
-  if (!confirm(`Xóa khu vực '${area.name}'?`)) return;
-  try {
-    await api.delete(`/areas/${area._id}`);
-    toast.success("Đã xóa khu vực");
-    await tableStore.fetchAreas();
-  } catch (err) {
-    toast.error(err.response?.data?.message || "Xóa khu vực thất bại!");
-  }
+const deleteArea = (area) => {
+  confirmDialogTitle.value = "Xác nhận xóa khu vực";
+  confirmDialogMessage.value = `Bạn có chắc chắn muốn xóa khu vực '${area.name}'?`;
+  pendingAction.value = async () => {
+    try {
+      await api.delete(`/areas/${area._id}`);
+      toast.success("Đã xóa khu vực");
+      await tableStore.fetchAreas();
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Xóa khu vực thất bại!");
+    }
+  };
+  showConfirmDialog.value = true;
 };
 
 const refreshAll = () => {
