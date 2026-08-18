@@ -43,7 +43,7 @@ exports.updateMe = async (req, res, next) => {
   }
 };
 
-// 2. Đổi mật khẩu
+// 2. Đổi mật khẩu cá nhân
 exports.changePassword = async (req, res, next) => {
   try {
     const { currentPassword, newPassword } = req.body;
@@ -70,16 +70,23 @@ exports.changePassword = async (req, res, next) => {
   }
 };
 
-// 3. Danh sách toàn bộ tài khoản (Manager / Admin)
+// 3. Danh sách toàn bộ tài khoản / nhân viên (Admin / Manager)
 exports.getAllUsers = async (req, res, next) => {
   try {
-    const { search } = req.query;
+    const { search, role, department, shift, isActive } = req.query;
     const filter = {};
+
+    if (role) filter.role = role;
+    if (department) filter.department = department;
+    if (shift) filter.shift = shift;
+    if (isActive !== undefined && isActive !== "") filter.isActive = isActive === "true";
+
     if (search) {
       filter.$or = [
         { name: { $regex: search.trim(), $options: "i" } },
         { email: { $regex: search.trim(), $options: "i" } },
         { phone: { $regex: search.trim(), $options: "i" } },
+        { employeeCode: { $regex: search.trim(), $options: "i" } },
       ];
     }
 
@@ -103,16 +110,16 @@ exports.getAllUsers = async (req, res, next) => {
   }
 };
 
-// 4. Tạo tài khoản nhân viên (Manager / Admin)
+// 4. Tạo tài khoản nhân sự mới (Admin)
 exports.createStaff = async (req, res, next) => {
   try {
-    const { name, email, password, phone, role } = req.body;
+    const { name, email, password, phone, role, employeeCode, department, shift, salary, hireDate, notes } = req.body;
 
     if (!name || !email || !password || !phone) {
-      return next(new AppError("Thiếu thông tin: name, email, password, phone", 400));
+      return next(new AppError("Thiếu thông tin bắt buộc: Họ tên, Email, Mật khẩu, Số điện thoại", 400));
     }
-    if (!["staff", "manager"].includes(role)) {
-      return next(new AppError("Chỉ cho phép tạo tài khoản staff hoặc manager", 400));
+    if (!["staff", "manager", "admin"].includes(role)) {
+      return next(new AppError("Vai trò không hợp lệ", 400));
     }
     if (!isValidEmail(email)) {
       return next(new AppError("Email không hợp lệ", 400));
@@ -125,22 +132,39 @@ exports.createStaff = async (req, res, next) => {
     }
 
     const existing = await User.findOne({ $or: [{ email }, { phone }] });
-    if (existing) return next(new AppError("Email hoặc số điện thoại đã tồn tại", 409));
+    if (existing) return next(new AppError("Email hoặc số điện thoại đã tồn tại trong hệ thống", 409));
 
-    const user = await User.create({ name, email, password, phone, role });
+    const user = await User.create({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      password,
+      phone: phone.trim(),
+      role: role || "staff",
+      employeeCode: employeeCode ? employeeCode.trim().toUpperCase() : undefined,
+      department: department || "GENERAL",
+      shift: shift || "FULLTIME",
+      salary: Number(salary) || 0,
+      hireDate: hireDate ? new Date(hireDate) : new Date(),
+      notes: notes ? notes.trim() : undefined,
+    });
+
     user.password = undefined;
 
-    res.status(201).json({ status: "success", message: "Tạo tài khoản nhân viên thành công", data: { user } });
+    res.status(201).json({
+      status: "success",
+      message: "Tạo tài khoản nhân sự mới thành công",
+      data: { user },
+    });
   } catch (error) {
     next(error);
   }
 };
 
-// 5. Cập nhật tài khoản / phân quyền (Manager / Admin)
+// 5. Cập nhật thông tin nhân sự / phân quyền (Admin)
 exports.updateUserByAdmin = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { name, phone, role, isActive } = req.body;
+    const { name, phone, role, isActive, employeeCode, department, shift, salary, hireDate, notes } = req.body;
 
     const user = await User.findById(id);
     if (!user) return next(new AppError("Không tìm thấy tài khoản", 404));
@@ -153,11 +177,91 @@ exports.updateUserByAdmin = async (req, res, next) => {
     if (phone) user.phone = phone.trim();
     if (role) user.role = role;
     if (isActive !== undefined) user.isActive = !!isActive;
+    if (employeeCode !== undefined) user.employeeCode = employeeCode ? employeeCode.trim().toUpperCase() : undefined;
+    if (department) user.department = department;
+    if (shift) user.shift = shift;
+    if (salary !== undefined) user.salary = Number(salary) || 0;
+    if (hireDate) user.hireDate = new Date(hireDate);
+    if (notes !== undefined) user.notes = notes ? notes.trim() : "";
 
     await user.save();
     user.password = undefined;
 
-    res.status(200).json({ status: "success", message: "Cập nhật tài khoản thành công", data: { user } });
+    res.status(200).json({
+      status: "success",
+      message: "Cập nhật thông tin nhân sự thành công",
+      data: { user },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 6. Admin đặt lại mật khẩu cho nhân viên
+exports.resetPasswordByAdmin = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { newPassword } = req.body;
+
+    if (!newPassword || newPassword.length < 6) {
+      return next(new AppError("Mật khẩu mới phải có ít nhất 6 ký tự", 400));
+    }
+
+    const user = await User.findById(id);
+    if (!user) return next(new AppError("Không tìm thấy tài khoản này", 404));
+
+    user.password = newPassword;
+    await user.save();
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã cấp lại mật khẩu mới cho ${user.name} thành công!`,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 7. Admin xóa tài khoản nhân sự
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    if (req.user && req.user._id.toString() === id) {
+      return next(new AppError("Bạn không thể tự xóa tài khoản của chính mình!", 400));
+    }
+
+    const deleted = await User.findByIdAndDelete(id);
+    if (!deleted) return next(new AppError("Không tìm thấy tài khoản để xóa", 404));
+
+    res.status(200).json({
+      status: "success",
+      message: "Đã xóa tài khoản nhân sự thành công",
+      data: null,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 8. Thống kê KPI nhân sự
+exports.getStaffStats = async (req, res, next) => {
+  try {
+    const totalStaff = await User.countDocuments({ role: { $in: ["staff", "manager", "admin"] } });
+    const activeStaff = await User.countDocuments({ role: { $in: ["staff", "manager", "admin"] }, isActive: true });
+    const managers = await User.countDocuments({ role: "manager" });
+    const kitchenStaff = await User.countDocuments({ department: "KITCHEN" });
+    const serviceStaff = await User.countDocuments({ department: "SERVICE" });
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        totalStaff,
+        activeStaff,
+        managers,
+        kitchenStaff,
+        serviceStaff,
+      },
+    });
   } catch (error) {
     next(error);
   }

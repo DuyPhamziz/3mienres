@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.use(protect, restrictTo("staff", "manager", "admin"));
 
+router.get("/stats", ingredientController.getInventoryStats);
 router.get("/", ingredientController.getAllIngredients);
 router.post("/", restrictTo("manager", "admin"), ingredientController.createIngredient);
 router.patch("/:id", restrictTo("manager", "admin"), ingredientController.updateIngredient);

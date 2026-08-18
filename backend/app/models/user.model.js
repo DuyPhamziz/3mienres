@@ -59,6 +59,35 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    // Thông tin nhân sự (HR & Staff Management)
+    employeeCode: {
+      type: String,
+      trim: true,
+      uppercase: true, // Ví dụ: NV-001, QL-002
+    },
+    department: {
+      type: String,
+      enum: ["MANAGEMENT", "SERVICE", "KITCHEN", "CASHIER", "WAREHOUSE", "GENERAL"],
+      default: "GENERAL",
+    },
+    shift: {
+      type: String,
+      enum: ["MORNING", "AFTERNOON", "EVENING", "FULLTIME"],
+      default: "FULLTIME",
+    },
+    salary: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    hireDate: {
+      type: Date,
+      default: Date.now,
+    },
+    notes: {
+      type: String,
+      trim: true,
+    },
     passwordResetToken: String,
     passwordResetExpires: Date,
     refreshToken: {

@@ -118,8 +118,8 @@ exports.updateOrderStatus = async (req, res, next) => {
     const previousStatus = order.status;
     order.status = status;
 
-    // Tự động trừ kho nguyên liệu theo công thức khi món được phục vụ (SERVED)
-    if (status === "SERVED" && previousStatus !== "SERVED" && !order.stockDeducted) {
+    // Tự động trừ kho nguyên liệu theo công thức khi món được đem đi nấu (PREPARING) hoặc phục vụ (SERVED)
+    if (["PREPARING", "SERVED"].includes(status) && !order.stockDeducted) {
       await deductOrderIngredients(order);
       order.stockDeducted = true;
     }

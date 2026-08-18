@@ -10,9 +10,12 @@ router.use(protect);
 router.patch("/me", userController.updateMe);
 router.patch("/me/password", userController.changePassword);
 
-// Quản lý tài khoản (Manager / Admin)
-router.get("/", restrictTo("admin"), userController.getAllUsers);
+// Quản lý nhân sự & phân quyền (Admin)
+router.get("/staff-stats", restrictTo("admin", "manager"), userController.getStaffStats);
+router.get("/", restrictTo("admin", "manager"), userController.getAllUsers);
 router.post("/", restrictTo("admin"), userController.createStaff);
+router.patch("/:id/reset-password", restrictTo("admin"), userController.resetPasswordByAdmin);
 router.patch("/:id", restrictTo("admin"), userController.updateUserByAdmin);
+router.delete("/:id", restrictTo("admin"), userController.deleteUser);
 
 module.exports = router;

@@ -6,6 +6,7 @@ const router = express.Router();
 
 router.use(protect, restrictTo("manager", "admin"));
 
+router.get("/stats", supplierController.getSupplierStats);
 router.get("/", supplierController.getAllSuppliers);
 router.post("/", supplierController.createSupplier);
 router.patch("/:id", supplierController.updateSupplier);

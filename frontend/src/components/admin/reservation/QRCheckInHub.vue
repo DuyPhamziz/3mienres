@@ -11,16 +11,6 @@
           <small class="text-muted">Tải ảnh QR hoặc thẻ check-in của khách để hệ thống tự động nhận diện và mở bàn</small>
         </div>
       </div>
-
-      <div v-if="latestConfirmedReservation" class="d-flex align-items-center gap-2">
-        <button
-          @click="testWithSampleReservation(latestConfirmedReservation)"
-          class="btn btn-sm btn-outline-warning text-dark fw-bold rounded-pill px-3"
-          title="Tự động nạp mã QR của đơn gần nhất để chụp hình báo cáo demo"
-        >
-          <i class="fa-solid fa-wand-magic-sparkles me-1 text-warning"></i> [Demo] Dùng Đơn Mẫu Gần Nhất
-        </button>
-      </div>
     </div>
 
     <div class="row g-4 align-items-stretch">
@@ -337,23 +327,6 @@ const processFile = async (file) => {
     }
   } catch (err) {
     toast.error("Lỗi khi xử lý ảnh: " + err.message);
-  } finally {
-    decoding.value = false;
-  }
-};
-
-const testWithSampleReservation = async (res) => {
-  if (!res) return;
-  decoding.value = true;
-  try {
-    const qrDataUrl = await generateQRCodeDataUrl(res.reservationCode, { width: 300 });
-    uploadedImagePreview.value = qrDataUrl;
-    decodedCode.value = res.reservationCode;
-    manualCode.value = res.reservationCode;
-    emit("code-scanned", res.reservationCode);
-    toast.success(`[Demo] Đã nạp thành công mã QR mẫu: ${res.reservationCode}`);
-  } catch (err) {
-    toast.error("Lỗi demo: " + err.message);
   } finally {
     decoding.value = false;
   }
