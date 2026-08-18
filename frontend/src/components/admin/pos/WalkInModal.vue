@@ -102,6 +102,16 @@
                 >
                   <i class="fa-solid fa-triangle-exclamation me-1"></i>Sức chứa bàn chưa đủ cho số khách!
                 </small>
+
+                <!-- Cảnh báo nếu chọn trúng bàn có khách đặt sắp tới -->
+                <div v-if="selectedUpcomingWarnings.length > 0" class="alert alert-warning py-1.5 px-2 mt-2 mb-0 rounded-3 fs-8">
+                  <div class="fw-bold text-dark mb-0.5"><i class="fa-solid fa-clock-rotate-left text-warning me-1"></i>Bàn có lịch đặt sắp tới:</div>
+                  <ul class="mb-0 ps-3">
+                    <li v-for="w in selectedUpcomingWarnings" :key="w.tableNumber">
+                      Bàn <strong>{{ w.tableNumber }}</strong>: Khách <strong>{{ w.customerName }}</strong> lúc {{ w.timeStr }}
+                    </li>
+                  </ul>
+                </div>
               </div>
             </div>
 
@@ -131,8 +141,9 @@
                       <div v-for="t in tablesInArea" :key="t._id" class="col-6 col-sm-4">
                         <label
                           :class="[
-                            'table-choice-card p-2 rounded-3 border text-center d-block cursor-pointer transition-all',
-                            form.tableIds.includes(t._id) ? 'border-danger bg-danger bg-opacity-10 shadow-sm' : 'bg-white'
+                            'table-choice-card p-2 rounded-3 border text-center d-block cursor-pointer transition-all position-relative',
+                            form.tableIds.includes(t._id) ? 'border-danger bg-danger bg-opacity-10 shadow-sm' : 'bg-white',
+                            t.upcomingReservation ? 'border-warning' : ''
                           ]"
                         >
                           <input
@@ -144,9 +155,13 @@
                           <div class="d-flex justify-content-between align-items-center mb-0.5">
                             <span class="badge bg-light text-dark border fs-8 fw-bold">Bàn {{ t.tableNumber }}</span>
                             <i v-if="form.tableIds.includes(t._id)" class="fa-solid fa-circle-check text-danger fs-8"></i>
+                            <span v-else-if="t.upcomingReservation" class="text-warning fs-9" title="Có lịch đặt sắp tới"><i class="fa-solid fa-clock"></i></span>
                             <span v-else class="text-success fs-9"><i class="fa-solid fa-circle"></i></span>
                           </div>
                           <small class="text-muted d-block fs-8">{{ t.capacity }} chỗ</small>
+                          <small v-if="t.upcomingReservation" class="badge bg-warning bg-opacity-25 text-dark mt-1 fs-9 d-block text-truncate">
+                            Đặt: {{ new Date(t.upcomingReservation.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }}
+                          </small>
                         </label>
                       </div>
                     </div>
@@ -210,6 +225,16 @@ const selectedTablesList = computed(() => {
 
 const selectedTotalCapacity = computed(() => {
   return selectedTablesList.value.reduce((sum, t) => sum + (t.capacity || 0), 0);
+});
+
+const selectedUpcomingWarnings = computed(() => {
+  return selectedTablesList.value
+    .filter((t) => !!t.upcomingReservation)
+    .map((t) => ({
+      tableNumber: t.tableNumber,
+      customerName: t.upcomingReservation.customerName,
+      timeStr: new Date(t.upcomingReservation.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    }));
 });
 
 const tablesByArea = computed(() => {

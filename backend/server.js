@@ -3,6 +3,7 @@ const app = require("./app");
 const config = require("./app/config");
 const mongoose = require("mongoose");
 const { initSocket } = require("./app/socket");
+const { startReservationCronJob } = require("./app/jobs/reservation-cron");
 
 // Kết nối tới MongoDB & khởi chạy HTTP Server (kèm Socket.io)
 async function startServer() {
@@ -13,6 +14,9 @@ async function startServer() {
 
     const server = http.createServer(app);
     initSocket(server);
+
+    // Kích hoạt background cron quét No-Show định kỳ
+    startReservationCronJob();
 
     const PORT = config.port || 3000;
     server.listen(PORT, () => {

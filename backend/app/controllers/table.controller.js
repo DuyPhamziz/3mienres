@@ -1,6 +1,7 @@
 const Table = require("../models/table.model");
 const Area = require("../models/area.model");
 const TableConnection = require("../models/table-connection.model");
+const Reservation = require("../models/reservation.model");
 const AppError = require("../app-error");
 const tableEngine = require("../utils/table-engine");
 const { emitEvent } = require("../socket");
@@ -73,11 +74,49 @@ exports.getAllTables = async (req, res, next) => {
       .skip(skip)
       .limit(limit);
 
+    // Tính toán các bàn có lịch đặt sắp tới (trong vòng 45 phút tới)
+    const now = new Date();
+    const upcomingHorizon = new Date(now.getTime() + 45 * 60000);
+
+    const upcomingReservations = await Reservation.find({
+      status: "CONFIRMED",
+      startAt: { $gte: new Date(now.getTime() - 15 * 60000), $lte: upcomingHorizon },
+    }).select("reservationCode customerName customerPhone guestsCount startAt endAt tables");
+
+    const upcomingMap = new Map();
+    for (const resItem of upcomingReservations) {
+      if (resItem.tables && resItem.tables.length > 0) {
+        for (const tId of resItem.tables) {
+          const idStr = tId.toString();
+          if (!upcomingMap.has(idStr) || new Date(resItem.startAt) < new Date(upcomingMap.get(idStr).startAt)) {
+            upcomingMap.set(idStr, {
+              reservationId: resItem._id,
+              reservationCode: resItem.reservationCode,
+              customerName: resItem.customerName,
+              customerPhone: resItem.customerPhone,
+              guestsCount: resItem.guestsCount,
+              startAt: resItem.startAt,
+              endAt: resItem.endAt,
+            });
+          }
+        }
+      }
+    }
+
+    const enrichedTables = tables.map((t) => {
+      const doc = t.toObject();
+      const upcoming = upcomingMap.get(t._id.toString());
+      if (upcoming) {
+        doc.upcomingReservation = upcoming;
+      }
+      return doc;
+    });
+
     res.status(200).json({
       status: "success",
-      results: tables.length,
+      results: enrichedTables.length,
       ...buildPaginationMeta(total, page, limit),
-      data: { tables },
+      data: { tables: enrichedTables },
     });
   } catch (error) {
     next(error);

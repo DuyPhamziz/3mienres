@@ -18,7 +18,10 @@ const statusColors = {
   MAINTENANCE: '#6b7280',
 }
 
+const isUpcoming = computed(() => !!props.table.upcomingReservation && props.table.status === 'AVAILABLE')
+
 const borderClass = computed(() => {
+  if (isUpcoming.value) return 'border-upcoming'
   const map = {
     AVAILABLE: 'border-available',
     RESERVED: 'border-reserved',
@@ -28,7 +31,17 @@ const borderClass = computed(() => {
   return map[props.table.status] || ''
 })
 
-const markerColor = computed(() => statusColors[props.table.status] || '#6b7280')
+const markerColor = computed(() => {
+  if (isUpcoming.value) return '#f59e0b'
+  return statusColors[props.table.status] || '#6b7280'
+})
+
+const upcomingTooltip = computed(() => {
+  if (!props.table.upcomingReservation) return ''
+  const u = props.table.upcomingReservation
+  const timeStr = new Date(u.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })
+  return `Lịch đặt sắp tới: ${u.customerName} (${u.guestsCount} khách) lúc ${timeStr} - Mã ${u.reservationCode}`
+})
 
 function onDragStart(e) {
   e.dataTransfer.setData('text/plain', props.table._id)
@@ -45,7 +58,8 @@ function onDragOver(e) {
 <template>
   <div
     class="compact-card position-relative"
-    :class="[borderClass, { 'drag-source': isDragSource, 'drop-target': isDropTarget }]"
+    :class="[borderClass, { 'drag-source': isDragSource, 'drop-target': isDropTarget, 'upcoming-highlight': isUpcoming }]"
+    :title="upcomingTooltip"
     draggable="true"
     @dragstart="onDragStart"
     @dragend="emit('drag-end')"
@@ -60,7 +74,12 @@ function onDragOver(e) {
 
     <!-- Info text -->
     <div class="card-info" v-if="!isDropTarget">
-      <span class="card-cap">{{ table.capacity }} chỗ</span>
+      <div class="d-flex align-items-center justify-content-between gap-1">
+        <span class="card-cap">{{ table.capacity }} chỗ</span>
+        <span v-if="isUpcoming" class="upcoming-badge" :title="upcomingTooltip">
+          <i class="fa-solid fa-clock me-0.5"></i>{{ new Date(table.upcomingReservation.startAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }}
+        </span>
+      </div>
       <span v-if="connectedNumbers.length" class="card-links" :title="`Ghép với: ${connectedNumbers.join(', ')}`">
         🔗 {{ connectedNumbers.join(', ') }}
       </span>
@@ -195,6 +214,22 @@ function onDragOver(e) {
 .border-reserved { border-color: #fcd34d; }
 .border-occupied { border-color: #fca5a5; }
 .border-maintenance { border-color: #d1d5db; }
+.border-upcoming { border-color: #f59e0b; }
+
+.upcoming-highlight {
+  background: #fffdf5;
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.4);
+}
+
+.upcoming-badge {
+  font-size: 9px;
+  font-weight: 700;
+  color: #b45309;
+  background: #fef3c7;
+  padding: 1px 4px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
 
 .drag-source {
   opacity: 0.35;

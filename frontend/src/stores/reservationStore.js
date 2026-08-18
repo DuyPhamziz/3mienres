@@ -122,5 +122,23 @@ export const useReservationStore = defineStore("reservation", {
         throw new Error(err.response?.data?.message || "Tạo URL thanh toán MoMo thất bại!");
       }
     },
+    async markNoShow(reservationId, reason = "") {
+      try {
+        const res = await api.patch(`/reservations/${reservationId}/no-show`, { reason });
+        await this.fetchAllReservations();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Đánh dấu No-Show thất bại!");
+      }
+    },
+    async scanNoShow() {
+      try {
+        const res = await api.post("/reservations/scan-no-show");
+        await this.fetchAllReservations();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Quét No-Show thất bại!");
+      }
+    },
   },
 });

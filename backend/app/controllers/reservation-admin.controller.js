@@ -155,3 +155,56 @@ exports.demoConfirmDeposit = async (req, res, next) => {
     next(error);
   }
 };
+
+// 5. Nhân viên chủ động đánh dấu đơn là No-Show (Khách không đến nhận bàn)
+exports.markNoShow = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { reason } = req.body;
+
+    const reservation = await Reservation.findById(id);
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
+
+    if (["CANCELLED", "COMPLETED", "ARRIVED"].includes(reservation.status)) {
+      return next(new AppError(`Đơn đặt bàn đang ở trạng thái '${reservation.status}', không thể đánh dấu No-Show`, 409));
+    }
+
+    reservation.status = "NO_SHOW";
+    reservation.tables = [];
+    reservation.notes = (reservation.notes ? reservation.notes + " | " : "") + (reason ? reason.trim() : "Nhân viên xác nhận khách vắng mặt (No-Show)");
+    await reservation.save();
+
+    emitEvent("reservations:changed");
+    emitEvent("tables:changed");
+    notifier.notifyReservationNoShow(reservation);
+    logAction(req, "MANUAL_NO_SHOW", "Reservation", reservation._id, {
+      reservationCode: reservation.reservationCode,
+      reason,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã đánh dấu đơn đặt bàn ${reservation.reservationCode} là Khách vắng mặt (No-Show)`,
+      data: { reservation },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 6. Quét nhanh No-Show theo yêu cầu (Admin on-demand scan)
+exports.triggerNoShowScan = async (req, res, next) => {
+  try {
+    const { scanAndExpireNoShowReservations } = require("../jobs/reservation-cron");
+    const result = await scanAndExpireNoShowReservations();
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã hoàn tất quét No-Show. Tổng số đơn quá hạn chuyển sang No-Show: ${result.count}`,
+      data: result,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

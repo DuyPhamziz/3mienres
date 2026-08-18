@@ -52,10 +52,20 @@
               <span
                 :class="[
                   'badge px-2.5 py-1.5 rounded-pill fs-8',
-                  res.status === 'CONFIRMED' ? 'bg-success' : res.status === 'ARRIVED' ? 'bg-primary' : 'bg-secondary'
+                  res.status === 'CONFIRMED' ? 'bg-success' : 
+                  res.status === 'ARRIVED' ? 'bg-primary' : 
+                  res.status === 'NO_SHOW' ? 'bg-dark text-white' :
+                  res.status === 'CANCELLED' ? 'bg-danger bg-opacity-10 text-danger' :
+                  res.status === 'COMPLETED' ? 'bg-secondary' : 'bg-warning text-dark'
                 ]"
               >
-                {{ res.status === 'CONFIRMED' ? 'Đã duyệt' : res.status === 'ARRIVED' ? 'Đã đến' : res.status }}
+                {{ 
+                  res.status === 'CONFIRMED' ? 'Đã duyệt' : 
+                  res.status === 'ARRIVED' ? 'Đã đến' : 
+                  res.status === 'NO_SHOW' ? 'Vắng mặt (No-Show)' :
+                  res.status === 'CANCELLED' ? 'Đã hủy' :
+                  res.status === 'COMPLETED' ? 'Hoàn tất' : res.status 
+                }}
               </span>
             </td>
             <td>
@@ -92,7 +102,16 @@
                 >
                   <i class="fa-solid fa-right-to-bracket me-1"></i> Check-in
                 </button>
+                <button
+                  v-if="res.status === 'CONFIRMED' || res.status === 'PENDING'"
+                  @click="$emit('mark-no-show', res)"
+                  class="btn btn-outline-dark btn-sm rounded-pill px-2.5 py-1 fs-8"
+                  title="Đánh dấu khách không đến nhận bàn"
+                >
+                  <i class="fa-solid fa-user-xmark me-1"></i> No-Show
+                </button>
                 <span v-if="res.status === 'ARRIVED' || res.status === 'COMPLETED'" class="text-muted small fs-8">Đã vào bàn</span>
+                <span v-if="res.status === 'NO_SHOW'" class="text-muted small fs-8">Quá giờ hủy bàn</span>
               </div>
             </td>
           </tr>
@@ -142,7 +161,7 @@ defineProps({
   },
 });
 
-defineEmits(["page-change", "open-qr", "check-in", "confirm-deposit"]);
+defineEmits(["page-change", "open-qr", "check-in", "confirm-deposit", "mark-no-show"]);
 </script>
 
 <style scoped>

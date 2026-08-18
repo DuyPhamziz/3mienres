@@ -66,3 +66,15 @@ exports.notifyReservationCancelled = (reservation) => {
   exports.sendEmail(reservation.customerEmail, `Đã hủy đặt bàn ${reservation.reservationCode}`, html);
   exports.sendSms(reservation.customerPhone, `3 Mien Cua: Da huy dat ban ${reservation.reservationCode}.`);
 };
+
+exports.notifyReservationNoShow = (reservation) => {
+  if (!reservation) return;
+  const html = `
+    <h3>3 Miền Cua - Thông báo hủy đơn đặt bàn quá giờ</h3>
+    <p>Đơn đặt bàn <b>${reservation.reservationCode}</b> (giờ hẹn: ${new Date(reservation.startAt).toLocaleString("vi-VN")}) đã tự động hủy do quá thời gian giữ bàn quy định (No-Show).</p>
+    <p>Cảm ơn quý khách và hẹn gặp lại quý khách lần sau!</p>
+  `;
+  exports.sendEmail(reservation.customerEmail, `Thông báo quá giờ giữ chỗ ${reservation.reservationCode}`, html);
+  exports.sendSms(reservation.customerPhone, `3 Mien Cua: Don dat ban ${reservation.reservationCode} da bi huy do qua gio giu cho.`);
+};
+

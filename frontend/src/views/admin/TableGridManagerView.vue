@@ -30,7 +30,7 @@
     <div class="d-flex gap-3 align-items-center mb-2 px-1 flex-wrap" style="font-size: 0.68rem">
       <span class="text-muted fw-bold">Trạng thái:</span>
       <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#22c55e"></span>Trống</span>
-      <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#f59e0b"></span>Đã đặt</span>
+      <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#f59e0b"></span>Sắp đón khách (Đặt trước)</span>
       <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#ef4444"></span>Đang dùng</span>
       <span class="d-flex align-items-center gap-1"><span class="legend-dot" style="background:#6b7280"></span>Bảo trì</span>
       <span class="text-muted ms-auto fst-italic">💡 Kéo bàn này thả vào bàn khác để ghép bàn nhanh</span>

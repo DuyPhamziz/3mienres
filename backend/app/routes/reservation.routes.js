@@ -19,7 +19,9 @@ router.get("/my-history", reservationController.getMyReservations);
 router.use(restrictTo("staff", "manager", "admin"));
 
 router.get("/", reservationAdminController.getAllReservations);
+router.post("/scan-no-show", reservationAdminController.triggerNoShowScan);
 router.patch("/:id/assign-tables", reservationAdminController.assignTables);
 router.patch("/:id/confirm-deposit", reservationAdminController.confirmDeposit);
+router.patch("/:id/no-show", reservationAdminController.markNoShow);
 
 module.exports = router;

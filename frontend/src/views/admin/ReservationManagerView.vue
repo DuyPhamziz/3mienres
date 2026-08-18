@@ -23,6 +23,9 @@
             placeholder="Tìm mã / tên / SĐT..."
           />
         </div>
+        <button @click="handleScanNoShow" class="btn btn-outline-dark btn-sm rounded-pill px-3 shadow-2xs" title="Quét các đơn quá giờ hẹn để chuyển sang No-Show">
+          <i class="fa-solid fa-user-clock me-1"></i> Quét No-Show
+        </button>
         <button @click="fetchReservations" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-2xs">
           <i class="fa-solid fa-rotate me-1"></i> Làm mới
         </button>
@@ -55,6 +58,7 @@
       @open-qr="selectedResQR = $event"
       @check-in="handleCheckIn"
       @confirm-deposit="handleConfirmDeposit"
+      @mark-no-show="handleMarkNoShow"
     />
 
     <!-- 3. Modal Xem / Tải QR của đơn -->
@@ -175,6 +179,30 @@ const handleCheckIn = async (reservation) => {
     toast.error("Lỗi Check-in: " + err.message);
   } finally {
     checkInLoading.value = false;
+  }
+};
+
+const handleMarkNoShow = async (reservation) => {
+  if (!confirm(`Xác nhận đánh dấu No-Show (Khách vắng mặt) cho đơn ${reservation.reservationCode}? Bàn sẽ được giải phóng.`)) return;
+  try {
+    await reservationStore.markNoShow(reservation._id, "Nhân viên xác nhận khách không đến");
+    toast.success(`Đã đánh dấu No-Show cho đơn ${reservation.reservationCode}`);
+    await fetchReservations();
+  } catch (err) {
+    toast.error(err.message);
+  }
+};
+
+const handleScanNoShow = async () => {
+  loading.value = true;
+  try {
+    const res = await reservationStore.scanNoShow();
+    toast.success(res.message || "Đã hoàn tất quét No-Show!");
+    await fetchReservations();
+  } catch (err) {
+    toast.error(err.message);
+  } finally {
+    loading.value = false;
   }
 };
 
