@@ -99,8 +99,17 @@
                   v-if="res.status === 'CONFIRMED' || res.status === 'PENDING'"
                   @click="$emit('check-in', res)"
                   class="btn btn-success btn-sm rounded-pill px-3 py-1 fw-bold fs-8 shadow-2xs"
+                  title="Mở bàn ngay theo thông tin đã đặt"
                 >
                   <i class="fa-solid fa-right-to-bracket me-1"></i> Check-in
+                </button>
+                <button
+                  v-if="res.status === 'CONFIRMED' || res.status === 'PENDING'"
+                  @click="$emit('custom-check-in', res)"
+                  class="btn btn-outline-success btn-sm rounded-pill px-2.5 py-1 fs-8"
+                  title="Tùy chỉnh số lượng khách hoặc đổi cụm bàn trước khi mở bàn"
+                >
+                  <i class="fa-solid fa-sliders"></i>
                 </button>
                 <button
                   v-if="res.status === 'CONFIRMED' || res.status === 'PENDING'"
@@ -161,7 +170,7 @@ defineProps({
   },
 });
 
-defineEmits(["page-change", "open-qr", "check-in", "confirm-deposit", "mark-no-show"]);
+defineEmits(["page-change", "open-qr", "check-in", "custom-check-in", "confirm-deposit", "mark-no-show"]);
 </script>
 
 <style scoped>

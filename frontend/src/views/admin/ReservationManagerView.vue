@@ -23,6 +23,9 @@
             placeholder="Tìm mã / tên / SĐT..."
           />
         </div>
+        <button @click="showTimelineModal = true" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-2xs" title="Xem lịch đặt bàn theo từng khung giờ trong ngày">
+          <i class="fa-solid fa-calendar-day me-1"></i> Lịch Đặt Bàn
+        </button>
         <button @click="handleScanNoShow" class="btn btn-outline-dark btn-sm rounded-pill px-3 shadow-2xs" title="Quét các đơn quá giờ hẹn để chuyển sang No-Show">
           <i class="fa-solid fa-user-clock me-1"></i> Quét No-Show
         </button>
@@ -39,6 +42,7 @@
       :check-in-loading="checkInLoading"
       @code-scanned="handleCodeScanned"
       @check-in="handleCheckIn"
+      @custom-check-in="openCustomCheckIn"
       @confirm-deposit="handleConfirmDeposit"
       @clear="activeCode = ''"
     />
@@ -57,6 +61,7 @@
       @page-change="goPage"
       @open-qr="selectedResQR = $event"
       @check-in="handleCheckIn"
+      @custom-check-in="openCustomCheckIn"
       @confirm-deposit="handleConfirmDeposit"
       @mark-no-show="handleMarkNoShow"
     />
@@ -65,6 +70,21 @@
     <ReservationQRModal
       :reservation="selectedResQR"
       @close="selectedResQR = null"
+    />
+
+    <!-- 4. Modal Tùy chỉnh Check-in -->
+    <CheckInCustomModal
+      v-if="customCheckInReservation"
+      :reservation="customCheckInReservation"
+      :loading="checkInLoading"
+      @close="customCheckInReservation = null"
+      @submit="handleCustomCheckInSubmit"
+    />
+
+    <!-- 5. Modal Lịch Đặt Bàn Hôm Nay (Timeline) -->
+    <TableTimelineModal
+      v-if="showTimelineModal"
+      @close="showTimelineModal = false"
     />
   </div>
 </template>
@@ -77,6 +97,8 @@ import { toast } from "../../composables/useToast";
 import QRCheckInHub from "../../components/admin/reservation/QRCheckInHub.vue";
 import ReservationTable from "../../components/admin/reservation/ReservationTable.vue";
 import ReservationQRModal from "../../components/admin/reservation/ReservationQRModal.vue";
+import CheckInCustomModal from "../../components/admin/reservation/CheckInCustomModal.vue";
+import TableTimelineModal from "../../components/admin/reservation/TableTimelineModal.vue";
 
 const sessionStore = useSessionStore();
 const reservationStore = useReservationStore();
@@ -203,6 +225,27 @@ const handleScanNoShow = async () => {
     toast.error(err.message);
   } finally {
     loading.value = false;
+  }
+};
+
+const showTimelineModal = ref(false);
+const customCheckInReservation = ref(null);
+
+const openCustomCheckIn = (reservation) => {
+  customCheckInReservation.value = reservation;
+};
+
+const handleCustomCheckInSubmit = async ({ reservationId, actualGuestsCount, tableIds }) => {
+  checkInLoading.value = true;
+  try {
+    await sessionStore.checkInReservation(reservationId, actualGuestsCount, tableIds);
+    toast.success("Check-in tùy chỉnh mở bàn thành công!");
+    customCheckInReservation.value = null;
+    await fetchReservations();
+  } catch (err) {
+    toast.error("Lỗi Check-in: " + err.message);
+  } finally {
+    checkInLoading.value = false;
   }
 };
 

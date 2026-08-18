@@ -235,6 +235,14 @@
                 <i v-else class="fa-solid fa-right-to-bracket me-1.5"></i>
                 Xác Nhận Check-in & Mở Bàn Ngay
               </button>
+              <button
+                @click="$emit('custom-check-in', matchedReservation)"
+                class="btn btn-outline-success rounded-pill px-3 py-2 fw-bold shadow-sm"
+                :disabled="checkInLoading"
+                title="Tùy chỉnh số khách thực tế hoặc đổi cụm bàn trước khi mở bàn"
+              >
+                <i class="fa-solid fa-sliders me-1"></i> Tùy Chỉnh
+              </button>
             </div>
 
             <div v-else-if="matchedReservation.status === 'ARRIVED'" class="alert alert-success py-2 px-3 rounded-pill mb-0 text-center small fw-bold">
@@ -271,7 +279,7 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["code-scanned", "check-in", "confirm-deposit", "clear"]);
+const emit = defineEmits(["code-scanned", "check-in", "custom-check-in", "confirm-deposit", "clear"]);
 
 const fileInputRef = ref(null);
 const uploadedImagePreview = ref(null);

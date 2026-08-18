@@ -11,6 +11,9 @@
         </p>
       </div>
       <div class="d-flex gap-1 flex-wrap">
+        <button @click="showTimelineModal = true" class="btn btn-outline-danger btn-sm rounded-pill px-2.5 fw-bold" style="font-size: 0.7rem">
+          <i class="fa-solid fa-calendar-day me-1"></i>Lịch Đặt Bàn
+        </button>
         <button @click="openCreateTableModal" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold" style="font-size: 0.72rem">
           <i class="fa-solid fa-plus me-1"></i>Thêm Bàn Mới
         </button>
@@ -144,6 +147,11 @@
       @close="showConnectModal = false"
       @submit="handleCreateConnection"
     />
+
+    <TableTimelineModal
+      v-if="showTimelineModal"
+      @close="showTimelineModal = false"
+    />
   </div>
 </template>
 
@@ -157,9 +165,11 @@ import TableNetworkGraph from "../../components/admin/TableNetworkGraph.vue";
 import TableFormModal from "../../components/admin/table/TableFormModal.vue";
 import AreaManageModal from "../../components/admin/table/AreaManageModal.vue";
 import ManualConnectModal from "../../components/admin/table/ManualConnectModal.vue";
+import TableTimelineModal from "../../components/admin/reservation/TableTimelineModal.vue";
 
 const tableStore = useTableStore();
 
+const showTimelineModal = ref(false);
 const showConnectModal = ref(false);
 const showAreaModal = ref(false);
 const showTableModal = ref(false);

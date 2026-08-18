@@ -7,6 +7,9 @@
         <p class="text-muted small mb-0">Tiếp nhận khách Walk-in, Gọi món đợt 1 đợt 2, Cảnh báo quá giờ và Thanh toán xuất hóa đơn</p>
       </div>
       <div class="d-flex gap-2">
+        <button @click="showTimelineModal = true" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold">
+          <i class="fa-solid fa-calendar-day me-1"></i> Lịch Đặt Bàn
+        </button>
         <button @click="openWalkInModal" class="btn btn-danger btn-sm rounded-pill px-3 fw-bold">
           <i class="fa-solid fa-person-walking-luggage me-1"></i> Tiếp Nhận Khách Walk-in
         </button>
@@ -88,6 +91,11 @@
       :loading="loadingOrders"
       @close="showDishStatusModal = false"
     />
+
+    <TableTimelineModal
+      v-if="showTimelineModal"
+      @close="showTimelineModal = false"
+    />
   </div>
 </template>
 
@@ -106,12 +114,14 @@ import ChangeTableModal from "../../components/admin/pos/ChangeTableModal.vue";
 import OrderDishModal from "../../components/admin/pos/OrderDishModal.vue";
 import CheckoutModal from "../../components/admin/pos/CheckoutModal.vue";
 import DishStatusModal from "../../components/admin/pos/DishStatusModal.vue";
+import TableTimelineModal from "../../components/admin/reservation/TableTimelineModal.vue";
 
 const router = useRouter();
 const sessionStore = useSessionStore();
 const tableStore = useTableStore();
 const menuStore = useMenuStore();
 
+const showTimelineModal = ref(false);
 const showWalkInModal = ref(false);
 const showOrderModal = ref(false);
 const showCheckoutModal = ref(false);
