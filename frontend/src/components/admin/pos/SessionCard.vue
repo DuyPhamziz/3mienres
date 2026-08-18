@@ -7,29 +7,29 @@
   >
     <!-- Overtime Badge -->
     <span v-if="session.isOverTime" class="position-absolute top-0 end-0 m-3 badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold">
-      <i class="fa-solid fa-triangle-exclamation me-1"></i> QUÁ GIỜ ({{ session.elapsedMinutes }} phút)
+      <i class="fa-solid fa-triangle-exclamation me-1"></i> QUÁ GIỜ ({{ session.elapsedMinutes || 0 }} phút)
     </span>
     <span v-else class="position-absolute top-0 end-0 m-3 badge bg-danger rounded-pill px-3 py-2">
-      ĐANG ĂN ({{ session.elapsedMinutes }} phút)
+      ĐANG ĂN ({{ session.elapsedMinutes || 0 }} phút)
     </span>
 
     <h4 class="fw-bold brand-font mb-1 text-danger">
-      Bàn {{ session.tables.map(t => t.tableNumber).join(' + ') }}
+      Bàn {{ tableNumbers }}
     </h4>
-    <p class="text-muted small mb-2">Mã lượt dùng bữa: <strong>{{ session.sessionCode }}</strong> ({{ session.type }})</p>
+    <p class="text-muted small mb-2">Mã lượt dùng bữa: <strong>{{ session.sessionCode }}</strong> ({{ session.type || 'WALK_IN' }})</p>
 
     <div class="p-3 bg-white rounded-3 border mb-3 flex-grow-1">
       <div class="d-flex justify-content-between small mb-1">
         <span class="text-muted">Khách hàng:</span>
-        <strong class="text-dark">{{ session.customerName }}</strong>
+        <strong class="text-dark">{{ session.customerName || 'Khách vãng lai' }}</strong>
       </div>
       <div class="d-flex justify-content-between small mb-1">
         <span class="text-muted">Số người:</span>
-        <strong class="text-dark">{{ session.actualGuestsCount }} người</strong>
+        <strong class="text-dark">{{ session.actualGuestsCount || 1 }} người</strong>
       </div>
       <div class="d-flex justify-content-between small">
         <span class="text-muted">Giờ vào:</span>
-        <strong class="text-secondary">{{ new Date(session.checkInTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }}</strong>
+        <strong class="text-secondary">{{ session.checkInTime ? new Date(session.checkInTime).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) : '—' }}</strong>
       </div>
     </div>
 
@@ -57,7 +57,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from "vue";
+
+const props = defineProps({
   session: {
     type: Object,
     required: true,
@@ -65,4 +67,14 @@ defineProps({
 });
 
 defineEmits(["open-qr", "change-table", "merge-table", "dish-status", "order", "checkout"]);
+
+const tableNumbers = computed(() => {
+  const tables = props.session?.tables || [];
+  return (
+    tables
+      .filter(Boolean)
+      .map((t) => t.tableNumber || t)
+      .join(" + ") || "—"
+  );
+});
 </script>

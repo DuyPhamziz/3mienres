@@ -4,7 +4,7 @@
       <div class="modal-content rounded-5 p-3 shadow-lg">
         <div class="modal-header border-0">
           <h5 class="modal-title fw-bold brand-font text-danger">
-            <i class="fa-solid fa-list-check me-2"></i>Món Đã Gọi & Trạng Thái Bếp (Bàn {{ session?.tables?.map(t => t.tableNumber).join(' + ') }})
+            <i class="fa-solid fa-list-check me-2"></i>Món Đã Gọi & Trạng Thái Bếp (Bàn {{ tableNumbers }})
           </h5>
           <button @click="$emit('close')" type="button" class="btn-close"></button>
         </div>
@@ -51,7 +51,9 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from "vue";
+
+const props = defineProps({
   session: {
     type: Object,
     required: true,
@@ -68,17 +70,31 @@ defineProps({
 
 defineEmits(["close"]);
 
-const dishStatusBadge = (s) => ({
-  PENDING: "bg-warning text-dark",
-  PREPARING: "bg-primary text-white",
-  SERVED: "bg-success text-white",
-  CANCELLED: "bg-danger text-white",
-})[s] || "bg-secondary text-white";
+const tableNumbers = computed(() => {
+  const tables = props.session?.tables || [];
+  return (
+    tables
+      .filter(Boolean)
+      .map((t) => t.tableNumber || t)
+      .join(" + ") || "—"
+  );
+});
 
-const dishStatusText = (s) => ({
-  PENDING: "Chờ Bếp Nhận",
-  PREPARING: "Bếp Đang Nấu",
-  SERVED: "Đã Ra Bàn",
-  CANCELLED: "Đã Hủy Món",
-})[s] || s;
+const dishStatusBadge = (status) => {
+  switch (status) {
+    case "PENDING": return "bg-warning text-dark";
+    case "PREPARING": return "bg-danger text-white";
+    case "SERVED": return "bg-success text-white";
+    default: return "bg-secondary text-white";
+  }
+};
+
+const dishStatusText = (status) => {
+  switch (status) {
+    case "PENDING": return "Chờ chế biến";
+    case "PREPARING": return "Đang nấu";
+    case "SERVED": return "Đã ra món";
+    default: return status;
+  }
+};
 </script>

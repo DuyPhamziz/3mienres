@@ -4,7 +4,7 @@
       <div class="modal-content rounded-5 p-3 shadow-lg">
         <div class="modal-header border-0">
           <h5 class="modal-title fw-bold brand-font text-success">
-            <i class="fa-solid fa-receipt me-2"></i>Thanh Toán Bàn {{ session?.tables?.map(t => t.tableNumber).join(' + ') }}
+            <i class="fa-solid fa-receipt me-2"></i>Thanh Toán Bàn {{ tableNumbers }}
           </h5>
           <button @click="$emit('close')" type="button" class="btn-close"></button>
         </div>
@@ -45,7 +45,7 @@
 </template>
 
 <script setup>
-import { reactive } from "vue";
+import { reactive, computed } from "vue";
 
 const props = defineProps({
   session: {
@@ -62,8 +62,18 @@ defineEmits(["close", "submit"]);
 
 const form = reactive({
   paymentMethod: "CASH",
+  voucherCode: "",
   discountAmount: 0,
   taxPercent: 8,
-  voucherCode: "",
+});
+
+const tableNumbers = computed(() => {
+  const tables = props.session?.tables || [];
+  return (
+    tables
+      .filter(Boolean)
+      .map((t) => t.tableNumber || t)
+      .join(" + ") || "—"
+  );
 });
 </script>

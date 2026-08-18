@@ -276,8 +276,9 @@ exports.getActiveSessions = async (req, res, next) => {
     // Bổ sung cờ cảnh báo xem bàn nào đang bị ngồi quá giờ (OVER_TIME)
     const formattedSessions = sessions.map((s) => {
       const doc = s.toObject();
-      doc.isOverTime = now > new Date(s.expectedEndTime);
-      doc.elapsedMinutes = Math.floor((now - new Date(s.checkInTime)) / 60000);
+      doc.tables = (doc.tables || []).filter(Boolean);
+      doc.isOverTime = s.expectedEndTime ? now > new Date(s.expectedEndTime) : false;
+      doc.elapsedMinutes = s.checkInTime ? Math.max(0, Math.floor((now - new Date(s.checkInTime)) / 60000)) : 0;
       return doc;
     });
 

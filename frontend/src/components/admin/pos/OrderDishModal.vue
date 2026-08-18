@@ -4,7 +4,7 @@
       <div class="modal-content rounded-5 p-3 shadow-lg">
         <div class="modal-header border-0">
           <h5 class="modal-title fw-bold brand-font text-danger">
-            Gọi Món Cho Bàn {{ session?.tables?.map(t => t.tableNumber).join(' + ') }}
+            Gọi Món Cho Bàn {{ tableNumbers }}
           </h5>
           <button @click="$emit('close')" type="button" class="btn-close"></button>
         </div>
@@ -58,33 +58,48 @@
                 </h6>
                 <VueDraggable
                   v-model="basket"
-                  :group="{ name: 'order', put: true }"
-                  :sort="false"
+                  group="order"
                   :animation="150"
-                  @add="onBasketAdd"
-                  class="order-basket-list flex-grow-1"
+                  class="basket-dropzone flex-grow-1 border-2 rounded-3 p-2 bg-white mb-2"
+                  style="min-height: 180px; max-height: 240px; overflow-y: auto;"
                 >
-                  <div v-for="item in basket" :key="item.dishId" class="p-2 bg-white rounded-3 border mb-2 d-flex align-items-center justify-content-between">
-                    <div class="min-w-0">
-                      <strong class="d-block text-dark text-truncate fs-7">{{ item.dishName }}</strong>
-                      <small class="text-danger fw-bold">{{ (item.price * item.quantity).toLocaleString('vi-VN') }}đ</small>
+                  <div v-if="basket.length === 0" class="text-center text-muted small py-4">
+                    Kéo thả món vào đây<br />hoặc bấm nút (+)
+                  </div>
+                  <div
+                    v-for="(item, idx) in basket"
+                    :key="idx"
+                    class="basket-item p-2 mb-1.5 border rounded-3 bg-light d-flex justify-content-between align-items-center"
+                  >
+                    <div class="min-w-0 me-2">
+                      <strong class="d-block text-dark text-truncate fs-7">{{ item.name }}</strong>
+                      <small class="text-muted">{{ (item.price * item.quantity).toLocaleString('vi-VN') }}đ</small>
                     </div>
-                    <div class="no-drag d-flex align-items-center gap-2 flex-shrink-0">
+                    <div class="d-flex align-items-center gap-1 flex-shrink-0">
                       <button
                         type="button"
-                        @click="removeDishFromOrder(item.dishId)"
-                        class="btn btn-outline-secondary btn-sm rounded-circle p-0 d-flex align-items-center justify-content-center"
-                        style="width: 26px; height: 26px;"
+                        @click="updateQty(idx, -1)"
+                        class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center"
+                        style="width: 24px; height: 24px;"
                       >
-                        <i class="fa-solid fa-minus fs-8"></i>
+                        -
                       </button>
-                      <span class="fw-bold fs-7">x{{ item.quantity }}</span>
+                      <span class="fw-bold px-1 fs-7">{{ item.quantity }}</span>
+                      <button
+                        type="button"
+                        @click="updateQty(idx, 1)"
+                        class="btn btn-sm btn-outline-secondary rounded-circle p-0 d-flex align-items-center justify-content-center"
+                        style="width: 24px; height: 24px;"
+                      >
+                        +
+                      </button>
                     </div>
                   </div>
                 </VueDraggable>
-                <div v-if="basket.length === 0" class="text-center text-muted small py-3">
-                  <i class="fa-solid fa-arrows-up-down fs-4 d-block mb-1 opacity-50"></i>
-                  Kéo món thả vào đây
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                  <span class="small text-muted">Tổng tạm tính:</span>
+                  <strong class="text-danger fs-6">{{ basketTotal.toLocaleString('vi-VN') }}đ</strong>
                 </div>
               </div>
             </div>
@@ -93,11 +108,11 @@
         <div class="modal-footer border-0">
           <button @click="$emit('close')" class="btn btn-light rounded-pill px-4">Hủy</button>
           <button
-            @click="$emit('submit', basket)"
+            @click="handleSubmit"
             :disabled="basket.length === 0"
             class="btn btn-danger rounded-pill px-4 fw-bold"
           >
-            Gửi Đơn Xuống Bếp
+            Gửi Bếp ({{ basket.length }} món)
           </button>
         </div>
       </div>
@@ -106,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from "vue";
+import { ref, computed, watch } from "vue";
 import { VueDraggable } from "vue-draggable-plus";
 
 const props = defineProps({
@@ -120,78 +135,82 @@ const props = defineProps({
   },
 });
 
-defineEmits(["close", "submit"]);
+const emit = defineEmits(["close", "submit"]);
 
-const dishList = ref([]);
+const dishList = ref([...props.dishes]);
 const basket = ref([]);
+
+const tableNumbers = computed(() => {
+  const tables = props.session?.tables || [];
+  return (
+    tables
+      .filter(Boolean)
+      .map((t) => t.tableNumber || t)
+      .join(" + ") || "—"
+  );
+});
 
 watch(
   () => props.dishes,
-  (val) => {
-    dishList.value = val ? [...val] : [];
+  (newVal) => {
+    dishList.value = [...newVal];
   },
-  { immediate: true },
 );
 
-const cloneDishToOrder = (dish) => ({
-  dishId: dish._id,
-  dishName: dish.name,
-  price: dish.price,
-  quantity: 1,
+const basketTotal = computed(() => {
+  return basket.value.reduce((sum, item) => sum + item.price * item.quantity, 0);
 });
 
+const cloneDishToOrder = (dish) => {
+  const existing = basket.value.find((b) => b.dishId === dish._id);
+  if (existing) {
+    existing.quantity += 1;
+    return null;
+  }
+  return {
+    dishId: dish._id,
+    name: dish.name,
+    price: dish.price,
+    quantity: 1,
+  };
+};
+
 const addDishToOrder = (dish) => {
-  const existing = basket.value.find((item) => item.dishId === dish._id);
+  const existing = basket.value.find((b) => b.dishId === dish._id);
   if (existing) {
     existing.quantity += 1;
   } else {
     basket.value.push({
       dishId: dish._id,
-      dishName: dish.name,
+      name: dish.name,
       price: dish.price,
       quantity: 1,
     });
   }
 };
 
-const removeDishFromOrder = (dishId) => {
-  const idx = basket.value.findIndex((item) => item.dishId === dishId);
-  if (idx > -1) {
-    if (basket.value[idx].quantity > 1) {
-      basket.value[idx].quantity -= 1;
-    } else {
-      basket.value.splice(idx, 1);
-    }
+const updateQty = (idx, delta) => {
+  const item = basket.value[idx];
+  if (!item) return;
+  item.quantity += delta;
+  if (item.quantity <= 0) {
+    basket.value.splice(idx, 1);
   }
 };
 
-const onBasketAdd = (evt) => {
-  const addedItem = basket.value[evt.newIndex];
-  if (!addedItem) return;
-  const duplicates = basket.value.filter((item) => item.dishId === addedItem.dishId);
-  if (duplicates.length > 1) {
-    duplicates[0].quantity += 1;
-    basket.value.splice(evt.newIndex, 1);
+const handleSubmit = () => {
+  if (basket.value.length > 0) {
+    emit("submit", basket.value);
   }
 };
 </script>
 
 <style scoped>
 .pos-dish-scroll {
-  max-height: 380px;
+  max-height: 280px;
   overflow-y: auto;
 }
-.order-basket-list {
-  min-height: 200px;
-  max-height: 340px;
-  overflow-y: auto;
-}
-.pos-dish-card {
-  cursor: grab;
-  transition: all 0.15s;
-}
-.pos-dish-card:hover {
-  border-color: #ef4444 !important;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.06);
+.basket-dropzone {
+  border-style: dashed;
 }
 </style>
