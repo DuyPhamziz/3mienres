@@ -4,14 +4,17 @@ const { protect, restrictTo } = require("../utils/auth");
 
 const router = express.Router();
 
-// Lấy danh sách đánh giá của 1 món ăn (Công khai)
+// 1. Lấy danh sách đánh giá của 1 món ăn (Công khai)
 router.get("/dish/:dishId", reviewController.getReviewsByDish);
 
-// Đăng đánh giá món ăn (Yêu cầu đăng nhập)
+// 2. Đăng / Sửa đánh giá món ăn (Khách hàng đăng nhập)
 router.post("/", protect, reviewController.createReview);
 
-// Vùng quản lý dành cho Manager / Admin
+// 3. Vùng quản lý dành cho Manager / Admin
+router.get("/stats", protect, restrictTo("manager", "admin"), reviewController.getReviewStats);
 router.get("/", protect, restrictTo("manager", "admin"), reviewController.getAllReviews);
+router.patch("/:id/reply", protect, restrictTo("manager", "admin"), reviewController.replyReview);
+router.patch("/:id/status", protect, restrictTo("manager", "admin"), reviewController.toggleReviewStatus);
 router.delete("/:id", protect, restrictTo("manager", "admin"), reviewController.deleteReview);
 
 module.exports = router;

@@ -27,6 +27,26 @@ const reviewSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    // Trạng thái hiển thị (Admin có thể ẩn nếu là spam hoặc vi phạm)
+    status: {
+      type: String,
+      enum: ["VISIBLE", "HIDDEN"],
+      default: "VISIBLE",
+    },
+    // Phản hồi chính thức từ Nhà Hàng / Admin
+    reply: {
+      comment: {
+        type: String,
+        trim: true,
+      },
+      repliedAt: {
+        type: Date,
+      },
+      repliedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    },
   },
   { timestamps: true },
 );

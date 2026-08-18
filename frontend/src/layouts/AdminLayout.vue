@@ -66,6 +66,12 @@
             </router-link>
           </li>
           <li class="nav-item">
+            <router-link to="/admin/reviews" class="sidebar-link d-flex align-items-center gap-2 py-2 px-3 rounded-3" active-class="sidebar-link-active">
+              <i class="fa-solid fa-star-half-stroke" style="width: 16px; text-align:center;"></i>
+              <span>{{ langStore.isEnglish ? 'Reviews & Feedback' : 'Đánh Giá & Góp Ý' }}</span>
+            </router-link>
+          </li>
+          <li class="nav-item">
             <router-link to="/admin/inventory" class="sidebar-link d-flex align-items-center gap-2 py-2 px-3 rounded-3" active-class="sidebar-link-active">
               <i class="fa-solid fa-boxes-stacked" style="width: 16px; text-align:center;"></i>
               <span>{{ langStore.isEnglish ? 'Inventory Stock' : 'Quản Lý Kho Nguyên Liệu' }}</span>

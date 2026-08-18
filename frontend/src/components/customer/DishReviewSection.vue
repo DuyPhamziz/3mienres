@@ -31,7 +31,13 @@
       <!-- Cột Phân Bố Sao -->
       <div class="col-md-8">
         <div class="d-flex flex-column gap-1.5 max-w-md">
-          <div v-for="star in [5, 4, 3, 2, 1]" :key="star" class="d-flex align-items-center gap-2 small">
+          <div
+            v-for="star in [5, 4, 3, 2, 1]"
+            :key="star"
+            @click="selectedStarFilter = selectedStarFilter === star ? 0 : star"
+            class="d-flex align-items-center gap-2 small cursor-pointer py-0.5 rounded px-2"
+            :class="{ 'bg-warning bg-opacity-10': selectedStarFilter === star }"
+          >
             <span class="text-muted fw-semibold" style="width: 45px;">{{ star }} <i class="fa-solid fa-star text-warning fs-9"></i></span>
             <div class="progress flex-grow-1 rounded-pill" style="height: 7px;">
               <div
@@ -111,23 +117,42 @@
       </form>
     </div>
 
+    <!-- Bộ Lọc Đánh Giá -->
+    <div v-if="reviews.length > 0" class="d-flex align-items-center gap-2 mb-3 flex-wrap">
+      <span class="small fw-bold text-muted me-1">{{ isEnglish ? 'Filter:' : 'Lọc:' }}</span>
+      <button
+        @click="selectedStarFilter = 0"
+        :class="['btn btn-sm rounded-pill px-3 fs-8', selectedStarFilter === 0 ? 'btn-danger' : 'btn-light']"
+      >
+        {{ isEnglish ? 'All' : 'Tất cả' }} ({{ reviews.length }})
+      </button>
+      <button
+        v-for="s in [5, 4, 3, 2, 1]"
+        :key="s"
+        @click="selectedStarFilter = s"
+        :class="['btn btn-sm rounded-pill px-3 fs-8', selectedStarFilter === s ? 'btn-danger' : 'btn-light']"
+      >
+        {{ s }} <i class="fa-solid fa-star text-warning fs-9"></i> ({{ countStar(s) }})
+      </button>
+    </div>
+
     <!-- Danh Sách Đánh Giá Đã Có -->
     <div v-if="loading" class="text-center py-4">
       <div class="spinner-border spinner-border-sm text-danger" role="status"></div>
     </div>
 
-    <div v-else-if="reviews.length === 0" class="text-center py-4 text-muted">
+    <div v-else-if="filteredReviews.length === 0" class="text-center py-4 text-muted">
       <i class="fa-regular fa-comment-dots display-6 opacity-40 mb-2 d-block"></i>
       <p class="small mb-0">
-        {{ isEnglish ? 'No reviews yet. Be the first to try and review this specialty!' : 'Chưa có nhận xét nào. Hãy là người đầu tiên thưởng thức và chia sẻ cảm nhận!' }}
+        {{ isEnglish ? 'No reviews found in this filter.' : 'Chưa có đánh giá nào phù hợp với bộ lọc.' }}
       </p>
     </div>
 
     <div v-else class="d-flex flex-column gap-3">
       <div
-        v-for="r in reviews"
+        v-for="r in filteredReviews"
         :key="r._id"
-        class="p-3 rounded-4 border bg-white shadow-2xs hover-border-danger transition-all"
+        class="p-3.5 rounded-4 border bg-white shadow-2xs hover-border-danger transition-all"
       >
         <div class="d-flex justify-content-between align-items-start mb-2">
           <div class="d-flex align-items-center gap-2.5">
@@ -148,9 +173,25 @@
           </div>
         </div>
 
-        <p class="text-secondary small mb-0 ps-5" style="line-height: 1.5;">
+        <p class="text-secondary small mb-2 ps-md-5" style="line-height: 1.6;">
           {{ r.comment }}
         </p>
+
+        <!-- ═══ PHẢN HỒI CHÍNH THỨC TỪ NHÀ HÀNG (NẾU CÓ) ═══ -->
+        <div v-if="r.reply && r.reply.comment" class="ms-md-5 mt-2.5 p-3 rounded-3 bg-light border-start border-4 border-danger">
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-danger text-white rounded-pill px-2.5 py-1 fs-9 fw-bold d-inline-flex align-items-center gap-1">
+              <i class="fa-solid fa-crown text-warning"></i>
+              {{ isEnglish ? '3 Miền Cua Restaurant Reply' : 'Phản Hồi Từ Nhà Hàng 3 Miền Cua' }}
+            </span>
+            <small class="text-muted fs-9" v-if="r.reply.repliedAt">
+              {{ new Date(r.reply.repliedAt).toLocaleDateString('vi-VN') }}
+            </small>
+          </div>
+          <p class="small text-dark mb-0 fst-italic" style="line-height: 1.5;">
+            "{{ r.reply.comment }}"
+          </p>
+        </div>
       </div>
     </div>
   </div>
@@ -182,6 +223,7 @@ const reviews = ref([]);
 const loading = ref(false);
 const submitting = ref(false);
 const hoverRating = ref(0);
+const selectedStarFilter = ref(0);
 
 const reviewForm = reactive({
   rating: 5,
@@ -202,6 +244,11 @@ const getStarPercent = (star) => {
   if (reviews.value.length === 0) return 0;
   return (countStar(star) / reviews.value.length) * 100;
 };
+
+const filteredReviews = computed(() => {
+  if (selectedStarFilter.value === 0) return reviews.value;
+  return reviews.value.filter((r) => r.rating === selectedStarFilter.value);
+});
 
 const starText = (rating) => {
   const mapVi = {

@@ -43,13 +43,22 @@
           </ul>
         </div>
 
-        <!-- Col 4: Member Perks -->
+        <!-- Col 4: Member Perks & Feedback -->
         <div class="col-lg-3 col-md-6">
-          <h6 class="fw-bold text-white mb-3 brand-font">Hội Viên 3 Miền Cua</h6>
-          <p class="text-white-50 small mb-3">Đăng ký thành viên để tự động tích điểm chi tiêu và nhận ưu đãi giảm đến 15% cho mọi đơn hàng.</p>
-          <router-link to="/register" class="btn btn-warning btn-sm w-100 rounded-pill fw-bold">
-            <i class="fa-solid fa-crown me-1"></i> Đăng Ký Hội Viên
-          </router-link>
+          <h6 class="fw-bold text-white mb-3 brand-font">Hội Viên & Đóng Góp Ý Kiến</h6>
+          <p class="text-white-50 small mb-3">Tích điểm nhận ưu đãi đến 15% và gửi phản hồi giúp nhà hàng nâng cao chất lượng dịch vụ.</p>
+          <div class="d-flex flex-column gap-2">
+            <router-link to="/register" class="btn btn-warning btn-sm w-100 rounded-pill fw-bold text-dark">
+              <i class="fa-solid fa-crown me-1"></i> Đăng Ký Hội Viên
+            </router-link>
+            <button
+              @click="showFeedbackModal = true"
+              type="button"
+              class="btn btn-outline-light btn-sm w-100 rounded-pill fw-semibold"
+            >
+              <i class="fa-solid fa-comment-dots text-warning me-1"></i> Gửi Góp Ý / Phản Hồi
+            </button>
+          </div>
         </div>
       </div>
 
@@ -57,10 +66,21 @@
         {{ langStore.t('nav.copyright') }}
       </div>
     </div>
+
+    <!-- Customer Feedback Modal -->
+    <FeedbackModal
+      :show="showFeedbackModal"
+      :is-english="langStore.isEnglish"
+      @close="showFeedbackModal = false"
+    />
   </footer>
 </template>
 
 <script setup>
+import { ref } from "vue";
 import { useLangStore } from "../stores/langStore";
+import FeedbackModal from "./customer/FeedbackModal.vue";
+
 const langStore = useLangStore();
+const showFeedbackModal = ref(false);
 </script>

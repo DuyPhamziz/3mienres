@@ -32,6 +32,7 @@ import VoucherManagerView from "../views/admin/VoucherManagerView.vue";
 import StaffManagerView from "../views/admin/StaffManagerView.vue";
 import AuditLogView from "../views/admin/AuditLogView.vue";
 import SettingsView from "../views/admin/SettingsView.vue";
+import ReviewManagerView from "../views/admin/ReviewManagerView.vue";
 
 const routes = [
   {
@@ -42,10 +43,10 @@ const routes = [
       { path: "thuc-don", name: "menu", component: MenuView },
       { path: "mon-an/:slug", name: "dish-detail", component: DishDetailView },
       { path: "dat-ban", name: "reservation", component: ReservationView },
-      { path: "tra-cuu", name: "track-reservation", component: TrackReservationView },
-      { path: "goi-mon", name: "guest-order", component: GuestOrderView },
-      { path: "hang-thanh-vien", name: "rank-loyalty", component: RankLoyaltyView },
-      { path: "ho-so", name: "profile", component: ProfileView },
+      { path: "tra-cuu", name: "track-order", component: TrackReservationView },
+      { path: "hang-thanh-vien", name: "loyalty", component: RankLoyaltyView },
+      { path: "thuc-don-tai-ban", name: "guest-order", component: GuestOrderView },
+      { path: "tai-khoan", name: "profile", component: ProfileView, meta: { requiresAuth: true } },
       { path: "login", name: "login", component: LoginView },
       { path: "register", name: "register", component: RegisterView },
     ],
@@ -62,6 +63,7 @@ const routes = [
       { path: "pos", name: "admin-pos", component: POSDiningSessionView },
       { path: "kitchen", name: "admin-kitchen", component: KitchenView },
       { path: "menu", name: "admin-menu", component: MenuManagerView },
+      { path: "reviews", name: "admin-reviews", component: ReviewManagerView },
       { path: "inventory", name: "admin-inventory", component: InventoryManagerView },
       { path: "suppliers", name: "admin-suppliers", component: SupplierManagerView },
       { path: "vouchers", name: "admin-vouchers", component: VoucherManagerView },
