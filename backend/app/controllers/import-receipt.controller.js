@@ -1,11 +1,13 @@
 const ImportReceipt = require("../models/import-receipt.model");
 const Ingredient = require("../models/ingredient.model");
 const AppError = require("../app-error");
+const { generateUniqueCode } = require("../utils/code-generator");
+const { emitEvent } = require("../socket");
 
-// 1. Tạo phiếu nhập kho (Tự động cộng dồn số lượng tồn kho)
+// 1. Tạo phiếu nhập kho (Hỗ trợ nhập nguyên liệu cũ hoặc tạo mới nguyên liệu ngay khi nhập)
 exports.createImportReceipt = async (req, res, next) => {
   try {
-    const { supplier, items, notes } = req.body;
+    const { supplier, items, notes, paymentStatus } = req.body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return next(new AppError("Vui lòng cung cấp danh sách nguyên liệu nhập kho (items)", 400));
@@ -15,35 +17,55 @@ exports.createImportReceipt = async (req, res, next) => {
     const formattedItems = [];
 
     for (let item of items) {
-      if (!item.ingredient || !item.quantity || item.quantity <= 0 || item.importPrice === undefined) {
-        return next(new AppError("Mỗi nguyên liệu nhập kho phải có ID, số lượng > 0 và giá nhập", 400));
+      if (!item.quantity || item.quantity <= 0 || item.importPrice === undefined) {
+        return next(new AppError("Mỗi dòng nguyên liệu nhập phải có số lượng > 0 và giá nhập", 400));
       }
 
-      const ing = await Ingredient.findById(item.ingredient);
-      if (!ing) return next(new AppError(`Nguyên liệu với ID '${item.ingredient}' không tồn tại`, 404));
+      let ing = null;
 
-      const lineTotal = item.quantity * item.importPrice;
+      // Trường hợp 1: Nhập nguyên liệu MỚI (chưa có trong danh mục kho)
+      if (item.isNewIngredient || item.newIngredientName) {
+        const name = (item.newIngredientName || item.name || "").trim();
+        if (!name) return next(new AppError("Vui lòng cung cấp tên nguyên liệu mới", 400));
+
+        let existing = await Ingredient.findOne({ name: { $regex: new RegExp(`^${name}$`, "i") } });
+        if (existing) {
+          ing = existing;
+          ing.stockQuantity += Number(item.quantity);
+          if (item.unit) ing.unit = item.unit.trim();
+          await ing.save();
+        } else {
+          ing = await Ingredient.create({
+            name,
+            category: item.category || "other",
+            unit: (item.unit || "kg").trim(),
+            stockQuantity: Number(item.quantity),
+            minStockLevel: item.minStockLevel ? Number(item.minStockLevel) : 5,
+          });
+        }
+      } else {
+        // Trường hợp 2: Nhập nguyên liệu CŨ đã có trong danh mục kho
+        if (!item.ingredient) {
+          return next(new AppError("Vui lòng chọn nguyên liệu hợp lệ", 400));
+        }
+        ing = await Ingredient.findById(item.ingredient);
+        if (!ing) return next(new AppError(`Nguyên liệu với ID '${item.ingredient}' không tồn tại`, 404));
+
+        ing.stockQuantity += Number(item.quantity);
+        await ing.save();
+      }
+
+      const lineTotal = Number(item.quantity) * Number(item.importPrice);
       totalAmount += lineTotal;
 
       formattedItems.push({
         ingredient: ing._id,
-        quantity: item.quantity,
-        importPrice: item.importPrice,
+        quantity: Number(item.quantity),
+        importPrice: Number(item.importPrice),
       });
-
-      // Tự động cộng dồn tồn kho
-      ing.stockQuantity += item.quantity;
-      await ing.save();
     }
 
-    // Sinh mã phiếu nhập
-    let receiptCode;
-    let isUnique = false;
-    while (!isUnique) {
-      receiptCode = `IMP-${Math.floor(100000 + Math.random() * 900000)}`;
-      const existing = await ImportReceipt.findOne({ receiptCode });
-      if (!existing) isUnique = true;
-    }
+    const receiptCode = await generateUniqueCode(ImportReceipt, "IMP", "receiptCode");
 
     const newReceipt = await ImportReceipt.create({
       receiptCode,
@@ -51,10 +73,16 @@ exports.createImportReceipt = async (req, res, next) => {
       items: formattedItems,
       totalAmount,
       importedBy: req.user ? req.user._id : null,
+      paymentStatus: paymentStatus || "paid",
       notes: notes ? notes.trim() : "",
     });
 
-    const populated = await ImportReceipt.findById(newReceipt._id).populate("items.ingredient", "name unit stockQuantity");
+    emitEvent("inventory:changed", { action: "import_receipt_created", receiptCode });
+
+    const populated = await ImportReceipt.findById(newReceipt._id)
+      .populate("supplier", "name phone supplierCode")
+      .populate("items.ingredient", "name unit category stockQuantity minStockLevel")
+      .populate("importedBy", "name email");
 
     res.status(201).json({
       status: "success",
@@ -70,7 +98,8 @@ exports.createImportReceipt = async (req, res, next) => {
 exports.getAllImportReceipts = async (req, res, next) => {
   try {
     const receipts = await ImportReceipt.find()
-      .populate("supplier", "name phone")
+      .populate("supplier", "name phone supplierCode category")
+      .populate("items.ingredient", "name unit category")
       .populate("importedBy", "name email")
       .sort({ createdAt: -1 });
 

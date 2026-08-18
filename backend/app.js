@@ -33,6 +33,7 @@ const paymentRouter = require("./app/routes/payment.routes");
 const userRouter = require("./app/routes/user.routes");
 const voucherRouter = require("./app/routes/voucher.routes");
 const auditRouter = require("./app/routes/audit.routes");
+const stockAuditRouter = require("./app/routes/stock-audit.routes");
 
 const app = express();
 
@@ -96,6 +97,7 @@ app.use("/api/ingredients", ingredientRouter);
 app.use("/api/recipes", recipeRouter);
 app.use("/api/suppliers", supplierRouter);
 app.use("/api/import-receipts", importReceiptRouter);
+app.use("/api/stock-audits", stockAuditRouter);
 app.use("/api/reviews", reviewRouter);
 app.use("/api/feedbacks", feedbackRouter);
 app.use("/api/ranks", rankRouter);
