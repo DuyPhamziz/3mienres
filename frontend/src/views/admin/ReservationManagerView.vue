@@ -23,8 +23,11 @@
             placeholder="Tìm mã / tên / SĐT..."
           />
         </div>
+        <router-link to="/admin/calendar" class="btn btn-outline-danger btn-sm rounded-pill px-3 shadow-2xs" title="Xem dạng cuốn lịch Tháng / Tuần / Ngày">
+          <i class="fa-solid fa-calendar-days me-1"></i> Cuốn Lịch
+        </router-link>
         <button @click="showTimelineModal = true" class="btn btn-outline-primary btn-sm rounded-pill px-3 shadow-2xs" title="Xem lịch đặt bàn theo từng khung giờ trong ngày">
-          <i class="fa-solid fa-calendar-day me-1"></i> Lịch Đặt Bàn
+          <i class="fa-solid fa-clock me-1"></i> Timeline Ngày
         </button>
         <button @click="handleScanNoShow" class="btn btn-outline-dark btn-sm rounded-pill px-3 shadow-2xs" title="Quét các đơn quá giờ hẹn để chuyển sang No-Show">
           <i class="fa-solid fa-user-clock me-1"></i> Quét No-Show

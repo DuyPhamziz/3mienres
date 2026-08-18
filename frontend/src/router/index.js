@@ -21,6 +21,7 @@ import ProfileView from "../views/customer/ProfileView.vue";
 import DashboardView from "../views/admin/DashboardView.vue";
 import TableGridManagerView from "../views/admin/TableGridManagerView.vue";
 import ReservationManagerView from "../views/admin/ReservationManagerView.vue";
+import ReservationCalendarView from "../views/admin/ReservationCalendarView.vue";
 import POSDiningSessionView from "../views/admin/POSDiningSessionView.vue";
 import MenuManagerView from "../views/admin/MenuManagerView.vue";
 import InventoryManagerView from "../views/admin/InventoryManagerView.vue";
@@ -57,6 +58,7 @@ const routes = [
       { path: "", name: "admin-dashboard", component: DashboardView },
       { path: "tables", name: "admin-tables", component: TableGridManagerView },
       { path: "reservations", name: "admin-reservations", component: ReservationManagerView },
+      { path: "calendar", name: "admin-calendar", component: ReservationCalendarView },
       { path: "pos", name: "admin-pos", component: POSDiningSessionView },
       { path: "kitchen", name: "admin-kitchen", component: KitchenView },
       { path: "menu", name: "admin-menu", component: MenuManagerView },
