@@ -63,6 +63,21 @@ exports.checkInReservation = async (req, res, next) => {
     // Sinh mã lượt dùng bữa duy nhất (Ví dụ: SES-839201)
     const sessionCode = await generateUniqueCode(DiningSession, "SES", "sessionCode");
 
+    // Atomic Claim: Chuyển các bàn từ AVAILABLE/RESERVED sang OCCUPIED
+    const claimResult = await Table.updateMany(
+      { _id: { $in: finalTableIds }, status: { $in: ["AVAILABLE", "RESERVED"] } },
+      { status: "OCCUPIED" }
+    );
+
+    if (claimResult.modifiedCount !== finalTableIds.length) {
+      // Hoàn nguyên nếu chỉ chiếm được một phần (xung đột đồng thời)
+      await Table.updateMany(
+        { _id: { $in: finalTableIds }, status: "OCCUPIED" },
+        { status: "AVAILABLE" }
+      );
+      return next(new AppError("Một số bàn vừa bị chiếm hoặc đang phục vụ khách khác. Vui lòng thử lại!", 409));
+    }
+
     // Lớp 3: Tạo DiningSession thực tế
     const newSession = await DiningSession.create({
       sessionCode,
@@ -82,9 +97,6 @@ exports.checkInReservation = async (req, res, next) => {
     // Cập nhật trạng thái đơn đặt bàn sang ARRIVED
     reservation.status = "ARRIVED";
     await reservation.save();
-
-    // Cập nhật trạng thái các bàn thực tế sang OCCUPIED (Đang có khách)
-    await Table.updateMany({ _id: { $in: finalTableIds } }, { status: "OCCUPIED" });
 
     // Tự động tạo đợt gọi món đầu tiên từ các món Pre-order (nếu có)
     if (reservation.preOrderDishes && reservation.preOrderDishes.length > 0) {
@@ -200,6 +212,20 @@ exports.createWalkInSession = async (req, res, next) => {
     // Sinh mã session duy nhất
     const sessionCode = await generateUniqueCode(DiningSession, "SES", "sessionCode");
 
+    // Atomic Claim: Chuyển các bàn từ AVAILABLE sang OCCUPIED
+    const claimResult = await Table.updateMany(
+      { _id: { $in: tableIds }, status: "AVAILABLE" },
+      { status: "OCCUPIED" }
+    );
+
+    if (claimResult.modifiedCount !== tableIds.length) {
+      await Table.updateMany(
+        { _id: { $in: tableIds }, status: "OCCUPIED" },
+        { status: "AVAILABLE" }
+      );
+      return next(new AppError("Một số bàn vừa bị chiếm bởi lượt khách khác. Vui lòng chọn lại bàn!", 409));
+    }
+
     // Lớp 3: Tạo lượt dùng bữa Walk-in
     const newSession = await DiningSession.create({
       sessionCode,
@@ -216,9 +242,6 @@ exports.createWalkInSession = async (req, res, next) => {
       servedBy: req.user ? req.user._id : null,
       notes: notes ? notes.trim() : "",
     });
-
-    // Chuyển các bàn chọn sang OCCUPIED
-    await Table.updateMany({ _id: { $in: tableIds } }, { status: "OCCUPIED" });
 
     const populatedSession = await DiningSession.findById(newSession._id).populate("tables", "tableNumber capacity area");
 
@@ -320,14 +343,23 @@ exports.changeTables = async (req, res, next) => {
       }
     }
 
-    // 1. Giải phóng các bàn cũ không còn ngồi về AVAILABLE
+    // 1. Atomic Claim các bàn mới thêm vào (chưa thuộc session cũ)
+    if (addedNewIds.length > 0) {
+      const claimResult = await Table.updateMany(
+        { _id: { $in: addedNewIds }, status: "AVAILABLE" },
+        { status: "OCCUPIED" }
+      );
+      if (claimResult.modifiedCount !== addedNewIds.length) {
+        await Table.updateMany({ _id: { $in: addedNewIds } }, { status: "AVAILABLE" });
+        return next(new AppError("Một số bàn mới vừa bị chiếm bởi lượt khách khác. Vui lòng chọn lại!", 409));
+      }
+    }
+
+    // 2. Giải phóng các bàn cũ không còn ngồi về AVAILABLE
     const tablesToRelease = oldTableIds.filter((id) => !newTableIds.includes(id));
     if (tablesToRelease.length > 0) {
       await Table.updateMany({ _id: { $in: tablesToRelease } }, { status: "AVAILABLE" });
     }
-
-    // 2. Chuyển các bàn mới sang OCCUPIED
-    await Table.updateMany({ _id: { $in: newTableIds } }, { status: "OCCUPIED" });
 
     // 3. Cập nhật mảng tables trong session
     session.tables = newTableIds;

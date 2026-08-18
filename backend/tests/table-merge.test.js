@@ -1,8 +1,12 @@
 jest.mock("../app/models/table-connection.model", () => ({
   find: jest.fn(),
 }));
+jest.mock("../app/models/table.model", () => ({
+  find: jest.fn().mockResolvedValue([]),
+}));
 
 const TableConnection = require("../app/models/table-connection.model");
+const Table = require("../app/models/table.model");
 const tableEngine = require("../app/utils/table-engine");
 
 const mockTables = [

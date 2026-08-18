@@ -144,6 +144,18 @@ exports.createReservation = async (req, res, next) => {
     );
     const checkInQrUrl = generateCheckInQRUrl(reservationCode);
 
+    // Concurrency Double-Check: Đảm bảo không có đơn khác vừa được tạo chiếm cùng bàn
+    const conflictReservation = await Reservation.findOne({
+      status: { $in: ["PENDING", "CONFIRMED", "ARRIVED"] },
+      tables: { $in: assignedTables },
+      startAt: { $lt: endTime },
+      endAt: { $gt: startTime },
+    });
+
+    if (conflictReservation) {
+      return next(new AppError("Bàn bạn chọn vừa được khách khác đặt trước một khoảnh khắc. Vui lòng chọn lại khung giờ hoặc bàn khác!", 409));
+    }
+
     const newReservation = await Reservation.create({
       reservationCode,
       user: userId,
@@ -415,6 +427,19 @@ exports.rescheduleReservation = async (req, res, next) => {
 
     if (assignedTables.length === 0) {
       return next(new AppError("Không còn bàn trống cho khung giờ mới bạn chọn", 409));
+    }
+
+    // Concurrency Double-Check
+    const conflictReservation = await Reservation.findOne({
+      _id: { $ne: reservation._id },
+      status: { $in: ["PENDING", "CONFIRMED", "ARRIVED"] },
+      tables: { $in: assignedTables },
+      startAt: { $lt: endTime },
+      endAt: { $gt: startTime },
+    });
+
+    if (conflictReservation) {
+      return next(new AppError("Bàn trong khung giờ mới vừa được khách khác đặt trước. Vui lòng chọn lại!", 409));
     }
 
     reservation.startAt = startTime;

@@ -1,6 +1,8 @@
+const mongoose = require("mongoose");
 const Reservation = require("../models/reservation.model");
 const DiningSession = require("../models/dining-session.model");
 const TableConnection = require("../models/table-connection.model");
+const Table = require("../models/table.model");
 
 // 1. Kiểm tra 2 khoảng thời gian có trùng lặp (Overlap) hay không
 exports.isTimeOverlap = (startA, endA, startB, endB) => {
@@ -43,7 +45,30 @@ exports.validateMergeableTables = async (tableIds) => {
   const ids = (tableIds || []).map((id) => id.toString());
   if (ids.length <= 1) return { isValid: true, disconnected: [] };
 
-  const connections = await TableConnection.find();
+  // Kiểm tra tất cả bàn phải thuộc cùng một khu vực (Area)
+  let tables = [];
+  try {
+    const validObjectIds = ids.filter((id) => mongoose.Types.ObjectId.isValid(id));
+    if (validObjectIds.length > 0) {
+      tables = await Table.find({ _id: { $in: validObjectIds } });
+    } else {
+      tables = await Table.find({ _id: { $in: ids } });
+    }
+  } catch {
+    tables = [];
+  }
+
+  if (tables && tables.length > 1) {
+    const areas = new Set(
+      tables.map((t) => (t.area?._id || t.area || t.areaId || "").toString()).filter(Boolean)
+    );
+    if (areas.size > 1) {
+      return { isValid: false, reason: "different_areas", disconnected: ids };
+    }
+  }
+
+  const rawConnections = await TableConnection.find();
+  const connections = Array.isArray(rawConnections) ? rawConnections : [];
   const adj = new Map(ids.map((id) => [id, []]));
 
   connections.forEach((conn) => {
@@ -121,7 +146,7 @@ exports.findCombinations = async (availableTables, targetGuests) => {
 
   const connections = await TableConnection.find();
 
-  // Xây dựng danh sách kề (Adjacency List)
+  // Xây dựng danh sách kề (Adjacency List) với ràng buộc cùng Area
   const adj = new Map();
   availableTables.forEach((t) => adj.set(t._id.toString(), []));
 
@@ -129,8 +154,16 @@ exports.findCombinations = async (availableTables, targetGuests) => {
     const idA = conn.tableA.toString();
     const idB = conn.tableB.toString();
     if (availableMap.has(idA) && availableMap.has(idB)) {
-      adj.get(idA).push(idB);
-      adj.get(idB).push(idA);
+      const tableA = availableMap.get(idA);
+      const tableB = availableMap.get(idB);
+      const areaA = (tableA.area?._id || tableA.area || tableA.areaId || "").toString();
+      const areaB = (tableB.area?._id || tableB.area || tableB.areaId || "").toString();
+
+      // Chỉ liên kết nếu 2 bàn cùng khu vực (hoặc chưa phân khu vực)
+      if (!areaA || !areaB || areaA === areaB) {
+        adj.get(idA).push(idB);
+        adj.get(idB).push(idA);
+      }
     }
   });
 
