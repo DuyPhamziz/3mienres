@@ -5,9 +5,7 @@
       :slides-per-view="1"
       :space-between="0"
       :loop="true"
-      :effect="'fade'"
-      :fade-effect="{ crossFade: true }"
-      :autoplay="{ delay: 5000, disableOnInteraction: false }"
+      :autoplay="{ delay: 4500, disableOnInteraction: false }"
       :pagination="{ clickable: true, dynamicBullets: true }"
       :navigation="{
         prevEl: '.hero-btn-prev',
@@ -25,21 +23,21 @@
           <div class="container position-relative z-2 py-5">
             <div class="row">
               <div class="col-lg-8 col-xl-7">
-                <span class="badge bg-danger text-white px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5 animate-slide-down">
+                <span class="badge bg-danger text-white px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5">
                   <i class="fa-solid fa-crown text-warning"></i>
                   {{ langStore.isEnglish ? 'SOUTHERN SIGNATURE CUISINE' : 'TINH HOA ẨM THỰC NAM BỘ' }}
                 </span>
-                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight animate-fade-in">
+                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight">
                   {{ langStore.isEnglish ? 'Live Ca Mau Crabs' : 'Cua Cà Mau Tươi Sống' }}
                   <span class="text-warning d-block fs-2 mt-1">
                     {{ langStore.isEnglish ? 'Cooked Fresh to Order' : 'Đánh Bắt Tại Bể · Đậm Vị Gia Truyền' }}
                   </span>
                 </h1>
-                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600 animate-fade-in-delayed">
+                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600">
                   {{ langStore.isEnglish ? 'Firm meaty crabs with rich golden roe, served with signature Southern sweet & sour tamarind sauce and crispy hot bread.' : 'Thịt cua chắc nịch, gạch thơm béo ngậy được chế biến cùng sốt me chua ngọt, sốt bơ tỏi gia truyền chuẩn phong vị 3 miền.' }}
                 </p>
-                <div class="d-flex flex-wrap gap-3 align-items-center animate-slide-up">
-                  <router-link to="/dat-ban" class="btn btn-danger btn-lg px-4 py-3 rounded-pill fw-bold shadow-lg d-flex align-items-center gap-2 btn-glow">
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                  <router-link to="/dat-ban" class="btn btn-danger btn-lg px-4 py-3 rounded-pill fw-bold shadow d-flex align-items-center gap-2">
                     <i class="fa-solid fa-calendar-check"></i>
                     {{ langStore.isEnglish ? 'Book a Table Now' : 'Đặt Bàn Trực Tuyến' }}
                   </router-link>
@@ -64,21 +62,21 @@
           <div class="container position-relative z-2 py-5">
             <div class="row">
               <div class="col-lg-8 col-xl-7">
-                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5 animate-slide-down">
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5">
                   <i class="fa-solid fa-bowl-food text-danger"></i>
                   {{ langStore.isEnglish ? 'NORTHERN AUTHENTIC HOTPOT' : 'HƯƠNG VỊ ĐỒNG QUÊ BẮC BỘ' }}
                 </span>
-                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight animate-fade-in">
+                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight">
                   {{ langStore.isEnglish ? 'Northern Field Crab Hotpot' : 'Lẩu Cua Đồng Bắc Bộ' }}
                   <span class="text-warning d-block fs-2 mt-1">
                     {{ langStore.isEnglish ? 'Rich Aromatic Broth' : 'Nước Dùng Thanh Ngọt · Riêu Cua Đậm Đà' }}
                   </span>
                 </h1>
-                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600 animate-fade-in-delayed">
+                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600">
                   {{ langStore.isEnglish ? 'Rich crab paste broth served with fresh Malabar spinach, luffa, and Northern red noodle cakes for the whole family.' : 'Riêu cua béo ngậy, ăn kèm rau mồng tơi tươi xanh, hoa chuối và bánh đa đỏ Hải Phòng nồng nàn ấm cúng cho bữa tiệc gia đình.' }}
                 </p>
-                <div class="d-flex flex-wrap gap-3 align-items-center animate-slide-up">
-                  <router-link to="/dat-ban" class="btn btn-danger btn-lg px-4 py-3 rounded-pill fw-bold shadow-lg d-flex align-items-center gap-2 btn-glow">
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                  <router-link to="/dat-ban" class="btn btn-danger btn-lg px-4 py-3 rounded-pill fw-bold shadow d-flex align-items-center gap-2">
                     <i class="fa-solid fa-users"></i>
                     {{ langStore.isEnglish ? 'Book Family Table' : 'Đặt Bàn Tiệc Gia Đình' }}
                   </router-link>
@@ -103,21 +101,21 @@
           <div class="container position-relative z-2 py-5">
             <div class="row">
               <div class="col-lg-8 col-xl-7">
-                <span class="badge bg-danger text-white px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5 animate-slide-down">
+                <span class="badge bg-danger text-white px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5">
                   <i class="fa-solid fa-pepper-hot text-warning"></i>
                   {{ langStore.isEnglish ? 'CENTRAL SPICY SPECIALTY' : 'CAY NỒNG MIỀN TRUNG & HẢI ĐẢO' }}
                 </span>
-                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight animate-fade-in">
+                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight">
                   {{ langStore.isEnglish ? 'Green Peppercorn Crab' : 'Cua Sốt Tiêu Xanh' }}
                   <span class="text-warning d-block fs-2 mt-1">
                     {{ langStore.isEnglish ? 'Spicy Oceanic Sensation' : 'Tiêu Tươi Cay The · Thấm Vị Từng Thớ Thịt' }}
                   </span>
                 </h1>
-                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600 animate-fade-in-delayed">
+                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600">
                   {{ langStore.isEnglish ? 'Fresh green peppercorn sauce infusing every bite with rich coastal Central flavors and delightful spicy warmth.' : 'Hương thơm tiêu xanh cay the nồng ấm hòa quyện sốt sánh mịn ngấm sâu vào thịt cua biển tươi chắc, mang lại trải nghiệm vị giác bùng nổ.' }}
                 </p>
-                <div class="d-flex flex-wrap gap-3 align-items-center animate-slide-up">
-                  <router-link to="/dat-ban" class="btn btn-danger btn-lg px-4 py-3 rounded-pill fw-bold shadow-lg d-flex align-items-center gap-2 btn-glow">
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                  <router-link to="/dat-ban" class="btn btn-danger btn-lg px-4 py-3 rounded-pill fw-bold shadow d-flex align-items-center gap-2">
                     <i class="fa-solid fa-calendar-check"></i>
                     {{ langStore.isEnglish ? 'Book Table Now' : 'Đặt Bàn Thưởng Thức' }}
                   </router-link>
@@ -142,21 +140,21 @@
           <div class="container position-relative z-2 py-5">
             <div class="row">
               <div class="col-lg-8 col-xl-7">
-                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5 animate-slide-down">
+                <span class="badge bg-warning text-dark px-3 py-2 rounded-pill fw-bold mb-3 fs-8 shadow-sm d-inline-flex align-items-center gap-1.5">
                   <i class="fa-solid fa-gem text-danger"></i>
                   {{ langStore.isEnglish ? 'VIP LOYALTY REWARDS' : 'ĐẶC QUYỀN HỘI VIÊN 3 MIỀN' }}
                 </span>
-                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight animate-fade-in">
+                <h1 class="display-4 fw-extrabold brand-font text-white mb-3 text-shadow leading-tight">
                   {{ langStore.isEnglish ? 'Loyalty Rewards Program' : 'Thẻ Thành Viên Tích Điểm' }}
                   <span class="text-warning d-block fs-2 mt-1">
                     {{ langStore.isEnglish ? 'Up to 15% Off Every Bill' : 'Giảm Đến 15% Mọi Hóa Đơn & Quà Tặng VIP' }}
                   </span>
                 </h1>
-                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600 animate-fade-in-delayed">
+                <p class="lead text-white text-opacity-90 mb-4 fs-6 leading-relaxed text-shadow max-w-600">
                   {{ langStore.isEnglish ? 'Automatically earn points on every dining session. Unlock Silver, Gold, and Diamond tiers with exclusive culinary benefits.' : 'Tự động tích lũy chi tiêu và thăng hạng Bạc, Vàng, Kim Cương với nhiều ưu đãi sinh nhật, voucher giảm giá và dịch vụ ưu tiên.' }}
                 </p>
-                <div class="d-flex flex-wrap gap-3 align-items-center animate-slide-up">
-                  <router-link to="/hang-thanh-vien" class="btn btn-warning btn-lg px-4 py-3 rounded-pill fw-bold text-dark shadow-lg d-flex align-items-center gap-2">
+                <div class="d-flex flex-wrap gap-3 align-items-center">
+                  <router-link to="/hang-thanh-vien" class="btn btn-warning btn-lg px-4 py-3 rounded-pill fw-bold text-dark shadow d-flex align-items-center gap-2">
                     <i class="fa-solid fa-crown"></i>
                     {{ langStore.isEnglish ? 'Explore VIP Tiers' : 'Khám Phá Hạng Thành Viên' }}
                   </router-link>
@@ -190,16 +188,15 @@
 
 <script setup>
 import { Swiper, SwiperSlide } from "swiper/vue";
-import { Autoplay, Pagination, Navigation, EffectFade } from "swiper/modules";
+import { Autoplay, Pagination, Navigation } from "swiper/modules";
 import { useLangStore } from "../stores/langStore";
 
 import "swiper/css";
 import "swiper/css/pagination";
 import "swiper/css/navigation";
-import "swiper/css/effect-fade";
 import "swiper/css/autoplay";
 
-const modules = [Autoplay, Pagination, Navigation, EffectFade];
+const modules = [Autoplay, Pagination, Navigation];
 const langStore = useLangStore();
 </script>
 
@@ -221,7 +218,6 @@ const langStore = useLangStore();
   background-size: cover;
   background-position: center center;
   background-repeat: no-repeat;
-  transition: transform 0.6s ease;
 }
 
 @media (min-width: 992px) {
@@ -284,16 +280,6 @@ const langStore = useLangStore();
   border-color: rgba(255, 255, 255, 0.6);
 }
 
-.btn-glow {
-  box-shadow: 0 4px 20px rgba(220, 38, 38, 0.45);
-  transition: all 0.3s ease;
-}
-
-.btn-glow:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 25px rgba(220, 38, 38, 0.6);
-}
-
 /* Glassmorphism Navigation Arrows */
 .hero-nav-btn {
   width: 48px;
@@ -304,7 +290,7 @@ const langStore = useLangStore();
   border: 1px solid rgba(255, 255, 255, 0.25) !important;
   color: #ffffff;
   cursor: pointer;
-  transition: all 0.3s ease;
+  transition: all 0.2s ease;
   opacity: 0.7;
 }
 
@@ -312,7 +298,6 @@ const langStore = useLangStore();
   background: rgba(220, 38, 38, 0.8);
   border-color: rgba(220, 38, 38, 1) !important;
   opacity: 1;
-  transform: translateY(-50%) scale(1.1);
 }
 
 @media (max-width: 576px) {
@@ -339,23 +324,5 @@ const langStore = useLangStore();
   opacity: 1;
   width: 32px;
   border-radius: 12px;
-}
-
-/* Animations */
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.animate-fade-in {
-  animation: fadeIn 0.8s ease forwards;
-}
-
-.animate-fade-in-delayed {
-  animation: fadeIn 0.8s ease 0.2s forwards;
-}
-
-.animate-slide-up {
-  animation: fadeIn 0.8s ease 0.35s forwards;
 }
 </style>
