@@ -131,6 +131,24 @@ export const useReservationStore = defineStore("reservation", {
         throw new Error(err.response?.data?.message || "Đánh dấu No-Show thất bại!");
       }
     },
+    async approveReschedule(reservationId) {
+      try {
+        const res = await api.patch(`/reservations/${reservationId}/approve-reschedule`);
+        await this.fetchAllReservations();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Duyệt dời lịch thất bại!");
+      }
+    },
+    async rejectReschedule(reservationId, reason = "") {
+      try {
+        const res = await api.patch(`/reservations/${reservationId}/reject-reschedule`, { reason });
+        await this.fetchAllReservations();
+        return res.data;
+      } catch (err) {
+        throw new Error(err.response?.data?.message || "Từ chối dời lịch thất bại!");
+      }
+    },
     async scanNoShow() {
       try {
         const res = await api.post("/reservations/scan-no-show");

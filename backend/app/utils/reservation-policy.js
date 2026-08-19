@@ -22,16 +22,22 @@ const getRestaurantPaymentSettings = async () => {
   return { durationMinutes, defaultDeposit, bankInfo };
 };
 
-// Tính số tiền cọc sẽ hoàn lại theo chính sách hoàn cọc khi khách hủy
+// Tính số tiền cọc sẽ hoàn lại theo chính sách:
+// - Hủy trước >= 24h: Hoàn lại 100% tiền cọc
+// - Hủy cận ngày (<= 24h hoặc trong ngày): MẤT CỌC 100% (hoàn 0đ)
 const calculateRefundAmount = (reservation, refundPolicy) => {
-  if (reservation.depositStatus !== "PAID" || reservation.depositAmount <= 0) return 0;
-  const hoursBefore = (new Date(reservation.startAt).getTime() - Date.now()) / 3600000;
-  const { fullRefundHours = 24, partialRefundHours = 2, partialRefundPercent = 50 } = refundPolicy || {};
-  if (hoursBefore >= fullRefundHours) return reservation.depositAmount;
-  if (hoursBefore >= partialRefundHours) {
-    return roundMoney((reservation.depositAmount * partialRefundPercent) / 100);
+  if (reservation.depositStatus !== "PAID" || !reservation.depositAmount || reservation.depositAmount <= 0) {
+    return 0;
   }
-  return 0;
+  const hoursBefore = (new Date(reservation.startAt).getTime() - Date.now()) / (1000 * 60 * 60);
+
+  // Nếu hủy cận ngày (trước giờ hẹn <= 24 giờ hoặc trong ngày đặt bàn) => MẤT TOÀN BỘ CỌC
+  if (hoursBefore <= 24) {
+    return 0;
+  }
+
+  // Nếu hủy sớm hơn trước 24 giờ => Hoàn 100% tiền cọc
+  return reservation.depositAmount;
 };
 
 module.exports = {

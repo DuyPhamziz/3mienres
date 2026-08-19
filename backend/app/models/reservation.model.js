@@ -126,6 +126,35 @@ const reservationSchema = new mongoose.Schema(
       enum: ["NONE", "PENDING", "DONE"],
       default: "NONE",
     },
+    // Yêu cầu dời lịch từ khách hàng (chờ quản lý duyệt)
+    rescheduleRequest: {
+      requestedStartAt: {
+        type: Date,
+        default: null,
+      },
+      reason: {
+        type: String,
+        trim: true,
+      },
+      requestedAt: {
+        type: Date,
+        default: null,
+      },
+      status: {
+        type: String,
+        enum: ["NONE", "PENDING", "APPROVED", "REJECTED"],
+        default: "NONE",
+      },
+      processedBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+        default: null,
+      },
+      processedAt: {
+        type: Date,
+        default: null,
+      },
+    },
     notes: {
       type: String,
       trim: true,

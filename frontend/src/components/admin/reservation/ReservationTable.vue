@@ -39,7 +39,13 @@
               <small class="text-muted">{{ res.customerPhone }}</small>
             </td>
             <td><span class="badge bg-secondary rounded-pill px-2.5 py-1">{{ res.guestsCount }} người</span></td>
-            <td><small class="fw-semibold text-danger">{{ new Date(res.startAt).toLocaleString('vi-VN') }}</small></td>
+            <td>
+              <small class="fw-semibold text-danger d-block">{{ new Date(res.startAt).toLocaleString('vi-VN') }}</small>
+              <div v-if="res.rescheduleRequest?.status === 'PENDING'" class="mt-1 p-1 bg-warning bg-opacity-15 border border-warning rounded-2 fs-9 text-dark">
+                <strong>⏳ Xin dời sang:</strong><br />
+                <span class="text-danger fw-bold">{{ new Date(res.rescheduleRequest.requestedStartAt).toLocaleString('vi-VN') }}</span>
+              </div>
+            </td>
             <td>
               <div v-if="res.tables && res.tables.length > 0" class="d-flex gap-1 flex-wrap">
                 <span v-for="t in res.tables" :key="t._id" class="badge bg-danger rounded-pill">
@@ -52,6 +58,7 @@
               <span
                 :class="[
                   'badge px-2.5 py-1.5 rounded-pill fs-8',
+                  res.rescheduleRequest?.status === 'PENDING' ? 'bg-warning text-dark border border-warning' :
                   res.status === 'CONFIRMED' ? 'bg-success' : 
                   res.status === 'ARRIVED' ? 'bg-primary' : 
                   res.status === 'NO_SHOW' ? 'bg-dark text-white' :
@@ -60,6 +67,7 @@
                 ]"
               >
                 {{ 
+                  res.rescheduleRequest?.status === 'PENDING' ? '⏳ Chờ duyệt dời' :
                   res.status === 'CONFIRMED' ? 'Đã duyệt' : 
                   res.status === 'ARRIVED' ? 'Đã đến' : 
                   res.status === 'NO_SHOW' ? 'Vắng mặt (No-Show)' :
@@ -88,6 +96,24 @@
             </td>
             <td class="text-end">
               <div class="d-flex gap-1.5 justify-content-end flex-wrap">
+                <!-- Nút Duyệt / Từ chối dời lịch nếu khách có yêu cầu -->
+                <template v-if="res.rescheduleRequest?.status === 'PENDING'">
+                  <button
+                    @click="$emit('approve-reschedule', res)"
+                    class="btn btn-primary btn-sm rounded-pill px-2.5 py-1 fw-bold fs-8 shadow-2xs"
+                    title="Xác nhận duyệt dời sang giờ mới"
+                  >
+                    <i class="fa-solid fa-calendar-check me-1"></i> Duyệt Dời
+                  </button>
+                  <button
+                    @click="$emit('reject-reschedule', res)"
+                    class="btn btn-outline-danger btn-sm rounded-pill px-2 py-1 fs-8"
+                    title="Từ chối yêu cầu dời lịch"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                  </button>
+                </template>
+
                 <button
                   v-if="res.depositAmount > 0 && res.depositStatus !== 'PAID' && (res.status === 'CONFIRMED' || res.status === 'PENDING')"
                   @click="$emit('confirm-deposit', res)"

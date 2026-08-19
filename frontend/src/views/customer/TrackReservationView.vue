@@ -147,7 +147,7 @@
     <ConfirmModal
       :show="showCancelConfirm"
       :title="langStore.isEnglish ? 'Cancel Reservation' : 'Hủy Đơn Đặt Bàn'"
-      :message="langStore.isEnglish ? 'Are you sure you want to cancel this reservation? The reserved tables will be released.' : 'Bạn có chắc chắn muốn hủy đơn đặt bàn này? Bàn đã giữ sẽ được giải phóng.'"
+      :message="cancelConfirmMessage"
       :confirm-text="langStore.isEnglish ? 'Confirm Cancel' : 'Xác Nhận Hủy'"
       :cancel-text="langStore.isEnglish ? 'Keep Reservation' : 'Giữ Lại Đơn'"
       confirm-variant="danger"
@@ -160,7 +160,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useRoute } from "vue-router";
 import { useReservationStore } from "../../stores/reservationStore";
 import { useAuthStore } from "../../stores/authStore";
@@ -230,6 +230,29 @@ const showCancelConfirm = ref(false);
 const cancelTarget = ref(null);
 const cancelLoading = ref(false);
 
+const cancelConfirmMessage = computed(() => {
+  if (!cancelTarget.value) return "";
+  const r = cancelTarget.value;
+  const hoursBefore = (new Date(r.startAt).getTime() - Date.now()) / (1000 * 60 * 60);
+  const isPaid = r.depositStatus === "PAID" && r.depositAmount > 0;
+
+  if (isPaid) {
+    if (hoursBefore <= 24) {
+      return langStore.isEnglish
+        ? `⚠️ REFUND POLICY WARNING: You are cancelling within 24 hours of your booking. According to restaurant policy, your deposit of ${r.depositAmount.toLocaleString('vi-VN')}đ WILL BE FORFEITED. Do you wish to proceed?`
+        : `⚠️ CẢNH BÁO QUY ĐỊNH HOÀN CỌC: Bạn đang hủy đơn CẬN NGÀY (dưới 24 giờ trước giờ hẹn). Theo quy định của nhà hàng, bạn sẽ BỊ MẤT TOÀN BỘ TIỀN CỌC (${r.depositAmount.toLocaleString('vi-VN')}đ). Bạn có chắc chắn muốn hủy không?`;
+    } else {
+      return langStore.isEnglish
+        ? `✅ REFUND ELIGIBLE: You are cancelling more than 24 hours in advance. You will receive a 100% REFUND of your deposit (${r.depositAmount.toLocaleString('vi-VN')}đ). Confirm cancellation?`
+        : `✅ CHÍNH SÁCH HOÀN TIỀN: Bạn đang hủy đơn TRƯỚC 24 GIỜ. Bạn sẽ được HOÀN LẠI 100% TIỀN CỌC (${r.depositAmount.toLocaleString('vi-VN')}đ). Bàn đã giữ sẽ được giải phóng. Bạn có chắc chắn muốn hủy?`;
+    }
+  }
+
+  return langStore.isEnglish
+    ? "Are you sure you want to cancel this reservation? The reserved tables will be released."
+    : "Bạn có chắc chắn muốn hủy đơn đặt bàn này? Bàn đã giữ sẽ được giải phóng.";
+});
+
 const handleCancel = (r) => {
   cancelTarget.value = r;
   showCancelConfirm.value = true;
@@ -265,8 +288,8 @@ const submitReschedule = async () => {
     return;
   }
   try {
-    await reservationStore.rescheduleReservation(rescheduleTarget.value._id, new Date(newStartAt.value).toISOString());
-    toast.success(langStore.isEnglish ? "Rescheduled successfully!" : "Dời lịch thành công!");
+    const res = await reservationStore.rescheduleReservation(rescheduleTarget.value._id, new Date(newStartAt.value).toISOString());
+    toast.success(res.message || (langStore.isEnglish ? "Reschedule request sent to manager!" : "Yêu cầu dời lịch đã gửi tới Quản lý nhà hàng!"));
     showRescheduleModal.value = false;
     await reservationStore.fetchMyReservations();
   } catch (err) {

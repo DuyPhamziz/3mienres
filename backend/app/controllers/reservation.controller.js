@@ -382,11 +382,11 @@ exports.getMyReservations = async (req, res, next) => {
   }
 };
 
-// 5. Dời lịch đặt bàn
+// 5. Dời lịch đặt bàn (Khách hàng gửi yêu cầu chờ duyệt, Nhân viên dời trực tiếp)
 exports.rescheduleReservation = async (req, res, next) => {
   try {
     const { id } = req.params;
-    const { startAt } = req.body;
+    const { startAt, reason } = req.body;
 
     const reservation = await Reservation.findById(id);
     if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
@@ -406,6 +406,31 @@ exports.rescheduleReservation = async (req, res, next) => {
       return next(new AppError("Thời gian mới phải là thời điểm hợp lệ trong tương lai", 400));
     }
 
+    // NẾU LÀ KHÁCH HÀNG: Tạo yêu cầu dời lịch để Quản lý nhà hàng xác nhận
+    if (!isStaff) {
+      reservation.rescheduleRequest = {
+        requestedStartAt: startTime,
+        reason: reason ? reason.trim() : "Khách yêu cầu dời giờ",
+        requestedAt: new Date(),
+        status: "PENDING",
+      };
+      await reservation.save();
+
+      emitEvent("reservations:changed");
+      logAction(req, "REQUEST_RESCHEDULE", "Reservation", reservation._id, {
+        reservationCode: reservation.reservationCode,
+        requestedStartAt: startTime,
+      });
+
+      return res.status(200).json({
+        status: "success",
+        message: "Yêu cầu dời lịch đã được gửi thành công. Quản lý nhà hàng sẽ kiểm tra bàn và xác nhận trong ít phút.",
+        requiresApproval: true,
+        data: { reservation },
+      });
+    }
+
+    // NẾU LÀ NHÂN VIÊN/QUẢN LÝ: Dời lịch trực tiếp ngay lập tức
     const settings = await getRestaurantPaymentSettings();
     const endTime = new Date(startTime.getTime() + settings.durationMinutes * 60000);
     const occupiedTableIds = await tableEngine.getOccupiedTableIds(startTime, endTime);
@@ -446,9 +471,15 @@ exports.rescheduleReservation = async (req, res, next) => {
     reservation.endAt = endTime;
     reservation.tables = assignedTables;
     reservation.status = "CONFIRMED";
+    if (reservation.rescheduleRequest) {
+      reservation.rescheduleRequest.status = "APPROVED";
+      reservation.rescheduleRequest.processedBy = req.user._id;
+      reservation.rescheduleRequest.processedAt = new Date();
+    }
     await reservation.save();
 
     emitEvent("reservations:changed");
+    emitEvent("tables:changed");
 
     res.status(200).json({
       status: "success",

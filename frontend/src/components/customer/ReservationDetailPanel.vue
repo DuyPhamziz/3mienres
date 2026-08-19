@@ -96,11 +96,34 @@
           </button>
         </div>
 
+        <!-- Reschedule Request Status Box -->
+        <div v-if="r.rescheduleRequest?.status === 'PENDING'" class="p-3 bg-warning bg-opacity-15 border border-warning rounded-4 mb-3 small text-dark">
+          <div class="d-flex align-items-center gap-2 fw-bold text-warning-emphasis mb-1">
+            <i class="fa-solid fa-hourglass-half"></i>
+            {{ isEnglish ? 'Reschedule Pending Approval' : 'Đang Chờ Quản Lý Duyệt Dời Lịch' }}
+          </div>
+          <div class="fs-8 text-secondary mb-1">
+            {{ isEnglish ? 'Requested dining time:' : 'Thời gian mới yêu cầu:' }}
+            <strong class="text-danger d-block">{{ new Date(r.rescheduleRequest.requestedStartAt).toLocaleString('vi-VN') }}</strong>
+          </div>
+          <small class="text-muted fs-9 d-block fst-italic">
+            {{ isEnglish ? 'Restaurant manager will check table availability and confirm shortly.' : 'Quản lý sẽ kiểm tra bàn trống và xác nhận trong ít phút.' }}
+          </small>
+        </div>
+
+        <div v-else-if="r.rescheduleRequest?.status === 'REJECTED'" class="p-2.5 bg-danger bg-opacity-10 border border-danger rounded-3 mb-3 small text-dark">
+          <strong class="text-danger d-block mb-1">
+            <i class="fa-solid fa-circle-xmark me-1"></i>
+            {{ isEnglish ? 'Reschedule Request Rejected' : 'Yêu Cầu Dời Lịch Bị Từ Chối' }}
+          </strong>
+          <small class="text-secondary fs-9 d-block">{{ r.rescheduleRequest.reason || 'Nhà hàng đã hết bàn trống trong khung giờ yêu cầu.' }}</small>
+        </div>
+
         <!-- Action Buttons -->
-        <div v-if="r.status === 'CONFIRMED' || r.status === 'PENDING'" class="d-flex flex-column gap-2 mt-3">
+        <div v-if="r.status === 'CONFIRMED' || r.status === 'PENDING'" class="d-flex flex-column gap-2 mt-2">
           <button @click="$emit('reschedule', r)" class="btn btn-outline-primary rounded-pill fw-semibold btn-sm">
             <i class="fa-solid fa-calendar-days me-1"></i>
-            {{ isEnglish ? 'Reschedule' : 'Dời Lịch' }}
+            {{ r.rescheduleRequest?.status === 'PENDING' ? (isEnglish ? 'Change Request Time' : 'Đổi Giờ Khác') : (isEnglish ? 'Reschedule' : 'Dời Lịch') }}
           </button>
           <button @click="$emit('cancel', r)" class="btn btn-outline-danger rounded-pill fw-semibold btn-sm">
             <i class="fa-solid fa-ban me-1"></i>

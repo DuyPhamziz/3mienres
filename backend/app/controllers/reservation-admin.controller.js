@@ -213,3 +213,106 @@ exports.triggerNoShowScan = async (req, res, next) => {
   }
 };
 
+// 7. Quản lý DUYỆT yêu cầu dời lịch đặt bàn của khách hàng
+exports.approveReschedule = async (req, res, next) => {
+  try {
+    const reservation = await Reservation.findById(req.params.id);
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
+
+    if (!reservation.rescheduleRequest || reservation.rescheduleRequest.status !== "PENDING" || !reservation.rescheduleRequest.requestedStartAt) {
+      return next(new AppError("Đơn đặt bàn này không có yêu cầu dời lịch đang chờ duyệt", 400));
+    }
+
+    const newStartAt = new Date(reservation.rescheduleRequest.requestedStartAt);
+    const { getRestaurantPaymentSettings } = require("../utils/reservation-policy");
+    const settings = await getRestaurantPaymentSettings();
+    const endTime = new Date(newStartAt.getTime() + settings.durationMinutes * 60000);
+
+    const occupiedTableIds = await tableEngine.getOccupiedTableIds(newStartAt, endTime);
+    const allTables = await Table.find({ isActive: { $ne: false }, status: { $ne: "MAINTENANCE" } });
+    const availableTables = allTables.filter((t) => !occupiedTableIds.has(t._id.toString()));
+
+    const singleMatches = availableTables
+      .filter((t) => t.capacity >= reservation.guestsCount)
+      .sort((a, b) => a.capacity - b.capacity);
+
+    let assignedTables = [];
+    if (singleMatches.length > 0) {
+      assignedTables = [singleMatches[0]._id];
+    } else {
+      const combinations = await tableEngine.findCombinations(availableTables, reservation.guestsCount);
+      combinations.sort((a, b) => a.totalCapacity - b.totalCapacity);
+      if (combinations.length > 0) assignedTables = combinations[0].tables.map((t) => t._id);
+    }
+
+    if (assignedTables.length === 0) {
+      return next(new AppError("Không còn bàn trống trong khung giờ mới khách yêu cầu. Vui lòng liên hệ trực tiếp với khách hoặc từ chối.", 409));
+    }
+
+    reservation.startAt = newStartAt;
+    reservation.endAt = endTime;
+    reservation.tables = assignedTables;
+    reservation.status = "CONFIRMED";
+    reservation.rescheduleRequest.status = "APPROVED";
+    reservation.rescheduleRequest.processedBy = req.user._id;
+    reservation.rescheduleRequest.processedAt = new Date();
+
+    await reservation.save();
+
+    emitEvent("reservations:changed");
+    emitEvent("tables:changed");
+    notifier.notifyReservationCreated(reservation);
+    logAction(req, "APPROVE_RESCHEDULE", "Reservation", reservation._id, {
+      reservationCode: reservation.reservationCode,
+      newStartAt,
+      assignedTables,
+    });
+
+    const populated = await Reservation.findById(reservation._id)
+      .populate("tables", "tableNumber capacity area")
+      .populate("preOrderDishes.dish", "name price");
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã duyệt dời lịch thành công cho đơn ${reservation.reservationCode}`,
+      data: { reservation: populated },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// 8. Quản lý TỪ CHỐI yêu cầu dời lịch đặt bàn
+exports.rejectReschedule = async (req, res, next) => {
+  try {
+    const { reason } = req.body;
+    const reservation = await Reservation.findById(req.params.id);
+    if (!reservation) return next(new AppError("Không tìm thấy đơn đặt bàn này", 404));
+
+    if (!reservation.rescheduleRequest || reservation.rescheduleRequest.status !== "PENDING") {
+      return next(new AppError("Đơn đặt bàn này không có yêu cầu dời lịch đang chờ duyệt", 400));
+    }
+
+    reservation.rescheduleRequest.status = "REJECTED";
+    reservation.rescheduleRequest.reason = reason || "Nhà hàng kín bàn trong khung giờ này";
+    reservation.rescheduleRequest.processedBy = req.user._id;
+    reservation.rescheduleRequest.processedAt = new Date();
+
+    await reservation.save();
+
+    emitEvent("reservations:changed");
+    logAction(req, "REJECT_RESCHEDULE", "Reservation", reservation._id, {
+      reservationCode: reservation.reservationCode,
+      reason,
+    });
+
+    res.status(200).json({
+      status: "success",
+      message: `Đã từ chối yêu cầu dời lịch của đơn ${reservation.reservationCode}`,
+      data: { reservation },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+

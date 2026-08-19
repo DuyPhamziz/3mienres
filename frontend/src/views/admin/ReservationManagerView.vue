@@ -66,6 +66,8 @@
       @check-in="handleCheckIn"
       @custom-check-in="openCustomCheckIn"
       @confirm-deposit="handleConfirmDeposit"
+      @approve-reschedule="handleApproveReschedule"
+      @reject-reschedule="handleRejectReschedule"
       @mark-no-show="handleMarkNoShow"
     />
 
@@ -240,6 +242,26 @@ const handleCheckIn = async (reservation) => {
     toast.error("Lỗi Check-in: " + err.message);
   } finally {
     checkInLoading.value = false;
+  }
+};
+
+const handleApproveReschedule = async (reservation) => {
+  try {
+    const res = await reservationStore.approveReschedule(reservation._id);
+    toast.success(res.message || `Đã duyệt dời lịch thành công cho đơn ${reservation.reservationCode}!`);
+    await fetchReservations();
+  } catch (err) {
+    toast.error("Lỗi duyệt dời lịch: " + err.message);
+  }
+};
+
+const handleRejectReschedule = async (reservation) => {
+  try {
+    const res = await reservationStore.rejectReschedule(reservation._id, "Nhà hàng đã kín bàn trong khung giờ này");
+    toast.info(res.message || `Đã từ chối dời lịch cho đơn ${reservation.reservationCode}`);
+    await fetchReservations();
+  } catch (err) {
+    toast.error("Lỗi: " + err.message);
   }
 };
 
