@@ -1,7 +1,7 @@
 <template>
   <div class="menu-manager-view">
     <!-- Header -->
-    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
       <div>
         <h4 class="fw-bold brand-font text-dark mb-1">
           <i class="fa-solid fa-book-open text-danger me-2"></i>Quản Lý Thực Đơn & Phân Tích Giá Vốn (COGS)
@@ -10,9 +10,15 @@
       </div>
 
       <div class="d-flex gap-2 align-items-center flex-wrap">
-        <div class="input-group input-group-sm" style="width: 200px;">
+        <div class="input-group input-group-sm" style="width: 210px;">
           <span class="input-group-text bg-white"><i class="fa-solid fa-magnifying-glass text-muted"></i></span>
-          <input v-model="search" @keyup.enter="onSearch" type="text" class="form-control" placeholder="Tìm món ăn..." />
+          <input
+            v-model="search"
+            @input="currentPage = 1"
+            type="text"
+            class="form-control"
+            placeholder="Tìm món ăn..."
+          />
         </div>
         <button @click="exportMenuExcel" class="btn btn-outline-success btn-sm rounded-pill px-3 fw-semibold">
           <i class="fa-solid fa-file-excel me-1"></i> Xuất Excel
@@ -29,47 +35,64 @@
       </div>
     </div>
 
+    <!-- Region Filter Tabs & Counter -->
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+      <div class="d-flex align-items-center gap-1.5 overflow-x-auto pb-1 scrollbar-none">
+        <button
+          v-for="reg in regionTabs"
+          :key="reg.key"
+          @click="selectRegion(reg.key)"
+          :class="['btn btn-sm rounded-pill px-3 fw-semibold text-nowrap transition-all', selectedRegion === reg.key ? 'btn-danger shadow-2xs' : 'btn-light border text-secondary']"
+        >
+          <i :class="reg.icon" class="me-1"></i>{{ reg.label }}
+          <span class="badge ms-1 rounded-pill" :class="selectedRegion === reg.key ? 'bg-white text-danger' : 'bg-secondary bg-opacity-20 text-dark'">
+            {{ getRegionCount(reg.key) }}
+          </span>
+        </button>
+      </div>
+
+      <div class="small text-muted">
+        Tổng số: <strong class="text-dark">{{ filteredDishList.length }}</strong> món ăn
+      </div>
+    </div>
+
     <!-- Dish Table Grid -->
     <div v-if="loading" class="text-center py-5">
       <div class="spinner-border text-danger" role="status"></div>
+      <p class="text-muted small mt-2">Đang tải danh sách thực đơn...</p>
     </div>
 
-    <div v-else class="card border-0 rounded-4 shadow-2xs bg-white overflow-hidden p-4">
-      <div v-if="dishList.length > 0" class="table-responsive">
+    <div v-else class="card border-0 rounded-4 shadow-2xs bg-white overflow-hidden p-3 p-md-4">
+      <div v-if="paginatedDishList.length > 0" class="table-responsive">
         <table class="table table-hover align-middle mb-0" style="font-size: 0.82rem;">
           <thead class="bg-light text-secondary">
             <tr>
-              <th style="width: 70px;">Hình Ảnh</th>
+              <th style="width: 75px;">Hình Ảnh</th>
               <th style="width: 220px;">Món Ăn Đặc Sản</th>
-              <th style="width: 100px;">Vùng Miền</th>
+              <th style="width: 105px;">Vùng Miền</th>
               <th style="width: 120px;">Giá Bán</th>
               <th style="width: 120px;">Giá Vốn (COGS)</th>
               <th style="width: 140px;">Biên Lợi Nhuận</th>
               <th style="width: 120px;" class="text-center">Trạng Thái</th>
-              <th style="width: 140px;" class="text-end">Thao Tác</th>
+              <th style="width: 130px;" class="text-end">Thao Tác</th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="dish in dishList" :key="dish._id">
+            <tr v-for="dish in paginatedDishList" :key="dish._id">
               <td>
                 <div class="position-relative d-inline-block">
                   <img
-                    v-if="dish.image"
                     :src="getImageUrl(dish.image)"
-                    loading="lazy"
-                    decoding="async"
-                    class="rounded-3 shadow-2xs border"
-                    style="width: 48px; height: 48px; object-fit: cover;"
-                    onerror="this.src='/images/dishes/default-dish.jpg'"
+                    :alt="dish.name"
+                    class="rounded-3 shadow-2xs border object-fit-cover bg-light"
+                    style="width: 50px; height: 50px;"
+                    onerror="this.src='/uploads/dishes/cua-rang-me-ca-mau.jpg'"
                   />
-                  <div v-else class="p-2 bg-light rounded-3 text-center border" style="width: 48px; height: 48px;">
-                    <i class="fa-solid fa-utensils fs-5 text-danger mt-1"></i>
-                  </div>
                 </div>
               </td>
               <td>
-                <strong class="d-block text-dark">{{ dish.name }}</strong>
-                <small class="text-muted fs-9">{{ dish.category?.name || dish.category }}</small>
+                <strong class="d-block text-dark fs-7">{{ dish.name }}</strong>
+                <small class="text-muted fs-9">{{ dish.category?.name || dish.category || 'Món chính' }}</small>
               </td>
               <td>
                 <span
@@ -123,8 +146,53 @@
             </tr>
           </tbody>
         </table>
+
+        <!-- ═══ PAGINATION CONTROLS ═══ -->
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3 pt-3 mt-2 border-top">
+          <div class="small text-muted">
+            Hiển thị <strong>{{ (currentPage - 1) * pageSize + 1 }}</strong> - <strong>{{ Math.min(currentPage * pageSize, filteredDishList.length) }}</strong> trên tổng số <strong>{{ filteredDishList.length }}</strong> món ăn
+          </div>
+
+          <div class="d-flex align-items-center gap-2">
+            <!-- Select items per page -->
+            <select v-model.number="pageSize" @change="currentPage = 1" class="form-select form-select-sm" style="width: 120px; font-size: 0.8rem;">
+              <option :value="8">8 món / trang</option>
+              <option :value="10">10 món / trang</option>
+              <option :value="15">15 món / trang</option>
+              <option :value="20">20 món / trang</option>
+            </select>
+
+            <!-- Page Buttons -->
+            <ul class="pagination pagination-sm mb-0">
+              <li class="page-item" :class="{ disabled: currentPage === 1 }">
+                <button @click="currentPage--" class="page-link" :disabled="currentPage === 1" aria-label="Previous">
+                  <i class="fa-solid fa-chevron-left"></i>
+                </button>
+              </li>
+
+              <li
+                v-for="p in visiblePages"
+                :key="p"
+                class="page-item"
+                :class="{ active: p === currentPage }"
+              >
+                <button @click="currentPage = p" class="page-link">{{ p }}</button>
+              </li>
+
+              <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+                <button @click="currentPage++" class="page-link" :disabled="currentPage === totalPages" aria-label="Next">
+                  <i class="fa-solid fa-chevron-right"></i>
+                </button>
+              </li>
+            </ul>
+          </div>
+        </div>
       </div>
-      <p v-else class="text-muted small py-5 text-center mb-0">Chưa có món ăn nào trong thực đơn</p>
+
+      <div v-else class="text-center py-5 text-muted">
+        <i class="fa-solid fa-bowl-food display-5 opacity-40 mb-2 d-block"></i>
+        <p class="small mb-0">Không tìm thấy món ăn nào phù hợp với bộ lọc</p>
+      </div>
     </div>
 
     <!-- Modals -->
@@ -153,11 +221,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from "vue";
+import { ref, computed, onMounted } from "vue";
 import { useMenuStore } from "../../stores/menuStore";
 import api from "../../services/api";
 import { toast } from "../../composables/useToast";
 import { exportToCSV } from "../../utils/excelExporter";
+import { getImageUrl } from "../../utils/imageHelper";
 
 import AddDishModal from "../../components/admin/menu/AddDishModal.vue";
 import UploadDishImageModal from "../../components/admin/menu/UploadDishImageModal.vue";
@@ -167,17 +236,79 @@ const menuStore = useMenuStore();
 const dishList = ref([]);
 const loading = ref(false);
 const search = ref("");
+const selectedRegion = ref("ALL");
+const currentPage = ref(1);
+const pageSize = ref(10);
+
 const showAddModal = ref(false);
 const showUploadModal = ref(false);
 const showCategoryModal = ref(false);
 const selectedDish = ref(null);
 const modalError = ref("");
 
-const getImageUrl = (path) => {
-  if (!path) return "/images/dishes/default-dish.jpg";
-  if (path.startsWith("http")) return path;
-  return `http://localhost:5000${path.startsWith("/") ? "" : "/"}${path}`;
+const regionTabs = [
+  { key: "ALL", label: "Tất Cả Vùng Miền", icon: "fa-solid fa-earth-asia" },
+  { key: "Bắc", label: "Miền Bắc", icon: "fa-solid fa-bowl-rice" },
+  { key: "Trung", label: "Miền Trung", icon: "fa-solid fa-pepper-hot" },
+  { key: "Nam", label: "Miền Nam", icon: "fa-solid fa-water" },
+];
+
+const selectRegion = (regionKey) => {
+  selectedRegion.value = regionKey;
+  currentPage.value = 1;
 };
+
+const getRegionCount = (regionKey) => {
+  if (regionKey === "ALL") return dishList.value.length;
+  return dishList.value.filter((d) => d.region === regionKey).length;
+};
+
+const filteredDishList = computed(() => {
+  let list = dishList.value;
+
+  // Filter by Region
+  if (selectedRegion.value !== "ALL") {
+    list = list.filter((d) => d.region === selectedRegion.value);
+  }
+
+  // Filter by Search keyword
+  if (search.value.trim()) {
+    const q = search.value.trim().toLowerCase();
+    list = list.filter((d) =>
+      d.name.toLowerCase().includes(q) ||
+      (d.category?.name || d.category || "").toLowerCase().includes(q)
+    );
+  }
+
+  return list;
+});
+
+const totalPages = computed(() => {
+  return Math.ceil(filteredDishList.value.length / pageSize.value) || 1;
+});
+
+const paginatedDishList = computed(() => {
+  const start = (currentPage.value - 1) * pageSize.value;
+  return filteredDishList.value.slice(start, start + pageSize.value);
+});
+
+const visiblePages = computed(() => {
+  const pages = [];
+  const total = totalPages.value;
+  const cur = currentPage.value;
+
+  if (total <= 5) {
+    for (let i = 1; i <= total; i++) pages.push(i);
+  } else {
+    let start = Math.max(1, cur - 2);
+    let end = Math.min(total, start + 4);
+    if (end - start < 4) {
+      start = Math.max(1, end - 4);
+    }
+    for (let i = start; i <= end; i++) pages.push(i);
+  }
+  return pages;
+});
 
 const loadData = async () => {
   loading.value = true;
@@ -185,21 +316,12 @@ const loadData = async () => {
     const res = await api.get("/dishes/profit-analysis");
     dishList.value = res.data.data.analysis || [];
     await menuStore.fetchCategories();
-  } catch (err) {
+  } catch {
     await menuStore.fetchDishes();
     dishList.value = menuStore.dishes;
   } finally {
     loading.value = false;
   }
-};
-
-const onSearch = () => {
-  if (!search.value.trim()) {
-    loadData();
-    return;
-  }
-  const q = search.value.trim().toLowerCase();
-  dishList.value = dishList.value.filter((d) => d.name.toLowerCase().includes(q));
 };
 
 const exportMenuExcel = () => {
@@ -213,7 +335,7 @@ const exportMenuExcel = () => {
     { header: "Biên Lợi Nhuận (%)", key: (d) => `${d.profitMargin || 0}%` },
     { header: "Trạng Thái", key: (d) => (d.availability !== false ? "Còn hàng" : "Hết hàng") },
   ];
-  exportToCSV(columns, dishList.value, `Thuc-Don-Gia-Von-${new Date().toISOString().split("T")[0]}.csv`);
+  exportToCSV(columns, filteredDishList.value, `Thuc-Don-Gia-Von-${new Date().toISOString().split("T")[0]}.csv`);
   toast.success("Đã xuất file thực đơn kèm giá vốn thành công!");
 };
 
@@ -258,5 +380,16 @@ onMounted(() => {
 <style scoped>
 .shadow-2xs {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+.page-link {
+  color: #334155;
+  border-radius: 6px;
+  margin: 0 2px;
+  border-color: #e2e8f0;
+}
+.page-item.active .page-link {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: #ffffff;
 }
 </style>
